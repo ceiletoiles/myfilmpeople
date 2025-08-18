@@ -1,0 +1,472 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'TiemposTextWeb', Georgia, serif;
+  line-height: 1.6;
+  background: #14181c;
+  color: #9ab;
+  min-height: 100vh;
+  padding: 0;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  background: #14181c;
+  min-height: 100vh;
+}
+
+.header {
+  background: #2c3440;
+  border-bottom: 1px solid #456;
+  color: white;
+  text-align: center;
+  padding: 30px 20px;
+}
+
+h1 {
+  font-size: 2.2rem;
+  font-weight: 400;
+  margin-bottom: 8px;
+  color: #ff8000;
+  font-family: 'Graphik', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.header p {
+  color: #9ab;
+  font-size: 0.9rem;
+  font-weight: 400;
+}
+
+.content {
+  padding: 30px 20px;
+  background: #14181c;
+}
+
+.tabs {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 30px;
+  border-bottom: 1px solid #456;
+  background: #2c3440;
+  border-radius: 3px;
+}
+
+.tab-button {
+  background: none;
+  border: none;
+  padding: 12px 24px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #9ab;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-bottom: 2px solid transparent;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-family: 'Graphik', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.tab-button:hover {
+  color: #ff8000;
+  background: rgba(255, 128, 0, 0.1);
+}
+
+.tab-button.active {
+  color: #ff8000;
+  border-bottom-color: #ff8000;
+  background: rgba(255, 128, 0, 0.1);
+}
+
+.tab-content {
+  display: none;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+h3 {
+  font-size: 1.5rem;
+  color: #cdf;
+  margin: 0;
+  font-weight: 400;
+  font-family: 'TiemposTextWeb', Georgia, serif;
+}
+
+.header-with-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  flex-wrap: nowrap;
+  gap: 20px;
+  position: relative;
+}
+
+.header-controls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.header-controls.left {
+  justify-content: flex-start;
+}
+
+.header-controls.right {
+  justify-content: flex-end;
+}
+
+h3 {
+  font-size: 1.5rem;
+  color: #cdf;
+  margin: 0;
+  font-weight: 400;
+  font-family: 'TiemposTextWeb', Georgia, serif;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.simple-controls {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  align-items: center;
+  margin: 30px 0;
+  flex-wrap: wrap;
+}
+
+select, input[type="text"] {
+  padding: 8px 12px;
+  border: 1px solid #456;
+  border-radius: 3px;
+  font-size: 0.8rem;
+  background: #2c3440;
+  color: #9ab;
+  transition: all 0.2s ease;
+  min-width: 160px;
+  font-family: 'Graphik', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+select:focus, input[type="text"]:focus {
+  outline: none;
+  border-color: #ff8000;
+  box-shadow: 0 0 0 2px rgba(255, 128, 0, 0.2);
+  background: #445566;
+}
+
+input[type="text"]::placeholder {
+  color: #678;
+}
+
+select option {
+  background: #2c3440;
+  color: #9ab;
+}
+
+/* Modern expandable controls */
+.control-group {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.control-group.search-group {
+  flex-direction: row-reverse;
+  gap: 0;
+}
+
+.control-button {
+  width: 40px;
+  height: 40px;
+  border: 1px solid #456;
+  border-radius: 3px;
+  background: #2c3440;
+  color: #9ab;
+  font-size: 1.1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.control-button:hover {
+  background: #445566;
+  border-color: #ff8000;
+  color: #ff8000;
+}
+
+.control-button.active {
+  background: #445566;
+  border-color: #ff8000;
+  color: #ff8000;
+}
+
+.sort-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: #2c3440;
+  border: 1px solid #456;
+  border-radius: 3px;
+  z-index: 1000;
+  min-width: 140px;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-10px);
+  transition: all 0.2s ease;
+  margin-top: 4px;
+}
+
+.sort-dropdown.show {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.sort-option {
+  padding: 10px 12px;
+  color: #9ab;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.8rem;
+  border-bottom: 1px solid #456;
+}
+
+.sort-option:last-child {
+  border-bottom: none;
+}
+
+.sort-option:hover {
+  background: #445566;
+  color: #ff8000;
+}
+
+.sort-option.active {
+  background: #445566;
+  color: #ff8000;
+}
+
+.search-input {
+  width: 0;
+  opacity: 0;
+  padding: 8px 12px;
+  border: 1px solid #456;
+  border-radius: 3px;
+  background: #2c3440;
+  color: #9ab;
+  transition: all 0.3s ease;
+  font-size: 0.8rem;
+  font-family: 'Graphik', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  border-left: none;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.search-input.expanded {
+  width: 200px;
+  opacity: 1;
+  border-left: 1px solid #456;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #ff8000;
+  box-shadow: 0 0 0 2px rgba(255, 128, 0, 0.2);
+  background: #445566;
+}
+
+.search-input::placeholder {
+  color: #678;
+}
+
+.directors-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+  margin-top: 30px;
+}
+
+.director-card {
+  background: #2c3440;
+  border: 1px solid #456;
+  border-radius: 3px;
+  transition: all 0.2s ease;
+  overflow: hidden;
+  position: relative;
+}
+
+.director-card:hover {
+  background: #445566;
+  border-color: #ff8000;
+  transform: translateY(-1px);
+}
+
+.director-card a {
+  display: block;
+  padding: 16px;
+  text-decoration: none;
+  color: #cdf;
+  font-weight: 400;
+  font-size: 0.875rem;
+  position: relative;
+  transition: all 0.2s ease;
+  font-family: 'TiemposTextWeb', Georgia, serif;
+  line-height: 1.4;
+}
+
+.director-card a:hover {
+  color: #ff8000;
+}
+
+.director-card a::before {
+  content: '';
+  display: none;
+}
+
+.director-card a::after {
+  content: '→';
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  opacity: 0;
+  transition: all 0.2s ease;
+  color: #ff8000;
+  font-weight: 600;
+}
+
+.director-card:hover a::after {
+  opacity: 1;
+  right: 12px;
+}
+
+@media (max-width: 768px) {
+  .content {
+    padding: 20px 15px;
+  }
+  
+  h1 {
+    font-size: 1.8rem;
+  }
+  
+  .directors-grid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+  }
+
+  .simple-controls {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .header-with-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: nowrap;
+    gap: 10px;
+    position: relative;
+  }
+
+  .header-controls.left,
+  .header-controls.right {
+    flex-shrink: 0;
+  }
+
+  h3 {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 1.3rem;
+  }
+
+  .control-group.search-group {
+    flex-direction: column;
+    position: relative;
+    align-items: flex-end;
+  }
+
+  .search-input {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    width: 0;
+    opacity: 0;
+    border-radius: 3px;
+    border-left: 1px solid #456;
+    margin-top: 8px;
+    z-index: 1001;
+  }
+
+  .search-input.expanded {
+    width: 80vw;
+    opacity: 1;
+  }
+
+  .sort-dropdown {
+    left: 0;
+    transform: none;
+    min-width: 160px;
+  }
+
+  .sort-dropdown.show {
+    transform: translateY(0);
+  }
+
+  .directors-grid {
+    margin-top: 30px;
+    transition: margin-top 0.3s ease;
+  }
+
+  .tab-content.has-search-active .directors-grid {
+    margin-top: 80px;
+  }
+
+  select, input[type="text"] {
+    min-width: 200px;
+    width: 100%;
+    max-width: 300px;
+  }
+
+  .tabs {
+    margin-bottom: 20px;
+  }
+
+  .tab-button {
+    padding: 10px 16px;
+    font-size: 0.75rem;
+  }
+
+  .director-card a {
+    padding: 12px;
+    font-size: 0.8rem;
+  }
+
+  .header {
+    padding: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .directors-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  }
+  
+  .director-card a {
+    padding: 10px;
+    font-size: 0.75rem;
+  }
+}

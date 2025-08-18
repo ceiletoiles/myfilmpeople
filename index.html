@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MyFilmPeople</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>MyFilmPeople</h1>
+        <p>Letterboxd Movies Cast and Crew Following Tool</p>
+      </div>
+      <div class="content">
+        <div class="tabs">
+          <button class="tab-button active" data-tab="directors">Directors</button>
+          <button class="tab-button" data-tab="actors">Actors</button>
+        </div>
+
+        <div id="directors-tab" class="tab-content active">
+          <div class="header-with-controls">
+            <div class="header-controls left">
+              <div class="control-group">
+                <button class="control-button" id="directorsSortButton">↕</button>
+                <div class="sort-dropdown" id="directorsSortDropdown">
+                  <div class="sort-option" data-sort="alphabetical">A-Z</div>
+                  <div class="sort-option" data-sort="reverse">Z-A</div>
+                  <div class="sort-option" data-sort="popular-shuffle">Popular Mix</div>
+                </div>
+              </div>
+            </div>
+            <h3>Directors</h3>
+            <div class="header-controls right">
+              <div class="control-group search-group">
+                <button class="control-button" id="directorsSearchButton">⌕</button>
+                <input type="text" class="search-input" id="directorsSearch" placeholder="Search directors..." />
+              </div>
+            </div>
+          </div>
+          <div class="directors-grid" id="directorsGrid">
+            <div class="director-card" data-name="Stanley Kubrick" data-popularity="10"><a href="https://letterboxd.com/director/stanley-kubrick/" target="_blank">Stanley Kubrick</a></div>
+            <div class="director-card" data-name="Alfred Hitchcock" data-popularity="10"><a href="https://letterboxd.com/director/alfred-hitchcock/" target="_blank">Alfred Hitchcock</a></div>
+            <div class="director-card" data-name="Martin Scorsese" data-popularity="10"><a href="https://letterboxd.com/director/martin-scorsese/" target="_blank">Martin Scorsese</a></div>
+            <div class="director-card" data-name="Steven Spielberg" data-popularity="10"><a href="https://letterboxd.com/director/steven-spielberg/" target="_blank">Steven Spielberg</a></div>
+            <div class="director-card" data-name="Akira Kurosawa" data-popularity="9"><a href="https://letterboxd.com/director/akira-kurosawa/" target="_blank">Akira Kurosawa</a></div>
+            <div class="director-card" data-name="Satyajit Ray" data-popularity="8"><a href="https://letterboxd.com/director/satyajit-ray/" target="_blank">Satyajit Ray</a></div>
+            <div class="director-card" data-name="Andrei Tarkovsky" data-popularity="8"><a href="https://letterboxd.com/director/andrei-tarkovsky/" target="_blank">Andrei Tarkovsky</a></div>
+            <div class="director-card" data-name="Christopher Nolan" data-popularity="10"><a href="https://letterboxd.com/director/christopher-nolan/" target="_blank">Christopher Nolan</a></div>
+            <div class="director-card" data-name="Quentin Tarantino" data-popularity="9"><a href="https://letterboxd.com/director/quentin-tarantino/" target="_blank">Quentin Tarantino</a></div>
+            <div class="director-card" data-name="Hayao Miyazaki" data-popularity="9"><a href="https://letterboxd.com/director/hayao-miyazaki/" target="_blank">Hayao Miyazaki</a></div>
+            <div class="director-card" data-name="David Fincher" data-popularity="9"><a href="https://letterboxd.com/director/david-fincher/" target="_blank">David Fincher</a></div>
+            <div class="director-card" data-name="Paul Thomas Anderson" data-popularity="8"><a href="https://letterboxd.com/director/paul-thomas-anderson/" target="_blank">Paul Thomas Anderson</a></div>
+            <div class="director-card" data-name="Denis Villeneuve" data-popularity="9"><a href="https://letterboxd.com/director/denis-villeneuve/" target="_blank">Denis Villeneuve</a></div>
+            <div class="director-card" data-name="Wes Anderson" data-popularity="8"><a href="https://letterboxd.com/director/wes-anderson/" target="_blank">Wes Anderson</a></div>
+            <div class="director-card" data-name="Guillermo del Toro" data-popularity="8"><a href="https://letterboxd.com/director/guillermo-del-toro/" target="_blank">Guillermo del Toro</a></div>
+            <div class="director-card" data-name="Bong Joon Ho" data-popularity="9"><a href="https://letterboxd.com/director/bong-joon-ho/" target="_blank">Bong Joon Ho</a></div>
+            <div class="director-card" data-name="Wong Kar Wai" data-popularity="7"><a href="https://letterboxd.com/director/wong-kar-wai/" target="_blank">Wong Kar Wai</a></div>
+            <div class="director-card" data-name="Park Chan Wook" data-popularity="8"><a href="https://letterboxd.com/director/park-chan-wook/" target="_blank">Park Chan Wook</a></div>
+            <div class="director-card" data-name="Terrence Malick" data-popularity="7"><a href="https://letterboxd.com/director/terrence-malick/" target="_blank">Terrence Malick</a></div>
+            <div class="director-card" data-name="David Lynch" data-popularity="8"><a href="https://letterboxd.com/director/david-lynch/" target="_blank">David Lynch</a></div>
+            <div class="director-card" data-name="Yorgos Lanthimos" data-popularity="7"><a href="https://letterboxd.com/director/yorgos-lanthimos/" target="_blank">Yorgos Lanthimos</a></div>
+            <div class="director-card" data-name="Ridley Scott" data-popularity="8"><a href="https://letterboxd.com/director/ridley-scott/" target="_blank">Ridley Scott</a></div>
+            <div class="director-card" data-name="Lars von Trier" data-popularity="6"><a href="https://letterboxd.com/director/lars-von-trier/" target="_blank">Lars von Trier</a></div>
+            <div class="director-card" data-name="Darren Aronofsky" data-popularity="7"><a href="https://letterboxd.com/director/darren-aronofsky/" target="_blank">Darren Aronofsky</a></div>
+            <div class="director-card" data-name="Michael Haneke" data-popularity="6"><a href="https://letterboxd.com/director/michael-haneke/" target="_blank">Michael Haneke</a></div>
+            <div class="director-card" data-name="Luca Guadagnino" data-popularity="7"><a href="https://letterboxd.com/director/luca-guadagnino/" target="_blank">Luca Guadagnino</a></div>
+            <div class="director-card" data-name="Damien Chazelle" data-popularity="8"><a href="https://letterboxd.com/director/damien-chazelle/" target="_blank">Damien Chazelle</a></div>
+            <div class="director-card" data-name="Greta Gerwig" data-popularity="8"><a href="https://letterboxd.com/director/greta-gerwig/" target="_blank">Greta Gerwig</a></div>
+            <div class="director-card" data-name="Sofia Coppola" data-popularity="7"><a href="https://letterboxd.com/director/sofia-coppola/" target="_blank">Sofia Coppola</a></div>
+            <div class="director-card" data-name="Gaspar Noé" data-popularity="5"><a href="https://letterboxd.com/director/gaspar-noe/" target="_blank">Gaspar Noé</a></div>
+            <div class="director-card" data-name="Ari Aster" data-popularity="7"><a href="https://letterboxd.com/director/ari-aster/" target="_blank">Ari Aster</a></div>
+            <div class="director-card" data-name="Robert Eggers" data-popularity="6"><a href="https://letterboxd.com/director/robert-eggers/" target="_blank">Robert Eggers</a></div>
+            <div class="director-card" data-name="Jordan Peele" data-popularity="8"><a href="https://letterboxd.com/director/jordan-peele/" target="_blank">Jordan Peele</a></div>
+            <div class="director-card" data-name="Alex Garland" data-popularity="6"><a href="https://letterboxd.com/director/alex-garland/" target="_blank">Alex Garland</a></div>
+            <div class="director-card" data-name="Sean Baker" data-popularity="6"><a href="https://letterboxd.com/director/sean-baker/" target="_blank">Sean Baker</a></div>
+            <div class="director-card" data-name="Celine Song" data-popularity="5"><a href="https://letterboxd.com/director/celine-song/" target="_blank">Celine Song</a></div>
+            <div class="director-card" data-name="Ryan Coogler" data-popularity="7"><a href="https://letterboxd.com/director/ryan-coogler/" target="_blank">Ryan Coogler</a></div>
+            <div class="director-card" data-name="Joachim Trier" data-popularity="5"><a href="https://letterboxd.com/director/joachim-trier/" target="_blank">Joachim Trier</a></div>
+            <div class="director-card" data-name="Danny Boyle" data-popularity="7"><a href="https://letterboxd.com/director/danny-boyle/" target="_blank">Danny Boyle</a></div>
+            <div class="director-card" data-name="Woody Allen" data-popularity="7"><a href="https://letterboxd.com/director/woody-allen/" target="_blank">Woody Allen</a></div>
+          </div>
+        </div>
+
+        <div id="actors-tab" class="tab-content">
+          <div class="header-with-controls">
+            <div class="header-controls left">
+              <div class="control-group">
+                <button class="control-button" id="actorsSortButton">↕</button>
+                <div class="sort-dropdown" id="actorsSortDropdown">
+                  <div class="sort-option" data-sort="alphabetical">A-Z</div>
+                  <div class="sort-option" data-sort="reverse">Z-A</div>
+                  <div class="sort-option" data-sort="popular-shuffle">Popular Mix</div>
+                </div>
+              </div>
+            </div>
+            <h3>Actors</h3>
+            <div class="header-controls right">
+              <div class="control-group search-group">
+                <button class="control-button" id="actorsSearchButton">⌕</button>
+                <input type="text" class="search-input" id="actorsSearch" placeholder="Search actors..." />
+              </div>
+            </div>
+          </div>
+          <div class="directors-grid" id="actorsGrid">
+            <div class="director-card" data-name="Leonardo DiCaprio" data-popularity="10"><a href="https://letterboxd.com/actor/leonardo-dicaprio/" target="_blank">Leonardo DiCaprio</a></div>
+            <div class="director-card" data-name="Robert De Niro" data-popularity="10"><a href="https://letterboxd.com/actor/robert-de-niro/" target="_blank">Robert De Niro</a></div>
+            <div class="director-card" data-name="Al Pacino" data-popularity="10"><a href="https://letterboxd.com/actor/al-pacino/" target="_blank">Al Pacino</a></div>
+            <div class="director-card" data-name="Meryl Streep" data-popularity="10"><a href="https://letterboxd.com/actor/meryl-streep/" target="_blank">Meryl Streep</a></div>
+            <div class="director-card" data-name="Joaquin Phoenix" data-popularity="9"><a href="https://letterboxd.com/actor/joaquin-phoenix/" target="_blank">Joaquin Phoenix</a></div>
+            <div class="director-card" data-name="Daniel Day-Lewis" data-popularity="9"><a href="https://letterboxd.com/actor/daniel-day-lewis/" target="_blank">Daniel Day-Lewis</a></div>
+            <div class="director-card" data-name="Frances McDormand" data-popularity="8"><a href="https://letterboxd.com/actor/frances-mcdormand/" target="_blank">Frances McDormand</a></div>
+            <div class="director-card" data-name="Oscar Isaac" data-popularity="8"><a href="https://letterboxd.com/actor/oscar-isaac/" target="_blank">Oscar Isaac</a></div>
+            <div class="director-card" data-name="Tilda Swinton" data-popularity="8"><a href="https://letterboxd.com/actor/tilda-swinton/" target="_blank">Tilda Swinton</a></div>
+            <div class="director-card" data-name="Adam Driver" data-popularity="8"><a href="https://letterboxd.com/actor/adam-driver/" target="_blank">Adam Driver</a></div>
+            <div class="director-card" data-name="Saoirse Ronan" data-popularity="8"><a href="https://letterboxd.com/actor/saoirse-ronan/" target="_blank">Saoirse Ronan</a></div>
+            <div class="director-card" data-name="Timothée Chalamet" data-popularity="9"><a href="https://letterboxd.com/actor/timothee-chalamet/" target="_blank">Timothée Chalamet</a></div>
+            <div class="director-card" data-name="Margot Robbie" data-popularity="9"><a href="https://letterboxd.com/actor/margot-robbie/" target="_blank">Margot Robbie</a></div>
+            <div class="director-card" data-name="Ryan Gosling" data-popularity="9"><a href="https://letterboxd.com/actor/ryan-gosling/" target="_blank">Ryan Gosling</a></div>
+            <div class="director-card" data-name="Jake Gyllenhaal" data-popularity="8"><a href="https://letterboxd.com/actor/jake-gyllenhaal/" target="_blank">Jake Gyllenhaal</a></div>
+            <div class="director-card" data-name="Amy Adams" data-popularity="8"><a href="https://letterboxd.com/actor/amy-adams/" target="_blank">Amy Adams</a></div>
+            <div class="director-card" data-name="Michael Shannon" data-popularity="7"><a href="https://letterboxd.com/actor/michael-shannon/" target="_blank">Michael Shannon</a></div>
+            <div class="director-card" data-name="Isabelle Huppert" data-popularity="7"><a href="https://letterboxd.com/actor/isabelle-huppert/" target="_blank">Isabelle Huppert</a></div>
+            <div class="director-card" data-name="Song Kang-ho" data-popularity="8"><a href="https://letterboxd.com/actor/song-kang-ho/" target="_blank">Song Kang-ho</a></div>
+            <div class="director-card" data-name="Choi Min-sik" data-popularity="7"><a href="https://letterboxd.com/actor/choi-min-sik/" target="_blank">Choi Min-sik</a></div>
+            <div class="director-card" data-name="Toshiro Mifune" data-popularity="8"><a href="https://letterboxd.com/actor/toshiro-mifune/" target="_blank">Toshiro Mifune</a></div>
+            <div class="director-card" data-name="Charlotte Gainsbourg" data-popularity="7"><a href="https://letterboxd.com/actor/charlotte-gainsbourg/" target="_blank">Charlotte Gainsbourg</a></div>
+            <div class="director-card" data-name="Mads Mikkelsen" data-popularity="8"><a href="https://letterboxd.com/actor/mads-mikkelsen/" target="_blank">Mads Mikkelsen</a></div>
+            <div class="director-card" data-name="Cate Blanchett" data-popularity="9"><a href="https://letterboxd.com/actor/cate-blanchett/" target="_blank">Cate Blanchett</a></div>
+            <div class="director-card" data-name="Christian Bale" data-popularity="9"><a href="https://letterboxd.com/actor/christian-bale/" target="_blank">Christian Bale</a></div>
+            <div class="director-card" data-name="Lupita Nyong'o" data-popularity="8"><a href="https://letterboxd.com/actor/lupita-nyongo/" target="_blank">Lupita Nyong'o</a></div>
+            <div class="director-card" data-name="John Turturro" data-popularity="7"><a href="https://letterboxd.com/actor/john-turturro/" target="_blank">John Turturro</a></div>
+            <div class="director-card" data-name="Thomasin McKenzie" data-popularity="6"><a href="https://letterboxd.com/actor/thomasin-mckenzie/" target="_blank">Thomasin McKenzie</a></div>
+            <div class="director-card" data-name="Anya Taylor-Joy" data-popularity="8"><a href="https://letterboxd.com/actor/anya-taylor-joy/" target="_blank">Anya Taylor-Joy</a></div>
+            <div class="director-card" data-name="Robert Pattinson" data-popularity="8"><a href="https://letterboxd.com/actor/robert-pattinson/" target="_blank">Robert Pattinson</a></div>
+            <div class="director-card" data-name="Emma Stone" data-popularity="9"><a href="https://letterboxd.com/actor/emma-stone/" target="_blank">Emma Stone</a></div>
+            <div class="director-card" data-name="LaKeith Stanfield" data-popularity="7"><a href="https://letterboxd.com/actor/lakeith-stanfield/" target="_blank">LaKeith Stanfield</a></div>
+            <div class="director-card" data-name="Mahershala Ali" data-popularity="8"><a href="https://letterboxd.com/actor/mahershala-ali/" target="_blank">Mahershala Ali</a></div>
+            <div class="director-card" data-name="Gong Li" data-popularity="7"><a href="https://letterboxd.com/actor/gong-li/" target="_blank">Gong Li</a></div>
+            <div class="director-card" data-name="Tony Leung" data-popularity="8"><a href="https://letterboxd.com/actor/tony-leung-chiu-wai/" target="_blank">Tony Leung</a></div>
+            <div class="director-card" data-name="Maggie Cheung" data-popularity="7"><a href="https://letterboxd.com/actor/maggie-cheung/" target="_blank">Maggie Cheung</a></div>
+            <div class="director-card" data-name="Dev Patel" data-popularity="7"><a href="https://letterboxd.com/actor/dev-patel/" target="_blank">Dev Patel</a></div>
+            <div class="director-card" data-name="Toni Collette" data-popularity="8"><a href="https://letterboxd.com/actor/toni-collette/" target="_blank">Toni Collette</a></div>
+            <div class="director-card" data-name="Willem Dafoe" data-popularity="8"><a href="https://letterboxd.com/actor/willem-dafoe/" target="_blank">Willem Dafoe</a></div>
+            <div class="director-card" data-name="Philip Seymour Hoffman" data-popularity="9"><a href="https://letterboxd.com/actor/philip-seymour-hoffman/" target="_blank">Philip Seymour Hoffman</a></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script src="script.js"></script>
+  </body>
+</html>
