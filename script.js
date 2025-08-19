@@ -1,6 +1,6 @@
 // TMDb API Configuration
 const TMDB_CONFIG = {
-  API_KEY: '5f1ead96e48e2379102c77c2546331a4',
+  API_KEY: (typeof window !== 'undefined' && window.CONFIG) ? window.CONFIG.TMDB_API_KEY : '',
   BASE_URL: 'https://api.themoviedb.org/3',
   IMAGE_BASE_URL: 'https://image.tmdb.org/t/p/w185',
   
@@ -439,6 +439,12 @@ class UIManager {
   }
   
   async searchTMDbPeople(query) {
+    // Check if API key is available
+    if (!TMDB_CONFIG.API_KEY) {
+      this.displaySearchError('API key not configured - you can still add people manually');
+      return;
+    }
+    
     try {
       const url = TMDB_CONFIG.getPersonSearchUrl(query);
       
