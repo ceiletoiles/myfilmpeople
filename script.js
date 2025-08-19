@@ -131,7 +131,6 @@ class PeopleDatabase {
   getDefaultPeople() {
     // Convert existing hardcoded data to new format
     const defaultDirectors = [
-      { name: "Stanley Kubrick" },
       { name: "Alfred Hitchcock" },
       { name: "Martin Scorsese" },
       { name: "Steven Spielberg" },
