@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MyFilmPeople</title>
+    <link rel="stylesheet" href="styles.css?v=2025081904">
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>MyFilmPeople</h1>
+        <p>Letterboxd Movies Cast and Crew Following Tool</p>
+        <button class="add-person-btn" id="addPersonBtn">+ Add Person</button>
+      </div>
+      <div class="content">
+        <div class="tabs">
+          <button class="tab-button active" data-tab="directors">Directors</button>
+          <button class="tab-button" data-tab="actors">Actors</button>
+          <button class="tab-button" data-tab="others">Others</button>
+        </div>
+
+        <div id="directors-tab" class="tab-content active">
+          <div class="header-with-controls">
+            <div class="header-controls left">
+              <div class="control-group">
+                <button class="control-button" id="directorsSortButton">↕</button>
+                <div class="sort-dropdown" id="directorsSortDropdown">
+                  <div class="sort-option" data-sort="alphabetical">A-Z</div>
+                  <div class="sort-option" data-sort="reverse">Z-A</div>
+                  <div class="sort-option" data-sort="date-added">Recently Added</div>
+                </div>
+              </div>
+            </div>
+            <h3>Directors</h3>
+            <div class="header-controls right">
+              <div class="control-group search-group">
+                <button class="control-button" id="directorsSearchButton">⌕</button>
+                <input type="text" class="search-input" id="directorsSearch" placeholder="Search directors..." />
+              </div>
+            </div>
+          </div>
+          <div class="directors-grid" id="directorsGrid">
+            <!-- Directors will be populated by JavaScript -->
+          </div>
+        </div>
+
+        <div id="actors-tab" class="tab-content">
+          <div class="header-with-controls">
+            <div class="header-controls left">
+              <div class="control-group">
+                <button class="control-button" id="actorsSortButton">↕</button>
+                <div class="sort-dropdown" id="actorsSortDropdown">
+                  <div class="sort-option" data-sort="alphabetical">A-Z</div>
+                  <div class="sort-option" data-sort="reverse">Z-A</div>
+                  <div class="sort-option" data-sort="date-added">Recently Added</div>
+                </div>
+              </div>
+            </div>
+            <h3>Actors</h3>
+            <div class="header-controls right">
+              <div class="control-group search-group">
+                <button class="control-button" id="actorsSearchButton">⌕</button>
+                <input type="text" class="search-input" id="actorsSearch" placeholder="Search actors..." />
+              </div>
+            </div>
+          </div>
+          <div class="directors-grid" id="actorsGrid">
+            <!-- Actors will be populated by JavaScript -->
+          </div>
+        </div>
+
+        <div id="others-tab" class="tab-content">
+          <div class="header-with-controls">
+            <div class="header-controls left">
+              <div class="control-group">
+                <button class="control-button" id="othersSortButton">↕</button>
+                <div class="sort-dropdown" id="othersSortDropdown">
+                  <div class="sort-option" data-sort="alphabetical">A-Z</div>
+                  <div class="sort-option" data-sort="reverse">Z-A</div>
+                  <div class="sort-option" data-sort="date-added">Recently Added</div>
+                </div>
+              </div>
+            </div>
+            <h3>Others</h3>
+            <div class="header-controls right">
+              <div class="control-group search-group">
+                <button class="control-button" id="othersSearchButton">⌕</button>
+                <input type="text" class="search-input" id="othersSearch" placeholder="Search others..." />
+              </div>
+            </div>
+          </div>
+          <div class="directors-grid" id="othersGrid">
+            <!-- Others will be populated by JavaScript -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add Person Modal -->
+    <div id="addPersonModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Add New Person</h2>
+          <span class="close" id="closeModal">&times;</span>
+        </div>
+        <form id="addPersonForm">
+          <div class="form-group">
+            <label for="personSearch">Search Person</label>
+            <div class="search-container">
+              <input type="text" id="personSearch" placeholder="Type to search for a person...">
+              <div id="searchResults" class="search-results"></div>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="personName">Name *</label>
+            <input type="text" id="personName" required placeholder="e.g., Christopher Nolan">
+          </div>
+          
+          <div class="form-group">
+            <label for="profilePictureUrl">Profile Picture URL (optional)</label>
+            <div class="input-with-button">
+              <input type="url" id="profilePictureUrl" placeholder="https://example.com/image.jpg" class="flex-input">
+              <button type="button" id="searchImageBtn" class="control-button" title="Search for images">🔍</button>
+            </div>
+            <small class="form-help">
+              Try these sources that work if TMDB doesn't works:<br>
+              • Wikipedia/Wikimedia Commons<br>
+              • IMDb images<br>
+              • Google Images (copy image address)<br>
+              • Any direct image URL
+            </small>
+          </div>
+          
+          <div class="form-group">
+            <label for="personRole">Role *</label>
+            <div class="custom-select-wrapper">
+              <div class="custom-select" id="personRoleSelect">
+                <div class="custom-select-trigger">
+                  <span class="custom-select-text">Select role...</span>
+                  <span class="custom-select-arrow">▼</span>
+                </div>
+                <div class="custom-select-options">
+                  <div class="custom-option" data-value="">Select role...</div>
+                  <div class="custom-option" data-value="director">Director</div>
+                  <div class="custom-option" data-value="actor">Actor</div>
+                  <div class="custom-option" data-value="writer">Writer</div>
+                  <div class="custom-option" data-value="cinematographer">Cinematographer</div>
+                  <div class="custom-option" data-value="composer">Composer</div>
+                  <div class="custom-option" data-value="producer">Producer</div>
+                  <div class="custom-option" data-value="editor">Editor</div>
+                  <div class="custom-option" data-value="other">Other</div>
+                </div>
+              </div>
+              <input type="hidden" id="personRole" name="personRole" required>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="letterboxdUrl">Letterboxd URL</label>
+            <input type="url" id="letterboxdUrl" placeholder="https://letterboxd.com/director/christopher-nolan/">
+            <small class="form-help">Will be auto-generated from search selection</small>
+          </div>
+          
+          <div class="form-group">
+            <label for="notes">Personal Notes</label>
+            <textarea id="notes" placeholder="Your thoughts, favorite films, etc."></textarea>
+          </div>
+          
+          <div class="form-actions">
+            <button type="button" id="cancelBtn">Cancel</button>
+            <button type="submit" id="submitBtn">Add Person</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
