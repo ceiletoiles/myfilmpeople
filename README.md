@@ -59,7 +59,7 @@ This means when you discover a brilliant cinematographer or fall in love with a 
 - **Deployment**: Static hosting (Netlify/GitHub Pages ready)
 
 ## 🌐 Live Demo
-**[🚀 View Live App →](https://ceiletoiles.netlify.app)**
+**[🚀 View Live App →](https://myfilmpeople.netlify.app)**
 
 ## � What's Next (Firebase Integration)
 - 🌐 **Multi-device sync**: Access your collection anywhere
