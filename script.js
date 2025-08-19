@@ -1,6 +1,6 @@
 // TMDb API Configuration
 const TMDB_CONFIG = {
-  API_KEY: (typeof window !== 'undefined' && window.CONFIG) ? window.CONFIG.TMDB_API_KEY : '',
+  API_KEY: '5f1ead96e48e2379102c77c2546331a4',
   BASE_URL: 'https://api.themoviedb.org/3',
   IMAGE_BASE_URL: 'https://image.tmdb.org/t/p/w185',
   
