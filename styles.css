@@ -5,7 +5,7 @@
 }
 
 body {
-  font-family: 'TiemposTextWeb', Georgia, serif;
+  font-family: 'PT Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   line-height: 1.6;
   background: #14181c;
   color: #9ab;
@@ -33,7 +33,7 @@ h1 {
   font-weight: 400;
   margin-bottom: 8px;
   color: #ff8000;
-  font-family: 'Graphik', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'PT Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 .header p {
@@ -53,7 +53,7 @@ h1 {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  font-family: 'Graphik', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'PT Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 .add-person-btn:hover {
@@ -87,7 +87,7 @@ h1 {
   border-bottom: 2px solid transparent;
   text-transform: uppercase;
   letter-spacing: 1px;
-  font-family: 'Graphik', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'PT Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 .tab-button:hover {
@@ -114,7 +114,7 @@ h3 {
   color: #cdf;
   margin: 0;
   font-weight: 400;
-  font-family: 'TiemposTextWeb', Georgia, serif;
+  font-family: 'PT Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 .header-with-controls {
@@ -146,7 +146,7 @@ h3 {
   color: #cdf;
   margin: 0;
   font-weight: 400;
-  font-family: 'TiemposTextWeb', Georgia, serif;
+  font-family: 'PT Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
@@ -170,7 +170,7 @@ select, input[type="text"] {
   color: #9ab;
   transition: all 0.2s ease;
   min-width: 160px;
-  font-family: 'Graphik', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'PT Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 select:focus, input[type="text"]:focus {
@@ -287,7 +287,7 @@ select option {
   color: #9ab;
   transition: all 0.3s ease;
   font-size: 0.8rem;
-  font-family: 'Graphik', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'PT Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   border-left: none;
   border-top-left-radius: 0;
   border-bottom-left-radius: 0;
@@ -341,7 +341,7 @@ select option {
   font-size: 0.875rem;
   position: relative;
   transition: all 0.2s ease;
-  font-family: 'TiemposTextWeb', Georgia, serif;
+  font-family: 'PT Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   line-height: 1.4;
 }
 
@@ -507,7 +507,7 @@ select option {
   transition: all 0.2s ease;
   font-size: 0.8rem;
   border-bottom: 1px solid #456;
-  font-family: 'Graphik', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'PT Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 .card-menu-item:last-child {
@@ -737,7 +737,7 @@ select option {
   color: #cdf;
   font-size: 1.25rem;
   font-weight: 400;
-  font-family: 'TiemposTextWeb', Georgia, serif;
+  font-family: 'PT Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 .close {
@@ -763,7 +763,7 @@ select option {
   color: #cdf;
   font-size: 0.875rem;
   font-weight: 500;
-  font-family: 'Graphik', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'PT Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 .form-help {
@@ -792,7 +792,7 @@ select option {
   background: #14181c;
   color: #9ab;
   font-size: 0.875rem;
-  font-family: 'Graphik', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'PT Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   transition: all 0.2s ease;
 }
 
@@ -905,7 +905,7 @@ form {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  font-family: 'Graphik', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'PT Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 #cancelBtn {
@@ -980,7 +980,7 @@ form {
   background: #14181c;
   color: #9ab;
   font-size: 0.875rem;
-  font-family: 'Graphik', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'PT Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   transition: all 0.2s ease;
   -webkit-user-select: none;
   user-select: none;
