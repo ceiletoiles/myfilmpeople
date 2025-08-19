@@ -25,7 +25,7 @@ const TMDB_CONFIG = {
       'Directing': 'director',
       'Acting': 'actor', 
       'Writing': 'writer',
-      'Camera': 'cinematographer',
+      'Camera': 'cinematography',
       'Sound': 'composer',
       'Production': 'producer',
       'Editing': 'editor'
@@ -494,7 +494,7 @@ class UIManager {
       item.innerHTML = `
         ${avatarUrl ? 
           `<img src="${avatarUrl}" alt="${person.name}" class="search-result-avatar">` :
-          `<div class="search-result-avatar"></div>`
+          `<img src="https://s.ltrbxd.com/static/img/avatar220-BlsAxsT2.png" alt="${person.name}" class="search-result-avatar">`
         }
         <div class="search-result-info">
           <div class="search-result-name">${person.name}</div>
@@ -948,10 +948,13 @@ class UIManager {
     card.setAttribute('data-name', person.name);
     card.setAttribute('data-id', person.id);
     
-    // Add profile picture if available
+    // Add profile picture with fallback to default avatar
     let cardContent = '';
     if (person.profilePicture) {
       cardContent += `<img src="${person.profilePicture}" alt="${person.name}" class="person-avatar">`;
+    } else {
+      // Default Letterboxd avatar
+      cardContent += `<img src="https://s.ltrbxd.com/static/img/avatar220-BlsAxsT2.png" alt="${person.name}" class="person-avatar">`;
     }
     
     const link = document.createElement('a');

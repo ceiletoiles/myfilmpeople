@@ -108,7 +108,7 @@
           <div class="form-group">
             <label for="personSearch">Search Person</label>
             <div class="search-container">
-              <input type="text" id="personSearch" placeholder="Type to search for a person...">
+              <input type="text" id="personSearch" placeholder="Enter the correct spelling">
               <div id="searchResults" class="search-results"></div>
             </div>
           </div>
@@ -119,14 +119,13 @@
           </div>
           
           <div class="form-group">
-            <label for="profilePictureUrl">Profile Picture URL (optional)</label>
+            <label for="profilePictureUrl">Profile Picture URL</label>
             <div class="input-with-button">
               <input type="url" id="profilePictureUrl" placeholder="https://example.com/image.jpg" class="flex-input">
               <button type="button" id="searchImageBtn" class="control-button" title="Search for images">🔍</button>
             </div>
             <small class="form-help">
               Try these sources that work if TMDB doesn't works:<br>
-              • Wikipedia/Wikimedia Commons<br>
               • IMDb images<br>
               • Google Images (copy image address)<br>
               • Any direct image URL
@@ -160,7 +159,7 @@
           <div class="form-group">
             <label for="letterboxdUrl">Letterboxd URL</label>
             <input type="url" id="letterboxdUrl" placeholder="https://letterboxd.com/director/christopher-nolan/">
-            <small class="form-help">Will be auto-generated from search selection</small>
+            <small class="form-help">(if tmdb doesnt work enter - https://letterboxd.com/role/name/)</small>
           </div>
           
           <div class="form-group">
@@ -175,6 +174,10 @@
         </form>
       </div>
     </div>
+
+    <footer class="app-footer">
+      <p>© 2025 MyFilmPeople. Film data from TMDb. Made with ❤️ for film lovers and letterboxd users</p>
+    </footer>
 
     <script src="script.js"></script>
   </body>

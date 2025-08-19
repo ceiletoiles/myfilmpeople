@@ -1072,3 +1072,18 @@ form {
     max-height: 150px;
   }
 }
+
+/* Footer */
+.app-footer {
+  text-align: center;
+  padding: 30px 20px 20px;
+  margin-top: 40px;
+  border-top: 1px solid #456;
+  color: #678;
+  font-size: 13px;
+}
+
+.app-footer p {
+  margin: 0;
+  opacity: 0.8;
+}
