@@ -118,15 +118,6 @@ class PeopleDatabase {
   getAllPeople() {
     return this.people;
   }
-  
-  searchPeople(query) {
-    const searchTerm = query.toLowerCase();
-    return this.people.filter(p => 
-      p.name.toLowerCase().includes(searchTerm) ||
-      p.role.toLowerCase().includes(searchTerm) ||
-      (p.notes && p.notes.toLowerCase().includes(searchTerm))
-    );
-  }
 
   getDefaultPeople() {
     // Convert existing hardcoded data to new format
@@ -250,6 +241,15 @@ class UIManager {
     this.init();
   }
   
+  // Fisher-Yates shuffle algorithm for random sorting
+  shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+  }
+  
   init() {
     this.setupEventListeners();
     this.renderPeople();
@@ -266,17 +266,17 @@ class UIManager {
       });
     });
     
-    // Add person modal
+    // Modal event listeners
     const addBtn = document.getElementById('addPersonBtn');
     const modal = document.getElementById('addPersonModal');
     const closeBtn = document.getElementById('closeModal');
     const cancelBtn = document.getElementById('cancelBtn');
     const form = document.getElementById('addPersonForm');
     
-    addBtn.addEventListener('click', () => this.openModal());
-    closeBtn.addEventListener('click', () => this.closeModal());
-    cancelBtn.addEventListener('click', () => this.closeModal());
-    form.addEventListener('submit', (e) => this.handleFormSubmit(e));
+    addBtn?.addEventListener('click', () => this.openModal());
+    closeBtn?.addEventListener('click', () => this.closeModal());
+    cancelBtn?.addEventListener('click', () => this.closeModal());
+    form?.addEventListener('submit', (e) => this.handleFormSubmit(e));
     
     // TMDb search functionality
     const searchInput = document.getElementById('personSearch');
@@ -287,18 +287,12 @@ class UIManager {
       searchInput.addEventListener('input', (e) => {
         clearTimeout(searchTimeout);
         const query = e.target.value.trim();
-        
         if (query.length < 2) {
           searchResults.style.display = 'none';
           return;
         }
-        
-        searchTimeout = setTimeout(() => {
-          this.searchTMDbPeople(query);
-        }, 300);
+        searchTimeout = setTimeout(() => this.searchTMDbPeople(query), 300);
       });
-    } else {
-      console.error('TMDb search elements not found:', { searchInput, searchResults });
     }
     
     // Hide search results when clicking outside
@@ -308,7 +302,6 @@ class UIManager {
       }
     });
     
-    // Initialize custom select
     this.initializeCustomSelect();
     
     // Update Letterboxd URL when role changes
@@ -340,8 +333,6 @@ class UIManager {
       
       roleSelect.addEventListener('change', updateLetterboxdUrl);
       nameInput.addEventListener('input', updateLetterboxdUrl);
-    } else {
-      console.error('Form elements not found:', { roleSelect, nameInput, urlInput });
     }
     
     // Image search button functionality  
@@ -350,17 +341,12 @@ class UIManager {
       searchImageBtn.addEventListener('click', () => {
         const name = document.getElementById('personName').value.trim();
         if (name) {
-          // Open multiple useful image sources in new tabs
           const searchQueries = [
             `https://www.google.com/search?tbm=isch&q=${encodeURIComponent(name + ' actor director')}`,
             `https://en.wikipedia.org/wiki/Special:Search?search=${encodeURIComponent(name)}`,
             `https://commons.wikimedia.org/w/index.php?search=${encodeURIComponent(name)}&title=Special:MediaSearch&go=Go&type=image`
           ];
-          
-          // Open the first search (Google Images)
           window.open(searchQueries[0], '_blank');
-          
-          // Show user instructions
           this.showAlert('Image Search Opened', `Opening image search for "${name}"\n\nTo get image URL:\n1. Right-click on any image\n2. Select "Copy image address" or "Copy image URL"\n3. Paste it in the Profile Picture URL field`);
         } else {
           this.showAlert('Name Required', 'Please enter a person\'s name first');
@@ -394,8 +380,10 @@ class UIManager {
     
     // Sort functionality
     ['directors', 'actors', 'others'].forEach(role => {
-      const sortBtn = document.getElementById(`${role}SortButton`);
-      const dropdown = document.getElementById(`${role}SortDropdown`);
+      const sortBtnId = `${role}SortButton`;
+      const dropdownId = `${role}SortDropdown`;
+      const sortBtn = document.getElementById(sortBtnId);
+      const dropdown = document.getElementById(dropdownId);
       
       if (sortBtn) {
         sortBtn.addEventListener('click', (e) => {
@@ -622,27 +610,15 @@ class UIManager {
   }
   
   showMessage(text) {
-    // Simple success message
     const message = document.createElement('div');
     message.textContent = text;
     message.style.cssText = `
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      background: #ff8000;
-      color: white;
-      padding: 12px 20px;
-      border-radius: 3px;
-      z-index: 3000;
-      font-family: 'Graphik', sans-serif;
-      font-size: 0.875rem;
-      animation: slideIn 0.3s ease;
+      position: fixed; top: 20px; right: 20px; background: #ff8000; color: white;
+      padding: 12px 20px; border-radius: 3px; z-index: 3000; font-family: 'Graphik', sans-serif;
+      font-size: 0.875rem; animation: slideIn 0.3s ease;
     `;
     document.body.appendChild(message);
-    
-    setTimeout(() => {
-      message.remove();
-    }, 3000);
+    setTimeout(() => message.remove(), 3000);
   }
 
   // Custom alert modal
@@ -916,7 +892,7 @@ class UIManager {
     const directorsGrid = document.getElementById('directorsGrid');
     const actorsGrid = document.getElementById('actorsGrid');
     const othersGrid = document.getElementById('othersGrid');
-    
+
     if (directorsGrid) {
       directorsGrid.innerHTML = '';
       const directors = this.getSortedPeople('director');
@@ -924,7 +900,7 @@ class UIManager {
         directorsGrid.appendChild(this.createPersonCard(person));
       });
     }
-    
+
     if (actorsGrid) {
       actorsGrid.innerHTML = '';
       const actors = this.getSortedPeople('actor');
@@ -932,7 +908,7 @@ class UIManager {
         actorsGrid.appendChild(this.createPersonCard(person));
       });
     }
-    
+
     if (othersGrid) {
       othersGrid.innerHTML = '';
       const others = this.getSortedPeopleOthers(); // Get all non-director/actor roles
@@ -940,9 +916,7 @@ class UIManager {
         othersGrid.appendChild(this.createPersonCard(person));
       });
     }
-  }
-  
-  createPersonCard(person) {
+  }  createPersonCard(person) {
     const card = document.createElement('div');
     card.className = 'director-card';
     card.setAttribute('data-name', person.name);
@@ -1127,8 +1101,8 @@ class UIManager {
       case 'reverse':
         sorted = people.sort((a, b) => b.name.localeCompare(a.name));
         break;
-      case 'date-added':
-        sorted = people.sort((a, b) => new Date(b.dateAdded) - new Date(a.dateAdded));
+      case 'random':
+        sorted = this.shuffleArray([...people]); // Create a copy before shuffling
         break;
       default:
         sorted = people;
@@ -1152,8 +1126,8 @@ class UIManager {
       case 'reverse':
         sorted = people.sort((a, b) => b.name.localeCompare(a.name));
         break;
-      case 'date-added':
-        sorted = people.sort((a, b) => new Date(b.dateAdded) - new Date(a.dateAdded));
+      case 'random':
+        sorted = this.shuffleArray([...people]); // Create a copy before shuffling
         break;
       default:
         sorted = people;
@@ -1233,14 +1207,19 @@ class UIManager {
   }
   
   handleSort(sortType, role) {
+    // Fix the key assignment logic
     if (role === 'others') {
       this.currentSort.others = sortType;
-    } else {
-      this.currentSort[role + 's'] = sortType;
+    } else if (role === 'directors') {
+      this.currentSort.directors = sortType;
+    } else if (role === 'actors') {
+      this.currentSort.actors = sortType;
     }
     
-    // Update active state in dropdown
-    const dropdown = document.getElementById(role + 'sSortDropdown');
+    // Update active state in dropdown - fix the ID construction
+    const dropdownId = role + 'SortDropdown';
+    const dropdown = document.getElementById(dropdownId);
+    
     if (dropdown) {
       dropdown.querySelectorAll('.sort-option').forEach(opt => {
         opt.classList.toggle('active', opt.getAttribute('data-sort') === sortType);
@@ -1252,5 +1231,7 @@ class UIManager {
   }
 }
 
-// Initialize the app
-const ui = new UIManager();
+// Initialize the app when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+  const ui = new UIManager();
+});
