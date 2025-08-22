@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MyFilmPeople Test Suite</title>
+    <style>
+        body {
+            font-family: 'PT Sans', Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #14181c;
+            color: #9ab;
+        }
+        
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            background: #1a1e22;
+            border-radius: 8px;
+            border-left: 4px solid #ff8000;
+        }
+        
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        
+        .test-passed {
+            background: #0d5016;
+            color: #4caf50;
+            border: 1px solid #4caf50;
+        }
+        
+        .test-failed {
+            background: #5d1a1a;
+            color: #f44336;
+            border: 1px solid #f44336;
+        }
+        
+        .test-warning {
+            background: #5d4a1a;
+            color: #ff9800;
+            border: 1px solid #ff9800;
+        }
+        
+        h1, h2 {
+            color: #ff8000;
+        }
+        
+        .summary {
+            background: #2a2e32;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        
+        .test-controls {
+            margin: 20px 0;
+        }
+        
+        button {
+            background: #ff8000;
+            color: #14181c;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+            font-weight: bold;
+        }
+        
+        button:hover {
+            background: #e67300;
+        }
+        
+        .performance-metrics {
+            background: #1a1e22;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        
+        .code-snippet {
+            background: #0d1117;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎬 MyFilmPeople - Comprehensive Test Suite</h1>
+    
+    <div class="summary" id="testSummary">
+        <h2>Test Summary</h2>
+        <div id="summaryContent">Ready to run tests...</div>
+    </div>
+    
+    <div class="test-controls">
+        <button onclick="runAllTests()">🚀 Run All Tests</button>
+        <button onclick="runCoreTests()">⚡ Core Functionality Tests</button>
+        <button onclick="runUITests()">🎨 UI & Interaction Tests</button>
+        <button onclick="runDataTests()">💾 Data Persistence Tests</button>
+        <button onclick="runPerformanceTests()">📊 Performance Tests</button>
+        <button onclick="clearResults()">🧹 Clear Results</button>
+    </div>
+    
+    <div id="testResults"></div>
+    
+    <script>
+        let testResults = [];
+        let testStartTime = 0;
+        
+        class TestRunner {
+            constructor() {
+                this.results = [];
+                this.totalTests = 0;
+                this.passedTests = 0;
+                this.failedTests = 0;
+                this.warnings = 0;
+            }
+            
+            log(message, type = 'info') {
+                const timestamp = new Date().toISOString().split('T')[1].split('.')[0];
+                console.log(`[${timestamp}] ${type.toUpperCase()}: ${message}`);
+                return { message, type, timestamp };
+            }
+            
+            async test(name, testFunction, category = 'General') {
+                this.totalTests++;
+                const startTime = performance.now();
+                
+                try {
+                    const result = await testFunction();
+                    const endTime = performance.now();
+                    const duration = endTime - startTime;
+                    
+                    if (result === true || (result && result.passed)) {
+                        this.passedTests++;
+                        this.logResult(name, 'PASSED', category, duration, result.details);
+                    } else if (result && result.warning) {
+                        this.warnings++;
+                        this.logResult(name, 'WARNING', category, duration, result.details);
+                    } else {
+                        this.failedTests++;
+                        this.logResult(name, 'FAILED', category, duration, result ? result.details : 'Test returned false');
+                    }
+                } catch (error) {
+                    this.failedTests++;
+                    const endTime = performance.now();
+                    const duration = endTime - startTime;
+                    this.logResult(name, 'FAILED', category, duration, `Error: ${error.message}`);
+                }
+            }
+            
+            logResult(name, status, category, duration, details = '') {
+                const result = {
+                    name,
+                    status,
+                    category,
+                    duration: duration.toFixed(2),
+                    details,
+                    timestamp: new Date().toISOString()
+                };
+                
+                this.results.push(result);
+                this.displayResult(result);
+            }
+            
+            displayResult(result) {
+                const resultsDiv = document.getElementById('testResults');
+                const categoryDiv = this.getOrCreateCategoryDiv(result.category);
+                
+                const testDiv = document.createElement('div');
+                testDiv.className = `test-result test-${result.status.toLowerCase()}`;
+                
+                const statusIcon = {
+                    'PASSED': '✅',
+                    'FAILED': '❌',
+                    'WARNING': '⚠️'
+                }[result.status];
+                
+                testDiv.innerHTML = `
+                    <strong>${statusIcon} ${result.name}</strong> 
+                    <span style="float: right;">${result.duration}ms</span>
+                    <br>
+                    <small>${result.details}</small>
+                `;
+                
+                categoryDiv.appendChild(testDiv);
+                this.updateSummary();
+            }
+            
+            getOrCreateCategoryDiv(category) {
+                let categoryDiv = document.getElementById(`category-${category.replace(/\s+/g, '-')}`);
+                if (!categoryDiv) {
+                    const resultsDiv = document.getElementById('testResults');
+                    const sectionDiv = document.createElement('div');
+                    sectionDiv.className = 'test-section';
+                    sectionDiv.innerHTML = `<h2>${category}</h2>`;
+                    
+                    categoryDiv = document.createElement('div');
+                    categoryDiv.id = `category-${category.replace(/\s+/g, '-')}`;
+                    
+                    sectionDiv.appendChild(categoryDiv);
+                    resultsDiv.appendChild(sectionDiv);
+                }
+                return categoryDiv;
+            }
+            
+            updateSummary() {
+                const summaryDiv = document.getElementById('summaryContent');
+                const total = this.totalTests;
+                const passed = this.passedTests;
+                const failed = this.failedTests;
+                const warnings = this.warnings;
+                const successRate = total > 0 ? ((passed / total) * 100).toFixed(1) : 0;
+                
+                summaryDiv.innerHTML = `
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                        <div>
+                            <strong>Total Tests:</strong> ${total}<br>
+                            <strong>Success Rate:</strong> ${successRate}%
+                        </div>
+                        <div>
+                            <span style="color: #4caf50;">✅ Passed: ${passed}</span><br>
+                            <span style="color: #f44336;">❌ Failed: ${failed}</span>
+                        </div>
+                        <div>
+                            <span style="color: #ff9800;">⚠️ Warnings: ${warnings}</span><br>
+                            <strong>Status:</strong> ${failed === 0 ? '🟢 All Good' : '🔴 Issues Found'}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            reset() {
+                this.results = [];
+                this.totalTests = 0;
+                this.passedTests = 0;
+                this.failedTests = 0;
+                this.warnings = 0;
+                document.getElementById('testResults').innerHTML = '';
+                document.getElementById('summaryContent').innerHTML = 'Ready to run tests...';
+            }
+        }
+        
+        const testRunner = new TestRunner();
+        
+        // Core Functionality Tests
+        async function testLocalStorageAvailability() {
+            try {
+                const testKey = 'myfilmpeople_test';
+                const testValue = '{"test": true}';
+                localStorage.setItem(testKey, testValue);
+                const retrieved = localStorage.getItem(testKey);
+                localStorage.removeItem(testKey);
+                
+                if (retrieved === testValue) {
+                    return { passed: true, details: 'localStorage is working correctly' };
+                } else {
+                    return { passed: false, details: 'localStorage data retrieval failed' };
+                }
+            } catch (error) {
+                return { passed: false, details: `localStorage error: ${error.message}` };
+            }
+        }
+        
+        async function testMainPageLoad() {
+            try {
+                // Test if we can access the main page elements
+                const response = await fetch('/index.html');
+                if (response.ok) {
+                    const html = await response.text();
+                    const hasTitle = html.includes('<title>MyFilmPeople</title>');
+                    const hasScript = html.includes('script.js');
+                    const hasStyles = html.includes('styles.css');
+                    
+                    if (hasTitle && hasScript && hasStyles) {
+                        return { passed: true, details: 'Main page structure is correct' };
+                    } else {
+                        return { passed: false, details: 'Main page missing critical elements' };
+                    }
+                } else {
+                    return { passed: false, details: `HTTP ${response.status}: ${response.statusText}` };
+                }
+            } catch (error) {
+                return { passed: false, details: `Network error: ${error.message}` };
+            }
+        }
+        
+        async function testProfilePageLoad() {
+            try {
+                const response = await fetch('/profile.html');
+                if (response.ok) {
+                    const html = await response.text();
+                    const hasProfileScript = html.includes('profile.js');
+                    const hasProfileStyles = html.includes('profile.css');
+                    
+                    if (hasProfileScript && hasProfileStyles) {
+                        return { passed: true, details: 'Profile page structure is correct' };
+                    } else {
+                        return { passed: false, details: 'Profile page missing critical elements' };
+                    }
+                } else {
+                    return { passed: false, details: `HTTP ${response.status}: ${response.statusText}` };
+                }
+            } catch (error) {
+                return { passed: false, details: `Network error: ${error.message}` };
+            }
+        }
+        
+        async function testJavaScriptSyntax() {
+            try {
+                // Test main script
+                const scriptResponse = await fetch('/assets/js/script.js');
+                const profileResponse = await fetch('/assets/js/profile.js');
+                
+                if (scriptResponse.ok && profileResponse.ok) {
+                    const scriptText = await scriptResponse.text();
+                    const profileText = await profileResponse.text();
+                    
+                    // Basic syntax checks
+                    const hasClasses = scriptText.includes('class PeopleDatabase') && 
+                                      scriptText.includes('class UIManager') &&
+                                      profileText.includes('class ProfilePageManager');
+                    
+                    const hasConfig = scriptText.includes('TMDB_CONFIG');
+                    
+                    if (hasClasses && hasConfig) {
+                        return { passed: true, details: 'JavaScript structure and classes found' };
+                    } else {
+                        return { passed: false, details: 'Missing expected JavaScript classes or config' };
+                    }
+                } else {
+                    return { passed: false, details: 'Could not load JavaScript files' };
+                }
+            } catch (error) {
+                return { passed: false, details: `Script validation error: ${error.message}` };
+            }
+        }
+        
+        async function testCSSFiles() {
+            try {
+                const stylesResponse = await fetch('/assets/css/styles.css');
+                const profileResponse = await fetch('/assets/css/profile.css');
+                
+                if (stylesResponse.ok && profileResponse.ok) {
+                    const stylesText = await stylesResponse.text();
+                    const profileText = await profileResponse.text();
+                    
+                    // Check for key CSS classes
+                    const hasMainStyles = stylesText.includes('container') && 
+                                         stylesText.includes('tab-button') &&
+                                         stylesText.includes('director-card');
+                    
+                    const hasProfileStyles = profileText.includes('profile-header') &&
+                                           profileText.includes('filmography');
+                    
+                    if (hasMainStyles && hasProfileStyles) {
+                        return { passed: true, details: 'CSS files contain expected styles' };
+                    } else {
+                        return { passed: false, details: 'CSS files missing expected classes' };
+                    }
+                } else {
+                    return { passed: false, details: 'Could not load CSS files' };
+                }
+            } catch (error) {
+                return { passed: false, details: `CSS validation error: ${error.message}` };
+            }
+        }
+        
+        // Performance Tests
+        async function testPageLoadPerformance() {
+            const startTime = performance.now();
+            try {
+                const responses = await Promise.all([
+                    fetch('/index.html'),
+                    fetch('/assets/js/script.js'),
+                    fetch('/assets/css/styles.css')
+                ]);
+                
+                const loadTime = performance.now() - startTime;
+                
+                if (responses.every(r => r.ok)) {
+                    if (loadTime < 1000) {
+                        return { passed: true, details: `Page assets loaded in ${loadTime.toFixed(2)}ms` };
+                    } else if (loadTime < 3000) {
+                        return { warning: true, details: `Page assets loaded in ${loadTime.toFixed(2)}ms (acceptable but slow)` };
+                    } else {
+                        return { passed: false, details: `Page assets took ${loadTime.toFixed(2)}ms to load (too slow)` };
+                    }
+                } else {
+                    return { passed: false, details: 'Some assets failed to load' };
+                }
+            } catch (error) {
+                return { passed: false, details: `Performance test error: ${error.message}` };
+            }
+        }
+        
+        async function testMemoryUsage() {
+            try {
+                if (performance.memory) {
+                    const memory = performance.memory;
+                    const usedMB = (memory.usedJSHeapSize / 1024 / 1024).toFixed(2);
+                    const totalMB = (memory.totalJSHeapSize / 1024 / 1024).toFixed(2);
+                    
+                    if (memory.usedJSHeapSize < 50 * 1024 * 1024) { // Less than 50MB
+                        return { passed: true, details: `Memory usage: ${usedMB}MB / ${totalMB}MB (good)` };
+                    } else if (memory.usedJSHeapSize < 100 * 1024 * 1024) { // Less than 100MB
+                        return { warning: true, details: `Memory usage: ${usedMB}MB / ${totalMB}MB (moderate)` };
+                    } else {
+                        return { passed: false, details: `Memory usage: ${usedMB}MB / ${totalMB}MB (high)` };
+                    }
+                } else {
+                    return { warning: true, details: 'Memory API not available in this browser' };
+                }
+            } catch (error) {
+                return { passed: false, details: `Memory test error: ${error.message}` };
+            }
+        }
+        
+        // Data Persistence Tests
+        async function testDataPersistence() {
+            try {
+                const testData = {
+                    id: 999,
+                    name: 'Test Person',
+                    role: 'Actor',
+                    notes: 'Test notes',
+                    dateAdded: new Date().toISOString()
+                };
+                
+                // Save test data
+                const existingData = localStorage.getItem('myfilmpeople_data');
+                const currentData = existingData ? JSON.parse(existingData) : [];
+                currentData.push(testData);
+                localStorage.setItem('myfilmpeople_data', JSON.stringify(currentData));
+                
+                // Retrieve and verify
+                const retrievedData = JSON.parse(localStorage.getItem('myfilmpeople_data'));
+                const foundTest = retrievedData.find(p => p.id === 999);
+                
+                // Cleanup
+                const cleanedData = retrievedData.filter(p => p.id !== 999);
+                localStorage.setItem('myfilmpeople_data', JSON.stringify(cleanedData));
+                
+                if (foundTest && foundTest.name === 'Test Person') {
+                    return { passed: true, details: 'Data persistence working correctly' };
+                } else {
+                    return { passed: false, details: 'Data persistence failed - could not retrieve saved data' };
+                }
+            } catch (error) {
+                return { passed: false, details: `Data persistence error: ${error.message}` };
+            }
+        }
+        
+        // API and Network Tests
+        async function testTMDbAPI() {
+            try {
+                // Test the TMDb configuration
+                const apiKey = '5f1ead96e48e2379102c77c2546331a4';
+                const testUrl = `https://api.themoviedb.org/3/search/person?api_key=${apiKey}&query=test`;
+                
+                // We expect this to fail in most environments due to CORS
+                try {
+                    const response = await fetch(testUrl);
+                    if (response.ok) {
+                        return { passed: true, details: 'TMDb API is accessible (direct connection)' };
+                    } else {
+                        return { warning: true, details: `TMDb API returned ${response.status} (expected in restricted environments)` };
+                    }
+                } catch (fetchError) {
+                    // This is expected due to CORS
+                    return { warning: true, details: 'TMDb API blocked by CORS (expected in test environment)' };
+                }
+            } catch (error) {
+                return { passed: false, details: `TMDb API test error: ${error.message}` };
+            }
+        }
+        
+        // UI Validation Tests
+        async function testResponsiveDesign() {
+            try {
+                const response = await fetch('/assets/css/styles.css');
+                const css = await response.text();
+                
+                const hasMediaQueries = css.includes('@media');
+                const hasFlexbox = css.includes('display: flex') || css.includes('display:flex');
+                const hasGrid = css.includes('display: grid') || css.includes('display:grid');
+                
+                if (hasMediaQueries && (hasFlexbox || hasGrid)) {
+                    return { passed: true, details: 'Responsive design elements found in CSS' };
+                } else {
+                    return { warning: true, details: 'Limited responsive design features detected' };
+                }
+            } catch (error) {
+                return { passed: false, details: `Responsive design test error: ${error.message}` };
+            }
+        }
+        
+        async function testAccessibility() {
+            try {
+                const response = await fetch('/index.html');
+                const html = await response.text();
+                
+                const hasAltTags = html.includes('alt=');
+                const hasAriaLabels = html.includes('aria-') || html.includes('role=');
+                const hasSemanticHTML = html.includes('<header>') || html.includes('<nav>') || 
+                                       html.includes('<main>') || html.includes('<section>');
+                
+                let score = 0;
+                let details = [];
+                
+                if (hasAltTags) {
+                    score++;
+                    details.push('Alt tags found');
+                }
+                if (hasAriaLabels) {
+                    score++;
+                    details.push('ARIA labels found');
+                }
+                if (hasSemanticHTML) {
+                    score++;
+                    details.push('Semantic HTML found');
+                }
+                
+                if (score >= 2) {
+                    return { passed: true, details: `Accessibility features: ${details.join(', ')}` };
+                } else if (score >= 1) {
+                    return { warning: true, details: `Limited accessibility: ${details.join(', ')}` };
+                } else {
+                    return { passed: false, details: 'No accessibility features detected' };
+                }
+            } catch (error) {
+                return { passed: false, details: `Accessibility test error: ${error.message}` };
+            }
+        }
+        
+        // Security Tests
+        async function testContentSecurityPolicy() {
+            try {
+                const response = await fetch('/index.html');
+                const html = await response.text();
+                
+                // Check for inline scripts (security risk)
+                const hasInlineScripts = html.includes('<script>') && !html.includes('src=');
+                const hasInlineStyles = html.includes('style=');
+                
+                if (!hasInlineScripts && !hasInlineStyles) {
+                    return { passed: true, details: 'No inline scripts or styles detected (good security practice)' };
+                } else {
+                    const issues = [];
+                    if (hasInlineScripts) issues.push('inline scripts');
+                    if (hasInlineStyles) issues.push('inline styles');
+                    return { warning: true, details: `Security considerations: ${issues.join(', ')} found` };
+                }
+            } catch (error) {
+                return { passed: false, details: `Security test error: ${error.message}` };
+            }
+        }
+        
+        // Test execution functions
+        async function runCoreTests() {
+            testRunner.reset();
+            testStartTime = performance.now();
+            
+            await testRunner.test('LocalStorage Availability', testLocalStorageAvailability, 'Core Functionality');
+            await testRunner.test('Main Page Load', testMainPageLoad, 'Core Functionality');
+            await testRunner.test('Profile Page Load', testProfilePageLoad, 'Core Functionality');
+            await testRunner.test('JavaScript Structure', testJavaScriptSyntax, 'Core Functionality');
+            await testRunner.test('CSS Files', testCSSFiles, 'Core Functionality');
+            
+            const totalTime = performance.now() - testStartTime;
+            testRunner.log(`Core tests completed in ${totalTime.toFixed(2)}ms`);
+        }
+        
+        async function runUITests() {
+            testStartTime = performance.now();
+            
+            await testRunner.test('Responsive Design', testResponsiveDesign, 'UI & UX');
+            await testRunner.test('Accessibility Features', testAccessibility, 'UI & UX');
+            
+            const totalTime = performance.now() - testStartTime;
+            testRunner.log(`UI tests completed in ${totalTime.toFixed(2)}ms`);
+        }
+        
+        async function runDataTests() {
+            testStartTime = performance.now();
+            
+            await testRunner.test('Data Persistence', testDataPersistence, 'Data Storage');
+            await testRunner.test('TMDb API Configuration', testTMDbAPI, 'External APIs');
+            
+            const totalTime = performance.now() - testStartTime;
+            testRunner.log(`Data tests completed in ${totalTime.toFixed(2)}ms`);
+        }
+        
+        async function runPerformanceTests() {
+            testStartTime = performance.now();
+            
+            await testRunner.test('Page Load Performance', testPageLoadPerformance, 'Performance');
+            await testRunner.test('Memory Usage', testMemoryUsage, 'Performance');
+            await testRunner.test('Content Security', testContentSecurityPolicy, 'Security');
+            
+            const totalTime = performance.now() - testStartTime;
+            testRunner.log(`Performance tests completed in ${totalTime.toFixed(2)}ms`);
+        }
+        
+        async function runAllTests() {
+            testRunner.reset();
+            testStartTime = performance.now();
+            
+            await runCoreTests();
+            await runUITests();
+            await runDataTests();
+            await runPerformanceTests();
+            
+            const totalTime = performance.now() - testStartTime;
+            
+            // Add final summary
+            const summaryDiv = testRunner.getOrCreateCategoryDiv('Test Summary');
+            const finalDiv = document.createElement('div');
+            finalDiv.className = 'performance-metrics';
+            finalDiv.innerHTML = `
+                <h3>🏁 Test Execution Summary</h3>
+                <p><strong>Total Execution Time:</strong> ${totalTime.toFixed(2)}ms</p>
+                <p><strong>Tests Run:</strong> ${testRunner.totalTests}</p>
+                <p><strong>Success Rate:</strong> ${((testRunner.passedTests / testRunner.totalTests) * 100).toFixed(1)}%</p>
+                <p><strong>Recommendation:</strong> ${testRunner.failedTests === 0 ? 
+                    '🟢 Website is functioning correctly!' : 
+                    '🔴 Review failed tests and address issues before production.'}</p>
+            `;
+            summaryDiv.appendChild(finalDiv);
+            
+            testRunner.log(`All tests completed in ${totalTime.toFixed(2)}ms`);
+        }
+        
+        function clearResults() {
+            testRunner.reset();
+        }
+        
+        // Auto-run core tests on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('MyFilmPeople Test Suite loaded successfully');
+            setTimeout(() => {
+                runCoreTests();
+            }, 500);
+        });
+    </script>
+</body>
+</html>
