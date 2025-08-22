@@ -1,16 +1,45 @@
-// TMDb API Configuration
+// TMDb API Configuration with CORS proxy support
 const TMDB_CONFIG = {
   API_KEY: '5f1ead96e48e2379102c77c2546331a4',
   BASE_URL: 'https://api.themoviedb.org/3',
   IMAGE_BASE_URL: 'https://image.tmdb.org/t/p/w185',
   
-  // Helper to get person search URL
-  getPersonSearchUrl: (query) => 
-    `${TMDB_CONFIG.BASE_URL}/search/person?api_key=${TMDB_CONFIG.API_KEY}&query=${encodeURIComponent(query)}`,
+  // CORS proxy options (for regions where TMDb is blocked)
+  CORS_PROXIES: [
+    'https://api.allorigins.win/raw?url=',
+    'https://corsproxy.io/?',
+    'https://cors-anywhere.herokuapp.com/'
+  ],
   
-  // Helper to get person details URL
-  getPersonDetailsUrl: (personId) =>
-    `${TMDB_CONFIG.BASE_URL}/person/${personId}?api_key=${TMDB_CONFIG.API_KEY}`,
+  // Helper to get person search URL with optional proxy
+  getPersonSearchUrl: (query, useProxy = false, proxyIndex = 0) => {
+    const url = `${TMDB_CONFIG.BASE_URL}/search/person?api_key=${TMDB_CONFIG.API_KEY}&query=${encodeURIComponent(query)}`;
+    if (!useProxy) return url;
+    
+    // Handle different proxy formats
+    const proxy = TMDB_CONFIG.CORS_PROXIES[proxyIndex];
+    if (proxy.includes('allorigins.win')) {
+      return `${proxy}${encodeURIComponent(url)}`;
+    } else {
+      // For corsproxy.io and cors-anywhere, don't double-encode
+      return `${proxy}${url}`;
+    }
+  },
+  
+  // Helper to get person details URL with optional proxy
+  getPersonDetailsUrl: (personId, useProxy = false, proxyIndex = 0) => {
+    const url = `${TMDB_CONFIG.BASE_URL}/person/${personId}?api_key=${TMDB_CONFIG.API_KEY}`;
+    if (!useProxy) return url;
+    
+    // Handle different proxy formats
+    const proxy = TMDB_CONFIG.CORS_PROXIES[proxyIndex];
+    if (proxy.includes('allorigins.win')) {
+      return `${proxy}${encodeURIComponent(url)}`;
+    } else {
+      // For corsproxy.io and cors-anywhere, don't double-encode
+      return `${proxy}${url}`;
+    }
+  },
     
   // Helper to generate Letterboxd URL
   generateLetterboxdUrl: (name, knownForDepartment) => {
@@ -68,6 +97,15 @@ class PeopleDatabase {
   getNextId() {
     if (this.people.length === 0) return 1;
     return Math.max(...this.people.map(p => p.id || 0)) + 1;
+  }
+  
+  createNameSlug(name) {
+    return name
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
+      .replace(/\s+/g, '-')         // Replace spaces with hyphens
+      .replace(/-+/g, '-')          // Replace multiple hyphens with single
+      .replace(/^-|-$/g, '');       // Remove leading/trailing hyphens
   }
   
   addPerson(personData) {
@@ -250,6 +288,15 @@ class UIManager {
     return array;
   }
   
+  createNameSlug(name) {
+    return name
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
+      .replace(/\s+/g, '-')         // Replace spaces with hyphens
+      .replace(/-+/g, '-')          // Replace multiple hyphens with single
+      .replace(/^-|-$/g, '');       // Remove leading/trailing hyphens
+  }
+  
   init() {
     this.setupEventListeners();
     this.renderPeople();
@@ -425,17 +472,57 @@ class UIManager {
     document.body.style.overflow = 'hidden';
   }
   
+  async smartSearchTMDb(query) {
+    const searchTimeout = 5000; // 5 seconds timeout for search
+    
+    // Method 1: Try direct TMDb with timeout
+    try {
+      const directUrl = TMDB_CONFIG.getPersonSearchUrl(query);
+      const response = await Promise.race([
+        fetch(directUrl),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Direct search timeout')), searchTimeout))
+      ]);
+      if (response.ok) {
+        return response;
+      }
+    } catch (error) {
+      console.log('Direct TMDb search failed, trying proxies...');
+    }
+    
+    // Method 2: Try CORS proxies with timeout
+    for (let i = 0; i < TMDB_CONFIG.CORS_PROXIES.length; i++) {
+      try {
+        const proxyUrl = TMDB_CONFIG.getPersonSearchUrl(query, true, i);
+        console.log(`Trying search proxy ${i + 1}: ${proxyUrl}`);
+        
+        const response = await Promise.race([
+          fetch(proxyUrl),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Proxy timeout')), searchTimeout))
+        ]);
+        
+        if (response.ok) {
+          console.log(`Search success with proxy ${i + 1}`);
+          return response;
+        }
+      } catch (error) {
+        console.log(`Search proxy ${i + 1} failed:`, error.message);
+        continue;
+      }
+    }
+    
+    // All attempts failed
+    throw new Error('All TMDb search attempts failed');
+  }
+
   async searchTMDbPeople(query) {
     // Check if API key is available
     if (!TMDB_CONFIG.API_KEY) {
       this.displaySearchError('API key not configured - you can still add people manually');
       return;
     }
-    
+
     try {
-      const url = TMDB_CONFIG.getPersonSearchUrl(query);
-      
-      const response = await fetch(url);
+      const response = await this.smartSearchTMDb(query);
       
       if (!response.ok) {
         console.error('TMDb API Error:', response.status, response.statusText);
@@ -460,7 +547,7 @@ class UIManager {
       }
     } catch (error) {
       console.error('Network error searching TMDb:', error);
-      this.displaySearchError('Network error - check connection');
+      this.displayManualAddOption(query);
     }
   }
   
@@ -516,6 +603,55 @@ class UIManager {
       </div>
     `;
     searchResults.style.display = 'block';
+  }
+
+  displayManualAddOption(searchQuery) {
+    const searchResults = document.getElementById('searchResults');
+    searchResults.innerHTML = `
+      <div class="search-result-item" style="background: rgba(255, 128, 0, 0.1); border: 1px solid #ff8000; border-radius: 8px; padding: 15px; margin: 10px 0;">
+        <div style="color: #ff8000; font-weight: bold; margin-bottom: 8px;">
+          🎬 TMDb Connection Problem
+        </div>
+        <div style="color: #9ab; font-size: 0.9rem; margin-bottom: 10px;">
+          TMDb doesn't load or can't find person. Add "<strong style="color: #fff;">${searchQuery}</strong>" manually:
+        </div>
+        <button onclick="uiManager.prefillManualAdd('${searchQuery.replace(/'/g, "\\'")}')" 
+                style="background: #ff8000; color: #14181c; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; margin-bottom: 8px;">
+          Add "${searchQuery}" Manually
+        </button>
+        <small class="form-help">
+          If TMDb doesn't load or can't find person:<br>
+          • Add name with correct spelling in form below<br>
+          • TMDb is giving connectivity problems
+        </small>
+      </div>
+    `;
+    searchResults.style.display = 'block';
+  }
+
+  prefillManualAdd(personName) {
+    // Pre-fill the form with the searched name
+    document.getElementById('personName').value = personName;
+    
+    // Generate automatic Letterboxd URL (user can modify if needed)
+    const slug = personName.toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '');
+    
+    const letterboxdUrl = `https://letterboxd.com/actor/${slug}/`;
+    document.getElementById('letterboxdUrl').value = letterboxdUrl;
+    
+    // Clear search results
+    document.getElementById('searchResults').style.display = 'none';
+    document.getElementById('personSearch').value = '';
+    
+    // Focus on role selection
+    document.getElementById('personRole').focus();
+    
+    // Show helpful message
+    this.showMessage(`Pre-filled form for "${personName}". Please select their role and adjust the Letterboxd URL if needed.`);
   }
   
   mapTMDbDepartmentToRole(department) {
@@ -931,10 +1067,13 @@ class UIManager {
       cardContent += `<img src="https://s.ltrbxd.com/static/img/avatar220-BlsAxsT2.png" alt="${person.name}" class="person-avatar">`;
     }
     
-    const link = document.createElement('a');
-    link.href = person.letterboxdUrl || '#';
-    link.target = '_blank';
-    link.rel = 'noopener noreferrer';
+    // Create clickable profile link with basic query parameters
+    const profileLink = document.createElement('a');
+    const nameSlug = this.createNameSlug(person.name);
+    
+    // Use simple query parameter approach that works everywhere
+    profileLink.href = `profile.html?name=${nameSlug}&id=${person.id}`;
+    profileLink.className = 'profile-link';
     
     let linkContent = cardContent + `<span class="person-name">${person.name}</span>`;
     
@@ -944,20 +1083,8 @@ class UIManager {
       linkContent += roleBadge;
     }
     
-    // Add notes indicator if person has notes
-    if (person.notes && person.notes.trim()) {
-      linkContent += '<span class="notes-indicator" title="Has personal notes">📝</span>';
-    }
-    
-    link.innerHTML = linkContent;
-    
-    if (!person.letterboxdUrl) {
-      link.style.color = '#678';
-      link.style.cursor = 'default';
-      link.onclick = (e) => e.preventDefault();
-    }
-    
-    card.appendChild(link);
+    profileLink.innerHTML = linkContent;
+    card.appendChild(profileLink);
     
     // Add 3-dots menu for all cards (both default and user-added)
     const menuButton = document.createElement('button');
@@ -1019,6 +1146,17 @@ class UIManager {
           });
         },
         className: 'menu-item-copy'
+      });
+    }
+    
+    // View on Letterboxd option
+    if (person.letterboxdUrl) {
+      menuItems.push({
+        text: 'View on Letterboxd',
+        action: () => {
+          window.open(person.letterboxdUrl, '_blank');
+        },
+        className: 'menu-item-letterboxd'
       });
     }
     

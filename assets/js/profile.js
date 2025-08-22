@@ -1,0 +1,1075 @@
+// TMDb API Configuration with CORS proxy support
+const TMDB_CONFIG = {
+  API_KEY: '5f1ead96e48e2379102c77c2546331a4',
+  BASE_URL: 'https://api.themoviedb.org/3',
+  IMAGE_BASE_URL: 'https://image.tmdb.org/t/p/w185',
+  IMAGE_BASE_URL_LARGE: 'https://image.tmdb.org/t/p/w500',
+  
+  // CORS proxy options (for regions where TMDb is blocked)
+  CORS_PROXIES: [
+    'https://api.allorigins.win/raw?url=',
+    'https://corsproxy.io/?',
+    'https://cors-anywhere.herokuapp.com/'
+  ],
+  
+  // Helper to get person details URL with optional proxy
+  getPersonDetailsUrl: (personId, useProxy = false, proxyIndex = 0) => {
+    const url = `${TMDB_CONFIG.BASE_URL}/person/${personId}?api_key=${TMDB_CONFIG.API_KEY}`;
+    if (!useProxy) return url;
+    
+    // Handle different proxy formats
+    const proxy = TMDB_CONFIG.CORS_PROXIES[proxyIndex];
+    if (proxy.includes('allorigins.win')) {
+      return `${proxy}${encodeURIComponent(url)}`;
+    } else {
+      return `${proxy}${url}`;
+    }
+  },
+    
+  // Helper to get person credits (filmography) with optional proxy
+  getPersonCreditsUrl: (personId, useProxy = false, proxyIndex = 0) => {
+    const url = `${TMDB_CONFIG.BASE_URL}/person/${personId}/movie_credits?api_key=${TMDB_CONFIG.API_KEY}`;
+    if (!useProxy) return url;
+    
+    // Handle different proxy formats
+    const proxy = TMDB_CONFIG.CORS_PROXIES[proxyIndex];
+    if (proxy.includes('allorigins.win')) {
+      return `${proxy}${encodeURIComponent(url)}`;
+    } else {
+      return `${proxy}${url}`;
+    }
+  },
+  
+  // Helper to get search URL with optional proxy
+  getSearchUrl: (query, useProxy = false, proxyIndex = 0) => {
+    const url = `${TMDB_CONFIG.BASE_URL}/search/person?api_key=${TMDB_CONFIG.API_KEY}&query=${encodeURIComponent(query)}`;
+    if (!useProxy) return url;
+    
+    // Handle different proxy formats
+    const proxy = TMDB_CONFIG.CORS_PROXIES[proxyIndex];
+    if (proxy.includes('allorigins.win')) {
+      return `${proxy}${encodeURIComponent(url)}`;
+    } else {
+      return `${proxy}${url}`;
+    }
+  }
+};
+
+// Profile Page Manager
+class ProfilePageManager {
+  constructor() {
+    this.currentPerson = null;
+    this.allMovies = [];
+    this.activeFilter = 'all';
+    this.bioExpanded = false;
+    this.fullBioText = '';
+    this.tmdbTimeout = 8000; // 8 seconds timeout
+    this.tmdbErrorShown = false; // Track if error already shown
+    this.init();
+  }
+  
+  // Helper to generate Letterboxd search URLs (more reliable than guessing exact URLs)
+  generateLetterboxdFilmUrl(title, releaseDate) {
+    // Extract year from release date
+    const year = releaseDate ? new Date(releaseDate).getFullYear() : null;
+    
+    // Instead of guessing the exact film URL, open a search
+    // This is more reliable since Letterboxd's URL patterns are inconsistent
+    const searchQuery = year ? `${title} ${year}` : title;
+    const encodedQuery = encodeURIComponent(searchQuery);
+    
+    // Use Letterboxd's search URL - this will show results and let user pick the right film
+    return `https://letterboxd.com/search/films/${encodedQuery}/`;
+  }
+  
+  init() {
+    this.setupEventListeners();
+    this.loadPersonFromURL();
+  }
+  
+  setupEventListeners() {
+    // Back button
+    const backButton = document.getElementById('backToMain');
+    if (backButton) {
+      backButton.addEventListener('click', () => {
+        window.location.href = 'index.html';
+      });
+    }
+    
+    // Letterboxd button
+    const letterboxdButton = document.getElementById('openLetterboxd');
+    if (letterboxdButton) {
+      letterboxdButton.addEventListener('click', () => {
+        if (this.currentPerson && this.currentPerson.letterboxdUrl) {
+          window.open(this.currentPerson.letterboxdUrl, '_blank');
+        }
+      });
+    }
+    
+    // Edit notes button (main button that handles add/show)
+    const editButton = document.getElementById('editPerson');
+    if (editButton) {
+      editButton.addEventListener('click', () => {
+        this.handleNotesButtonClick();
+      });
+    }
+    
+    // Bio toggle button
+    const bioToggleBtn = document.getElementById('bioToggleBtn');
+    if (bioToggleBtn) {
+      bioToggleBtn.addEventListener('click', () => {
+        this.toggleBio();
+      });
+    }
+    
+    // Edit modal event listeners
+    this.setupEditModalListeners();
+    
+    // Filter buttons
+    document.addEventListener('click', (e) => {
+      if (e.target.classList.contains('filter-btn')) {
+        this.handleFilterClick(e.target);
+      }
+    });
+  }
+  
+  loadPersonFromURL() {
+    // Get the clean URL path (e.g., "/alex-garland/")
+    const path = window.location.pathname;
+    const nameSlug = path.replace(/^\/+|\/+$/g, ''); // Remove leading/trailing slashes
+    
+    if (nameSlug && nameSlug !== 'index.html' && nameSlug !== 'profile.html') {
+      // Try to find person by name slug
+      const person = this.findPersonByNameSlug(nameSlug);
+      if (person) {
+        this.loadPersonProfile(person.id);
+        return;
+      }
+    }
+    
+    // Fallback to old query parameter method for backward compatibility
+    const urlParams = new URLSearchParams(window.location.search);
+    const personName = urlParams.get('name');
+    const personId = urlParams.get('id');
+    
+    if (personName) {
+      const person = this.findPersonByNameSlug(personName);
+      if (person) {
+        // Load the person profile directly
+        this.loadPersonProfile(person.id);
+      } else if (personId) {
+        this.loadPersonProfile(personId);
+      } else {
+        this.showError('Person not found');
+      }
+    } else if (personId) {
+      this.loadPersonProfile(personId);
+    } else {
+      this.showError('No person specified');
+    }
+  }
+  
+  async loadPersonProfile(personId) {
+    try {
+      // Get person from localStorage
+      const person = this.getPersonFromStorage(personId);
+      if (!person) {
+        this.showError('Person not found');
+        return;
+      }
+      
+      this.currentPerson = person;
+      
+      // Update basic info
+      this.updateBasicInfo(person);
+      
+      // If we have TMDb ID, fetch detailed info
+      if (person.tmdbId) {
+        await this.loadTMDbDetails(person.tmdbId);
+        await this.loadFilmography(person.tmdbId);
+      } else {
+        // Try to find TMDb ID by searching
+        const tmdbId = await this.findTMDbId(person.name);
+        if (tmdbId) {
+          await this.loadTMDbDetails(tmdbId);
+          await this.loadFilmography(tmdbId);
+        } else {
+          this.showTMDbError();
+        }
+      }
+      
+    } catch (error) {
+      console.error('Error loading profile:', error);
+      this.showError('Error loading profile');
+    }
+  }
+  
+  getPersonFromStorage(personId) {
+    try {
+      const data = localStorage.getItem('myfilmpeople_data');
+      if (data) {
+        const people = JSON.parse(data);
+        return people.find(p => p.id === parseInt(personId));
+      }
+    } catch (error) {
+      console.error('Error loading from storage:', error);
+    }
+    return null;
+  }
+  
+  findPersonByNameSlug(nameSlug) {
+    try {
+      const data = localStorage.getItem('myfilmpeople_data');
+      if (data) {
+        const people = JSON.parse(data);
+        return people.find(p => this.createNameSlug(p.name) === nameSlug);
+      }
+    } catch (error) {
+      console.error('Error loading from storage:', error);
+    }
+    return null;
+  }
+  
+  createNameSlug(name) {
+    return name
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
+      .replace(/\s+/g, '-')         // Replace spaces with hyphens
+      .replace(/-+/g, '-')          // Replace multiple hyphens with single
+      .replace(/^-|-$/g, '');       // Remove leading/trailing hyphens
+  }
+  
+  updateBasicInfo(person) {
+    document.getElementById('profileName').textContent = person.name;
+    document.getElementById('profileFullName').textContent = person.name;
+    
+    // Format role display nicely
+    const formattedRole = this.formatRoleDisplay(person.role);
+    document.getElementById('profileRole').textContent = formattedRole;
+    
+    // Set profile image
+    const profileImg = document.getElementById('profileImage');
+    if (person.profilePicture) {
+      profileImg.src = person.profilePicture;
+    } else {
+      profileImg.src = `https://letterboxd.com/static/img/avatar500.png`;
+    }
+    
+    // Update notes display
+    this.updateNotesDisplay();
+    
+    // Update page title
+    document.title = `${person.name} - MyFilmPeople`;
+  }
+  
+  formatRoleDisplay(role) {
+    // Convert the role from main app format to display format
+    switch(role) {
+      case 'director':
+        return 'Director';
+      case 'actor':
+        return 'Actor';
+      default:
+        // For other roles, capitalize first letter
+        return role.charAt(0).toUpperCase() + role.slice(1);
+    }
+  }
+  
+  async findTMDbId(personName) {
+    try {
+      const response = await this.smartFetch({
+        requestType: 'search',
+        query: personName
+      });
+      const data = await response.json();
+      
+      if (data.results && data.results.length > 0) {
+        return data.results[0].id;
+      }
+      return null;
+    } catch (error) {
+      console.error('Error searching TMDb:', error);
+      return null;
+    }
+  }
+  
+  async loadTMDbDetails(tmdbId) {
+    try {
+      const response = await this.smartFetch({
+        requestType: 'details',
+        personId: tmdbId
+      });
+      const person = await response.json();
+      
+      if (person.biography) {
+        this.setupBio(person.biography);
+      } else {
+        this.showLetterboxdFirst('No biography available from TMDb');
+      }
+      
+      // Update birth info
+      if (person.birthday || person.place_of_birth) {
+        let birthInfo = '';
+        if (person.birthday) {
+          const birthDate = new Date(person.birthday);
+          birthInfo += `Born: ${birthDate.toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+          })}`;
+        }
+        if (person.place_of_birth) {
+          birthInfo += birthInfo ? ` in ${person.place_of_birth}` : `Born in ${person.place_of_birth}`;
+        }
+        document.getElementById('profileBirth').textContent = birthInfo;
+      }
+      
+      // Update profile image with higher quality
+      if (person.profile_path) {
+        const profileImg = document.getElementById('profileImage');
+        profileImg.src = `${TMDB_CONFIG.IMAGE_BASE_URL_LARGE}${person.profile_path}`;
+      }
+      
+    } catch (error) {
+      console.error('Error loading TMDb details:', error);
+      this.showLetterboxdFirst('Unable to load profile data from TMDb');
+    }
+  }
+  
+  async loadFilmography(tmdbId) {
+    try {
+      const response = await this.smartFetch({
+        requestType: 'credits',
+        personId: tmdbId
+      });
+      const credits = await response.json();
+      
+      const loadingElement = document.getElementById('loadingFilmography');
+      const gridElement = document.getElementById('filmographyGrid');
+      
+      if (credits.cast || credits.crew) {
+        // Group movies by ID and combine roles
+        const movieMap = new Map();
+        
+        // Process cast credits
+        if (credits.cast) {
+          credits.cast.forEach(movie => {
+            // Filter out documentaries and self appearances
+            if (this.shouldIncludeMovie(movie)) {
+              const key = movie.id;
+              if (movieMap.has(key)) {
+                const existing = movieMap.get(key);
+                existing.roles.push({
+                  role: movie.character || 'Actor',
+                  department: 'Acting'
+                });
+              } else {
+                movieMap.set(key, {
+                  ...movie,
+                  roles: [{
+                    role: movie.character || 'Actor',
+                    department: 'Acting'
+                  }]
+                });
+              }
+            }
+          });
+        }
+        
+        // Process crew credits
+        if (credits.crew) {
+          credits.crew.forEach(movie => {
+            // Filter out documentaries and include only major crew roles
+            if (this.shouldIncludeMovie(movie) && this.shouldIncludeCrewRole(movie.job, movie.department)) {
+              const key = movie.id;
+              if (movieMap.has(key)) {
+                const existing = movieMap.get(key);
+                existing.roles.push({
+                  role: movie.job,
+                  department: movie.department
+                });
+              } else {
+                movieMap.set(key, {
+                  ...movie,
+                  roles: [{
+                    role: movie.job,
+                    department: movie.department
+                  }]
+                });
+              }
+            }
+          });
+        }
+        
+        // Convert to array and sort by release date
+        const uniqueMovies = Array.from(movieMap.values());
+        uniqueMovies.sort((a, b) => {
+          const dateA = new Date(a.release_date || '1900-01-01');
+          const dateB = new Date(b.release_date || '1900-01-01');
+          return dateB - dateA; // Most recent first
+        });
+        
+        this.allMovies = uniqueMovies;
+        this.setDefaultFilter(); // Set default filter based on person's role
+        this.renderFilmography(this.filterMovies(uniqueMovies));
+        this.updateFilterCounts(uniqueMovies);
+        loadingElement.style.display = 'none';
+      } else {
+        loadingElement.textContent = 'No filmography found';
+      }
+      
+    } catch (error) {
+      console.error('Error loading filmography:', error);
+      this.showLetterboxdFirst('Unable to load filmography from TMDb');
+    }
+  }
+  
+  renderFilmography(movies) {
+    const grid = document.getElementById('filmographyGrid');
+    grid.innerHTML = '';
+    
+    movies.forEach(movie => { // Show all movies
+      const movieCard = this.createMovieCard(movie);
+      grid.appendChild(movieCard);
+    });
+  }
+  
+  createMovieCard(movie) {
+    const card = document.createElement('div');
+    card.className = 'film-card';
+    
+    const posterUrl = movie.poster_path 
+      ? `${TMDB_CONFIG.IMAGE_BASE_URL}${movie.poster_path}`
+      : null;
+    
+    const year = movie.release_date ? new Date(movie.release_date).getFullYear() : 'TBA';
+    
+    // Group and format roles
+    const rolesByDept = this.groupRolesByDepartment(movie.roles);
+    const roleDisplay = rolesByDept.map(dept => 
+      `<span class="role-badge ${dept.className}">${dept.display}</span>`
+    ).join('');
+    
+    const posterHtml = posterUrl 
+      ? `<img src="${posterUrl}" alt="${movie.title}" class="film-poster" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">`
+      : '';
+    
+    // Enhanced fallback with different styles based on release status
+    const currentYear = new Date().getFullYear();
+    const releaseYear = movie.release_date ? new Date(movie.release_date).getFullYear() : null;
+    
+    let fallbackContent, fallbackStyle;
+    
+    if (!releaseYear || year === 'TBA') {
+      // Unknown release date
+      fallbackContent = `
+        <div style="font-size: 1.5rem; margin-bottom: 4px;">📅</div>
+        <div style="font-size: 0.7rem; text-align: center; line-height: 1.2;">TBA</div>
+      `;
+      fallbackStyle = 'background: linear-gradient(135deg, #2c3440, #1a1f24);';
+    } else if (releaseYear > currentYear) {
+      // Future release
+      fallbackContent = `
+        <div style="font-size: 1.5rem; margin-bottom: 4px;">🎬</div>
+        <div style="font-size: 0.7rem; text-align: center; line-height: 1.2;">Coming<br>${releaseYear}</div>
+      `;
+      fallbackStyle = 'background: linear-gradient(135deg, #3d4f1f, #2c3940);';
+    } else {
+      // Released but no poster
+      fallbackContent = `
+        <div style="font-size: 1.5rem; margin-bottom: 4px;">🎭</div>
+        <div style="font-size: 0.7rem; text-align: center; line-height: 1.2;">No<br>Poster</div>
+      `;
+      fallbackStyle = 'background: linear-gradient(135deg, #2c3440, #34404a);';
+    }
+    
+    const fallbackPoster = `
+      <div class="film-poster-fallback" style="display: ${posterUrl ? 'none' : 'flex'}; ${fallbackStyle} border-radius: 8px; align-items: center; justify-content: center; color: #9ab; flex-direction: column; border: 1px solid rgba(255, 255, 255, 0.1);">
+        ${fallbackContent}
+      </div>
+    `;
+    
+    card.innerHTML = `
+      ${posterHtml}
+      ${fallbackPoster}
+      <div class="film-info">
+        <div class="film-title">${movie.title}</div>
+        <div class="film-year">${year}</div>
+        <div class="film-roles">${roleDisplay}</div>
+      </div>
+    `;
+    
+    // Make card clickable to open Letterboxd
+    card.addEventListener('click', () => {
+      // Use the search-based URL generation (more reliable)
+      const letterboxdUrl = this.generateLetterboxdFilmUrl(movie.title, movie.release_date);
+      
+      // Open in new tab
+      window.open(letterboxdUrl, '_blank');
+      
+      // Log the attempt for debugging
+      console.log(`Searching Letterboxd for: ${movie.title} (${year}) -> ${letterboxdUrl}`);
+    });
+    
+    return card;
+  }
+  
+  groupRolesByDepartment(roles) {
+    const deptMap = new Map();
+    
+    roles.forEach(roleObj => {
+      const dept = roleObj.department;
+      if (!deptMap.has(dept)) {
+        deptMap.set(dept, []);
+      }
+      deptMap.get(dept).push(roleObj.role);
+    });
+    
+    const result = [];
+    
+    // Prioritize order: Acting, Directing, Writing, then others
+    const priorityOrder = ['Acting', 'Directing', 'Writing', 'Production', 'Camera', 'Sound', 'Editing'];
+    
+    priorityOrder.forEach(dept => {
+      if (deptMap.has(dept)) {
+        const roles = deptMap.get(dept);
+        result.push({
+          department: dept,
+          roles: roles,
+          display: this.formatDepartmentDisplay(dept, roles),
+          className: this.getDepartmentClass(dept)
+        });
+        deptMap.delete(dept);
+      }
+    });
+    
+    // Add remaining departments
+    deptMap.forEach((roles, dept) => {
+      result.push({
+        department: dept,
+        roles: roles,
+        display: this.formatDepartmentDisplay(dept, roles),
+        className: this.getDepartmentClass(dept)
+      });
+    });
+    
+    return result;
+  }
+  
+  formatDepartmentDisplay(department, roles) {
+    // Simplify department names and show specific roles if needed
+    const simplifiedDept = {
+      'Acting': roles.length > 1 ? 'Actor' : roles[0],
+      'Directing': 'Director',
+      'Writing': roles.some(r => r.includes('Screenplay')) ? 'Writer' : 'Writer',
+      'Production': 'Producer',
+      'Camera': 'Cinematography',
+      'Sound': roles.some(r => r.includes('Music')) ? 'Composer' : 'Sound',
+      'Editing': 'Editor'
+    };
+    
+    return simplifiedDept[department] || department;
+  }
+  
+  getDepartmentClass(department) {
+    const classMap = {
+      'Acting': 'role-acting',
+      'Directing': 'role-directing', 
+      'Writing': 'role-writing',
+      'Production': 'role-production',
+      'Camera': 'role-camera',
+      'Sound': 'role-sound',
+      'Editing': 'role-editing'
+    };
+    
+    return classMap[department] || 'role-other';
+  }
+  
+  setDefaultFilter() {
+    // Set default filter based on person's role from main app
+    let defaultFilter = 'all'; // fallback
+    
+    if (this.currentPerson) {
+      switch(this.currentPerson.role) {
+        case 'director':
+          defaultFilter = 'Directing';
+          break;
+        case 'actor':
+          defaultFilter = 'Acting';
+          break;
+        default:
+          // For other roles, check if we have any movies in "other" category
+          const hasOtherRoles = this.allMovies.some(movie => 
+            movie.roles.some(role => 
+              !['Acting', 'Directing', 'Writing'].includes(role.department)
+            )
+          );
+          defaultFilter = hasOtherRoles ? 'other' : 'all';
+          break;
+      }
+    }
+    
+    // Update the active filter
+    this.activeFilter = defaultFilter;
+    
+    // Update UI to show the correct active button
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+      btn.classList.remove('active');
+      if (btn.dataset.filter === defaultFilter) {
+        btn.classList.add('active');
+      }
+    });
+  }
+
+  handleFilterClick(button) {
+    // Update active filter
+    document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+    button.classList.add('active');
+    
+    this.activeFilter = button.dataset.filter;
+    this.renderFilmography(this.filterMovies(this.allMovies));
+  }
+  
+  filterMovies(movies) {
+    if (this.activeFilter === 'all') {
+      return movies;
+    }
+    
+    return movies.filter(movie => {
+      if (this.activeFilter === 'other') {
+        // Show movies where person has roles outside of Acting, Directing, Writing
+        return movie.roles.some(role => 
+          !['Acting', 'Directing', 'Writing'].includes(role.department)
+        );
+      } else {
+        // Show movies where person has the specific role
+        return movie.roles.some(role => role.department === this.activeFilter);
+      }
+    });
+  }
+  
+  updateFilterCounts(movies) {
+    const counts = {
+      all: movies.length,
+      Acting: 0,
+      Directing: 0,
+      Writing: 0,
+      other: 0
+    };
+    
+    movies.forEach(movie => {
+      movie.roles.forEach(role => {
+        if (role.department === 'Acting') counts.Acting++;
+        else if (role.department === 'Directing') counts.Directing++;
+        else if (role.department === 'Writing') counts.Writing++;
+        else counts.other++;
+      });
+    });
+    
+    // Update button text with counts
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+      const filter = btn.dataset.filter;
+      const count = counts[filter];
+      if (count > 0) {
+        btn.textContent = `${btn.textContent.split(' (')[0]} (${count})`;
+      }
+    });
+  }
+  
+  setupBio(biography) {
+    // Clean and format the biography text
+    this.fullBioText = biography.trim();
+    const bioTextElement = document.getElementById('bioText');
+    const bioToggleBtn = document.getElementById('bioToggleBtn');
+    
+    // If bio is short (less than 300 characters), show it all
+    if (this.fullBioText.length <= 300) {
+      bioTextElement.textContent = this.fullBioText;
+      bioToggleBtn.classList.add('hidden');
+      return;
+    }
+    
+    // Show truncated version initially
+    this.bioExpanded = false;
+    this.updateBioDisplay();
+    bioToggleBtn.classList.remove('hidden');
+  }
+  
+  updateBioDisplay() {
+    const bioTextElement = document.getElementById('bioText');
+    const bioToggleBtn = document.getElementById('bioToggleBtn');
+    
+    if (this.bioExpanded) {
+      bioTextElement.textContent = this.fullBioText;
+      bioTextElement.classList.remove('bio-collapsed');
+      bioTextElement.classList.add('bio-expanded');
+      bioToggleBtn.textContent = 'Read less';
+    } else {
+      // Find a good break point around 250 characters
+      let truncateAt = 250;
+      if (this.fullBioText.length > truncateAt) {
+        // Try to break at a sentence or at least a word boundary
+        const lastPeriod = this.fullBioText.lastIndexOf('.', truncateAt);
+        const lastSpace = this.fullBioText.lastIndexOf(' ', truncateAt);
+        
+        if (lastPeriod > 200) {
+          truncateAt = lastPeriod + 1;
+        } else if (lastSpace > 200) {
+          truncateAt = lastSpace;
+        }
+      }
+      
+      const truncatedText = this.fullBioText.substring(0, truncateAt).trim() + '...';
+      bioTextElement.textContent = truncatedText;
+      bioTextElement.classList.remove('bio-expanded');
+      bioTextElement.classList.add('bio-collapsed');
+      bioToggleBtn.textContent = 'Read more';
+    }
+  }
+  
+  toggleBio() {
+    this.bioExpanded = !this.bioExpanded;
+    this.updateBioDisplay();
+  }
+  
+  handleNotesButtonClick() {
+    const hasNotes = this.currentPerson.notes && this.currentPerson.notes.trim();
+    
+    if (hasNotes) {
+      // If notes exist, show them in view mode
+      this.openViewModal();
+    } else {
+      // If no notes exist, open modal to add new notes
+      this.openEditModal();
+    }
+  }
+  
+  openViewModal() {
+    const modal = document.getElementById('editNotesModal');
+    const modalTitle = document.getElementById('notesModalTitle');
+    const viewMode = document.getElementById('viewNotesMode');
+    const editMode = document.getElementById('editNotesMode');
+    const notesDisplay = document.getElementById('notesDisplay');
+    
+    // Set up view mode
+    modalTitle.textContent = 'Your Notes';
+    notesDisplay.textContent = this.currentPerson.notes;
+    
+    // Show view mode, hide edit mode
+    viewMode.classList.remove('hidden');
+    editMode.classList.add('hidden');
+    
+    modal.style.display = 'block';
+  }
+  
+  openEditModal() {
+    const modal = document.getElementById('editNotesModal');
+    const modalTitle = document.getElementById('notesModalTitle');
+    const viewMode = document.getElementById('viewNotesMode');
+    const editMode = document.getElementById('editNotesMode');
+    const notesTextarea = document.getElementById('editNotes');
+    
+    // Set up edit mode
+    const hasNotes = this.currentPerson.notes && this.currentPerson.notes.trim();
+    modalTitle.textContent = hasNotes ? 'Edit Your Notes' : 'Add Your Notes';
+    notesTextarea.value = this.currentPerson.notes || '';
+    
+    // Show edit mode, hide view mode
+    editMode.classList.remove('hidden');
+    viewMode.classList.add('hidden');
+    
+    modal.style.display = 'block';
+    notesTextarea.focus();
+  }
+  
+  switchToEditMode() {
+    this.openEditModal();
+  }
+  
+  setupEditModalListeners() {
+    const modal = document.getElementById('editNotesModal');
+    const closeBtn = document.getElementById('closeEditModal');
+    const cancelEditBtn = document.getElementById('cancelEditBtn');
+    const cancelViewBtn = document.getElementById('cancelViewBtn');
+    const editNotesFromView = document.getElementById('editNotesFromView');
+    const form = document.getElementById('editNotesForm');
+    
+    // Close modal events
+    closeBtn?.addEventListener('click', () => this.closeEditModal());
+    cancelEditBtn?.addEventListener('click', () => this.closeEditModal());
+    cancelViewBtn?.addEventListener('click', () => this.closeEditModal());
+    
+    // Switch from view to edit mode
+    editNotesFromView?.addEventListener('click', () => this.switchToEditMode());
+    
+    // Close on outside click
+    modal?.addEventListener('click', (e) => {
+      if (e.target === modal) this.closeEditModal();
+    });
+    
+    // Form submission
+    form?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      this.saveNotes();
+    });
+    
+    // Close on Escape key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modal.style.display === 'block') {
+        this.closeEditModal();
+      }
+    });
+  }
+  
+  closeEditModal() {
+    document.getElementById('editNotesModal').style.display = 'none';
+  }
+  
+  saveNotes() {
+    const newNotes = document.getElementById('editNotes').value.trim();
+    
+    // Update the person in localStorage
+    this.currentPerson.notes = newNotes;
+    this.updatePersonInStorage(this.currentPerson);
+    
+    // Update the button display
+    this.updateNotesDisplay();
+    
+    // Close modal
+    this.closeEditModal();
+  }
+  
+  updatePersonInStorage(person) {
+    // Get current data from localStorage
+    const data = JSON.parse(localStorage.getItem('myfilmpeople_data') || '[]');
+    
+    // Find and update the person
+    const index = data.findIndex(p => p.id === person.id);
+    if (index !== -1) {
+      data[index] = person;
+      localStorage.setItem('myfilmpeople_data', JSON.stringify(data));
+    }
+  }
+  
+  updateNotesDisplay() {
+    const editButton = document.getElementById('editPerson');
+    const hasNotes = this.currentPerson.notes && this.currentPerson.notes.trim();
+    
+    if (hasNotes) {
+      // Update button text to "Show Notes"
+      editButton.innerHTML = '📄 Show Notes';
+    } else {
+      // Update button text to "Add Notes"
+      editButton.innerHTML = '✏️ Add Notes';
+    }
+  }
+  
+  shouldIncludeMovie(movie) {
+    // Filter out documentaries based on genre_ids or title keywords
+    const title = (movie.title || '').toLowerCase();
+    const originalTitle = (movie.original_title || '').toLowerCase();
+    
+    // More specific documentary indicators (avoid false positives)
+    const documentaryKeywords = [
+      'behind the scenes', 'making of', 'the making of',
+      'featurette', 'deleted scenes', 'gag reel', 'bloopers', 
+      'commentary', 'special features', 'outtakes'
+    ];
+    
+    // Self appearance indicators (be more specific)
+    const character = (movie.character || '').toLowerCase();
+    const selfKeywords = [
+      'themselves', 'himself', 'herself', 'self', 'archive footage'
+    ];
+    
+    // Check for documentary keywords in title (more restrictive)
+    const hasDocumentaryKeyword = documentaryKeywords.some(keyword => 
+      title.includes(keyword) || originalTitle.includes(keyword)
+    );
+    
+    // Check character name for obvious self appearances only
+    const hasSelfKeyword = selfKeywords.some(keyword => 
+      character.includes(keyword)
+    );
+    
+    // Exclude if it matches obvious documentary or self criteria
+    return !hasDocumentaryKeyword && !hasSelfKeyword;
+  }
+  
+  shouldIncludeCrewRole(job, department) {
+    // Include most creative roles, be less restrictive
+    const majorRoles = [
+      // Directing
+      'Director', 'Co-Director', 'Assistant Director',
+      // Writing
+      'Writer', 'Screenplay', 'Story', 'Author', 'Novel', 'Characters', 'Script',
+      // Producing
+      'Producer', 'Executive Producer', 'Co-Producer', 'Associate Producer',
+      // Cinematography
+      'Director of Photography', 'Cinematography', 'Cinematographer',
+      // Music
+      'Original Music Composer', 'Music', 'Composer', 'Music Supervisor',
+      // Editing
+      'Editor', 'Film Editor', 'Editorial',
+      // Art & Design
+      'Production Designer', 'Art Director', 'Set Decorator', 'Costume Designer',
+      // Other key roles
+      'Casting Director', 'Supervising Producer'
+    ];
+    
+    const majorDepartments = [
+      'Directing', 'Writing', 'Production', 'Camera', 'Sound', 'Editing', 
+      'Art', 'Costume & Make-Up', 'Visual Effects'
+    ];
+    
+    // Check if it's a recognized role or department
+    return majorRoles.includes(job) || majorDepartments.includes(department);
+  }
+  
+  async smartFetch(options = {}) {
+    const { personId, requestType = 'details', query } = options;
+    
+    // Build the direct TMDb URL based on request type
+    let directUrl;
+    if (requestType === 'search') {
+      directUrl = TMDB_CONFIG.getSearchUrl(query);
+    } else if (requestType === 'credits') {
+      directUrl = TMDB_CONFIG.getPersonCreditsUrl(personId);
+    } else {
+      directUrl = TMDB_CONFIG.getPersonDetailsUrl(personId);
+    }
+    
+    // Method 1: Try direct TMDb (fastest when it works)
+    try {
+      const response = await this.fetchWithTimeout(directUrl);
+      if (response.ok) {
+        return response;
+      }
+    } catch (error) {
+      console.log('Direct TMDb failed, trying proxies...');
+    }
+    
+    // Method 2: Try CORS proxies one by one
+    for (let i = 0; i < TMDB_CONFIG.CORS_PROXIES.length; i++) {
+      try {
+        let proxyUrl;
+        if (requestType === 'search') {
+          proxyUrl = TMDB_CONFIG.getSearchUrl(query, true, i);
+        } else if (requestType === 'credits') {
+          proxyUrl = TMDB_CONFIG.getPersonCreditsUrl(personId, true, i);
+        } else {
+          proxyUrl = TMDB_CONFIG.getPersonDetailsUrl(personId, true, i);
+        }
+        
+        console.log(`Trying proxy ${i + 1}: ${proxyUrl}`);
+        const response = await this.fetchWithTimeout(proxyUrl);
+        if (response.ok) {
+          console.log(`Success with proxy ${i + 1}`);
+          return response;
+        }
+      } catch (error) {
+        console.log(`Proxy ${i + 1} failed:`, error.message);
+        continue;
+      }
+    }
+    
+    // Method 3: All TMDb attempts failed - throw error to trigger Letterboxd-first mode
+    throw new Error('All TMDb and proxy attempts failed');
+  }
+
+  async fetchWithTimeout(url) {
+    return new Promise(async (resolve, reject) => {
+      // Set up timeout
+      const timeoutId = setTimeout(() => {
+        reject(new Error('TMDb request timeout'));
+      }, this.tmdbTimeout);
+      
+      try {
+        const response = await fetch(url);
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        
+        resolve(response);
+      } catch (error) {
+        clearTimeout(timeoutId);
+        reject(error);
+      }
+    });
+  }
+  
+  showLetterboxdFirst(message = 'TMDb data unavailable') {
+    // Hide bio toggle button and show Letterboxd-focused message
+    document.getElementById('bioToggleBtn').classList.add('hidden');
+    
+    const letterboxdMessage = `
+      <div style="text-align: center; color: #ff8000; margin: 20px 0; padding: 20px; border: 1px solid #ff8000; border-radius: 8px; background: rgba(255, 128, 0, 0.1);">
+        <strong>🎬 Letterboxd-First Mode</strong><br>
+        <span style="color: #9ab; font-size: 0.9rem; margin-top: 8px; display: block;">
+          ${message}<br>
+          Click the <strong>Letterboxd</strong> button above for complete profile and filmography.<br>
+          <em>This is where film enthusiasts get the best data anyway!</em>
+        </span>
+      </div>
+    `;
+    
+    // Show message in bio section
+    document.getElementById('bioText').innerHTML = letterboxdMessage;
+    
+    // Show enhanced Letterboxd message in filmography
+    document.getElementById('loadingFilmography').innerHTML = `
+      <div style="text-align: center; margin: 20px 0; padding: 20px; background: rgba(255, 128, 0, 0.05); border-radius: 8px;">
+        <div style="color: #ff8000; font-weight: bold; margin-bottom: 10px;">
+          📽️ Filmography Available on Letterboxd
+        </div>
+        <div style="color: #9ab; font-size: 0.9rem; line-height: 1.4;">
+          Letterboxd has the most comprehensive and curated filmography data.<br>
+          Use the <strong>Letterboxd</strong> button above to explore this person's complete works,<br>
+          including user ratings, reviews, and detailed film information.
+        </div>
+      </div>
+    `;
+  }
+
+  showTMDbError() {
+    // Always hide the bio toggle button when showing error
+    document.getElementById('bioToggleBtn').classList.add('hidden');
+    
+    // Only show error once to avoid duplication
+    if (this.tmdbErrorShown) return;
+    this.tmdbErrorShown = true;
+    
+    const errorMessage = `
+      <div style="text-align: center; color: #ff8000; margin: 20px 0; padding: 20px; border: 1px solid #ff8000; border-radius: 8px; background: rgba(255, 128, 0, 0.1);">
+        <strong>TMDb Connection Issue</strong><br>
+        <span style="color: #9ab; font-size: 0.9rem; margin-top: 8px; display: block;">
+          Unable to connect to TMDb (timeout or blocked).<br>
+          Please use the Letterboxd button above for complete profile and filmography.
+        </span>
+      </div>
+    `;
+    
+    // Show error in bio section
+    document.getElementById('bioText').innerHTML = errorMessage;
+    
+    // Clear filmography section instead of showing duplicate error
+    document.getElementById('loadingFilmography').innerHTML = `
+      <div style="text-align: center; color: #9ab; margin: 20px 0; font-style: italic;">
+        Filmography unavailable - see error message above
+      </div>
+    `;
+  }
+  
+  showError(message) {
+    document.getElementById('profileName').textContent = 'Error';
+    document.getElementById('profileFullName').textContent = message;
+    this.showTMDbError();
+  }
+}
+
+// Initialize the profile page when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+  new ProfilePageManager();
+});

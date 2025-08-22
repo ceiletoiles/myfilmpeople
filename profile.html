@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Profile - MyFilmPeople</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=PT+Sans:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/styles.css">
+    <link rel="stylesheet" href="assets/css/profile.css">
+  </head>
+  <body>
+    <div class="container">
+      <div class="profile-header">
+        <button class="back-button" id="backToMain">← Back to MyFilmPeople</button>
+        <h1 id="profileName">Person Name</h1>
+      </div>
+      
+      <div class="profile-content">
+        <div class="profile-info">
+          <div class="profile-image-container">
+            <img id="profileImage" src="" alt="Profile Picture" class="profile-large-image">
+          </div>
+          
+          <div class="profile-details">
+            <h2 id="profileFullName">Full Name</h2>
+            <p class="profile-role" id="profileRole">Role</p>
+            <p class="profile-birth" id="profileBirth">Birth Info</p>
+            
+            <div class="profile-actions">
+              <button class="letterboxd-button" id="openLetterboxd">
+                📖 Open in Letterboxd
+              </button>
+              <button class="edit-button" id="editPerson">
+                ✏️ Add Notes
+              </button>
+            </div>
+            
+            <div class="profile-bio" id="profileBio">
+              <p id="bioText">Loading biography...</p>
+              <button class="bio-toggle-btn hidden" id="bioToggleBtn">Read more</button>
+            </div>
+          </div>
+        </div>
+        
+        <div class="filmography-section">
+          <div class="filmography-header">
+            <h2>Filmography</h2>
+            <div class="filmography-filters">
+              <button class="filter-btn active" data-filter="all">All</button>
+              <button class="filter-btn" data-filter="Acting">Acting</button>
+              <button class="filter-btn" data-filter="Directing">Directing</button>
+              <button class="filter-btn" data-filter="Writing">Writing</button>
+              <button class="filter-btn" data-filter="other">Other</button>
+            </div>
+          </div>
+          <div class="loading-message" id="loadingFilmography">
+            Loading filmography...
+          </div>
+          <div class="filmography-grid" id="filmographyGrid">
+            <!-- Filmography will be populated by JavaScript -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer class="app-footer">
+      <p>© 2025 MyFilmPeople. Film data from TMDb. Made with ❤️ for film lovers and letterboxd users</p>
+    </footer>
+
+    <!-- Edit/View Notes Modal -->
+    <div id="editNotesModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 id="notesModalTitle">Add Your Notes</h2>
+          <span class="close" id="closeEditModal">&times;</span>
+        </div>
+        <div class="modal-body">
+          <!-- View Mode -->
+          <div id="viewNotesMode" class="notes-view-mode hidden">
+            <div class="form-group">
+              <label>Your Notes:</label>
+              <div class="notes-display" id="notesDisplay"></div>
+            </div>
+            <div class="form-actions">
+              <button type="button" id="editNotesFromView" class="btn btn-primary">Edit</button>
+              <button type="button" id="cancelViewBtn" class="btn btn-secondary">Close</button>
+            </div>
+          </div>
+          
+          <!-- Edit Mode -->
+          <div id="editNotesMode" class="notes-edit-mode">
+            <form id="editNotesForm">
+              <div class="form-group">
+                <label for="editNotes">Your Notes:</label>
+                <textarea id="editNotes" name="notes" rows="4" placeholder="What makes this person special to you?"></textarea>
+              </div>
+              <div class="form-actions">
+                <button type="button" id="cancelEditBtn" class="btn btn-secondary">Cancel</button>
+                <button type="submit" id="saveNotesBtn" class="btn btn-primary">Save Notes</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="assets/js/profile.js"></script>
+  </body>
+</html>
