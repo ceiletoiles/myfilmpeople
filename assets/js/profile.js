@@ -9,7 +9,9 @@ const TMDB_CONFIG = {
   CORS_PROXIES: [
     'https://api.allorigins.win/raw?url=',
     'https://corsproxy.io/?',
-    'https://cors-anywhere.herokuapp.com/'
+    'https://cors-anywhere.herokuapp.com/',
+    'https://api.codetabs.com/v1/proxy?quest=',
+    'https://yacdn.org/proxy/'
   ],
   
   // Helper to get person details URL with optional proxy
@@ -177,11 +179,17 @@ class ProfilePageManager {
         this.showError('Person not found');
         return;
       }
-      
+
       this.currentPerson = person;
       
-      // Update basic info
+      // Show initial loading state
+      this.showLoadingState();
+      
+      // Update basic info immediately with skeleton state
       this.updateBasicInfo(person);
+      
+      // Show filmography loading
+      this.showFilmographyLoading();
       
       // If we have TMDb ID, fetch detailed info
       if (person.tmdbId) {
@@ -202,9 +210,7 @@ class ProfilePageManager {
       console.error('Error loading profile:', error);
       this.showError('Error loading profile');
     }
-  }
-  
-  getPersonFromStorage(personId) {
+  }  getPersonFromStorage(personId) {
     try {
       const data = localStorage.getItem('myfilmpeople_data');
       if (data) {
@@ -248,18 +254,72 @@ class ProfilePageManager {
     document.getElementById('profileRole').textContent = formattedRole;
     
     // Set profile image
-    const profileImg = document.getElementById('profileImage');
-    if (person.profilePicture) {
-      profileImg.src = person.profilePicture;
-    } else {
-      profileImg.src = `https://letterboxd.com/static/img/avatar500.png`;
-    }
+    this.setupProfileImage(person);
     
     // Update notes display
     this.updateNotesDisplay();
     
     // Update page title
     document.title = `${person.name} - MyFilmPeople`;
+  }
+
+  setupProfileImage(person) {
+    const profileImg = document.getElementById('profileImage');
+    
+    if (person.profilePicture) {
+      profileImg.src = person.profilePicture;
+      profileImg.alt = person.name;
+    } else {
+      profileImg.src = `https://letterboxd.com/static/img/avatar500.png`;
+      profileImg.alt = person.name;
+    }
+  }
+
+  showLoadingState() {
+    // Add loading class to profile content
+    const profileContent = document.querySelector('.profile-content');
+    profileContent.classList.add('profile-loading');
+    
+    // Set loading text for bio
+    document.getElementById('bioText').textContent = 'Loading biography from TMDb...';
+    document.getElementById('profileBirth').textContent = 'Loading birth information...';
+  }
+
+  hideLoadingState() {
+    // Remove loading class
+    const profileContent = document.querySelector('.profile-content');
+    profileContent.classList.remove('profile-loading');
+  }
+
+  showFilmographyLoading() {
+    const loadingElement = document.getElementById('loadingFilmography');
+    const grid = document.getElementById('filmographyGrid');
+    
+    loadingElement.textContent = 'Loading filmography from TMDb...';
+    loadingElement.style.display = 'block';
+    
+    // Show skeleton filmography cards
+    this.showFilmographySkeleton();
+  }
+
+  showFilmographySkeleton() {
+    const grid = document.getElementById('filmographyGrid');
+    grid.innerHTML = '';
+    
+    // Create 8 skeleton cards
+    for (let i = 0; i < 8; i++) {
+      const skeletonCard = document.createElement('div');
+      skeletonCard.className = 'film-card-skeleton';
+      skeletonCard.innerHTML = `
+        <div class="film-poster-skeleton loading-skeleton"></div>
+        <div class="film-info-skeleton">
+          <div class="skeleton-line title loading-skeleton"></div>
+          <div class="skeleton-line year loading-skeleton"></div>
+          <div class="skeleton-line roles loading-skeleton"></div>
+        </div>
+      `;
+      grid.appendChild(skeletonCard);
+    }
   }
   
   formatRoleDisplay(role) {
@@ -322,6 +382,8 @@ class ProfilePageManager {
           birthInfo += birthInfo ? ` in ${person.place_of_birth}` : `Born in ${person.place_of_birth}`;
         }
         document.getElementById('profileBirth').textContent = birthInfo;
+      } else {
+        document.getElementById('profileBirth').style.display = 'none';
       }
       
       // Update profile image with higher quality
@@ -330,8 +392,12 @@ class ProfilePageManager {
         profileImg.src = `${TMDB_CONFIG.IMAGE_BASE_URL_LARGE}${person.profile_path}`;
       }
       
+      // Hide loading state for profile details
+      this.hideLoadingState();
+      
     } catch (error) {
       console.error('Error loading TMDb details:', error);
+      this.hideLoadingState();
       this.showLetterboxdFirst('Unable to load profile data from TMDb');
     }
   }
@@ -410,9 +476,9 @@ class ProfilePageManager {
         });
         
         this.allMovies = uniqueMovies;
+        this.createDynamicFilters(uniqueMovies);
         this.setDefaultFilter(); // Set default filter based on person's role
         this.renderFilmography(this.filterMovies(uniqueMovies));
-        this.updateFilterCounts(uniqueMovies);
         loadingElement.style.display = 'none';
       } else {
         loadingElement.textContent = 'No filmography found';
@@ -426,11 +492,64 @@ class ProfilePageManager {
   
   renderFilmography(movies) {
     const grid = document.getElementById('filmographyGrid');
+    const loadingElement = document.getElementById('loadingFilmography');
+    
+    // Hide loading and clear skeleton
+    loadingElement.style.display = 'none';
     grid.innerHTML = '';
     
     movies.forEach(movie => { // Show all movies
       const movieCard = this.createMovieCard(movie);
       grid.appendChild(movieCard);
+    });
+  }
+
+  createDynamicFilters(movies) {
+    const counts = {
+      all: movies.length,
+      Acting: 0,
+      Directing: 0,
+      Writing: 0,
+      other: 0
+    };
+    
+    // Count movies in each category
+    movies.forEach(movie => {
+      movie.roles.forEach(role => {
+        if (role.department === 'Acting') counts.Acting++;
+        else if (role.department === 'Directing') counts.Directing++;
+        else if (role.department === 'Writing') counts.Writing++;
+        else counts.other++;
+      });
+    });
+    
+    // Create filter buttons only for categories with content
+    const filtersContainer = document.getElementById('filmographyFilters');
+    filtersContainer.innerHTML = '';
+    
+    // Always add "All" filter first
+    const allBtn = document.createElement('button');
+    allBtn.className = 'filter-btn active';
+    allBtn.dataset.filter = 'all';
+    allBtn.textContent = `All (${counts.all})`;
+    filtersContainer.appendChild(allBtn);
+    
+    // Add other filters only if they have content
+    const filterOrder = [
+      { key: 'Acting', label: 'Acting' },
+      { key: 'Directing', label: 'Directing' },
+      { key: 'Writing', label: 'Writing' },
+      { key: 'other', label: 'Other' }
+    ];
+    
+    filterOrder.forEach(filter => {
+      if (counts[filter.key] > 0) {
+        const btn = document.createElement('button');
+        btn.className = 'filter-btn';
+        btn.dataset.filter = filter.key;
+        btn.textContent = `${filter.label} (${counts[filter.key]})`;
+        filtersContainer.appendChild(btn);
+      }
     });
   }
   
@@ -644,34 +763,6 @@ class ProfilePageManager {
       } else {
         // Show movies where person has the specific role
         return movie.roles.some(role => role.department === this.activeFilter);
-      }
-    });
-  }
-  
-  updateFilterCounts(movies) {
-    const counts = {
-      all: movies.length,
-      Acting: 0,
-      Directing: 0,
-      Writing: 0,
-      other: 0
-    };
-    
-    movies.forEach(movie => {
-      movie.roles.forEach(role => {
-        if (role.department === 'Acting') counts.Acting++;
-        else if (role.department === 'Directing') counts.Directing++;
-        else if (role.department === 'Writing') counts.Writing++;
-        else counts.other++;
-      });
-    });
-    
-    // Update button text with counts
-    document.querySelectorAll('.filter-btn').forEach(btn => {
-      const filter = btn.dataset.filter;
-      const count = counts[filter];
-      if (count > 0) {
-        btn.textContent = `${btn.textContent.split(' (')[0]} (${count})`;
       }
     });
   }
@@ -938,17 +1029,29 @@ class ProfilePageManager {
     } else {
       directUrl = TMDB_CONFIG.getPersonDetailsUrl(personId);
     }
+
+    // Check if we're likely in a region where TMDb is blocked
+    // Skip direct attempt if we've had recent failures
+    const shouldSkipDirect = localStorage.getItem('tmdb_blocked') === 'true';
     
-    // Method 1: Try direct TMDb (fastest when it works)
-    try {
-      const response = await this.fetchWithTimeout(directUrl);
-      if (response.ok) {
-        return response;
+    // Method 1: Try direct TMDb (fastest when it works) - unless we know it's blocked
+    if (!shouldSkipDirect) {
+      try {
+        const response = await this.fetchWithTimeout(directUrl, 5000); // Shorter timeout for direct
+        if (response.ok) {
+          // Clear any previous block flag
+          localStorage.removeItem('tmdb_blocked');
+          return response;
+        }
+      } catch (error) {
+        console.log('Direct TMDb failed, trying proxies...');
+        // Mark as potentially blocked for future requests
+        localStorage.setItem('tmdb_blocked', 'true');
       }
-    } catch (error) {
-      console.log('Direct TMDb failed, trying proxies...');
+    } else {
+      console.log('Skipping direct TMDb (previously blocked), using proxies...');
     }
-    
+
     // Method 2: Try CORS proxies one by one
     for (let i = 0; i < TMDB_CONFIG.CORS_PROXIES.length; i++) {
       try {
@@ -961,8 +1064,8 @@ class ProfilePageManager {
           proxyUrl = TMDB_CONFIG.getPersonDetailsUrl(personId, true, i);
         }
         
-        console.log(`Trying proxy ${i + 1}: ${proxyUrl}`);
-        const response = await this.fetchWithTimeout(proxyUrl);
+        console.log(`Trying proxy ${i + 1}: ${TMDB_CONFIG.CORS_PROXIES[i]}`);
+        const response = await this.fetchWithTimeout(proxyUrl, 8000);
         if (response.ok) {
           console.log(`Success with proxy ${i + 1}`);
           return response;
@@ -977,12 +1080,13 @@ class ProfilePageManager {
     throw new Error('All TMDb and proxy attempts failed');
   }
 
-  async fetchWithTimeout(url) {
+  async fetchWithTimeout(url, timeoutMs = null) {
+    const timeout = timeoutMs || this.tmdbTimeout;
     return new Promise(async (resolve, reject) => {
       // Set up timeout
       const timeoutId = setTimeout(() => {
-        reject(new Error('TMDb request timeout'));
-      }, this.tmdbTimeout);
+        reject(new Error(`TMDb request timeout (${timeout}ms)`));
+      }, timeout);
       
       try {
         const response = await fetch(url);
@@ -1001,6 +1105,9 @@ class ProfilePageManager {
   }
   
   showLetterboxdFirst(message = 'TMDb data unavailable') {
+    // Hide loading states
+    this.hideLoadingState();
+    
     // Hide bio toggle button and show Letterboxd-focused message
     document.getElementById('bioToggleBtn').classList.add('hidden');
     
@@ -1018,9 +1125,17 @@ class ProfilePageManager {
     // Show message in bio section
     document.getElementById('bioText').innerHTML = letterboxdMessage;
     
+    // Hide filmography loading and clear grid
+    const loadingElement = document.getElementById('loadingFilmography');
+    const grid = document.getElementById('filmographyGrid');
+    const filtersContainer = document.getElementById('filmographyFilters');
+    loadingElement.style.display = 'none';
+    grid.innerHTML = '';
+    filtersContainer.innerHTML = '';
+    
     // Show enhanced Letterboxd message in filmography
-    document.getElementById('loadingFilmography').innerHTML = `
-      <div style="text-align: center; margin: 20px 0; padding: 20px; background: rgba(255, 128, 0, 0.05); border-radius: 8px;">
+    grid.innerHTML = `
+      <div style="text-align: center; margin: 20px 0; padding: 20px; background: rgba(255, 128, 0, 0.05); border-radius: 8px; grid-column: 1 / -1;">
         <div style="color: #ff8000; font-weight: bold; margin-bottom: 10px;">
           📽️ Filmography Available on Letterboxd
         </div>
@@ -1034,6 +1149,9 @@ class ProfilePageManager {
   }
 
   showTMDbError() {
+    // Hide loading states
+    this.hideLoadingState();
+    
     // Always hide the bio toggle button when showing error
     document.getElementById('bioToggleBtn').classList.add('hidden');
     
@@ -1054,9 +1172,17 @@ class ProfilePageManager {
     // Show error in bio section
     document.getElementById('bioText').innerHTML = errorMessage;
     
+    // Hide filmography loading and clear grid
+    const loadingElement = document.getElementById('loadingFilmography');
+    const grid = document.getElementById('filmographyGrid');
+    const filtersContainer = document.getElementById('filmographyFilters');
+    loadingElement.style.display = 'none';
+    grid.innerHTML = '';
+    filtersContainer.innerHTML = '';
+    
     // Clear filmography section instead of showing duplicate error
-    document.getElementById('loadingFilmography').innerHTML = `
-      <div style="text-align: center; color: #9ab; margin: 20px 0; font-style: italic;">
+    grid.innerHTML = `
+      <div style="text-align: center; color: #9ab; margin: 20px 0; font-style: italic; grid-column: 1 / -1;">
         Filmography unavailable - see error message above
       </div>
     `;

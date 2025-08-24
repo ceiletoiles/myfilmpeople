@@ -25,7 +25,7 @@ body {
   border-bottom: 1px solid #456;
   color: white;
   text-align: center;
-  padding: 30px 20px;
+  padding: 20px 15px;
 }
 
 h1 {
@@ -62,14 +62,14 @@ h1 {
 }
 
 .content {
-  padding: 30px 20px;
+  padding: 20px 15px;
   background: #14181c;
 }
 
 .tabs {
   display: flex;
   justify-content: center;
-  margin-bottom: 30px;
+  margin-bottom: 20px;
   border-bottom: 1px solid #456;
   background: #2c3440;
   border-radius: 3px;
@@ -312,9 +312,9 @@ select option {
 
 .directors-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 16px;
-  margin-top: 30px;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+  margin-top: 20px;
 }
 
 .director-card {
@@ -334,11 +334,11 @@ select option {
 
 .director-card a {
   display: block;
-  padding: 16px;
+  padding: 12px;
   text-decoration: none;
   color: #cdf;
   font-weight: 400;
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   position: relative;
   transition: all 0.2s ease;
   font-family: 'PT Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -347,10 +347,10 @@ select option {
 
 .person-avatar {
   width: 100%;
-  height: 260px;
+  height: 200px;
   object-fit: cover;
   border-radius: 3px;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   background: #456;
 }
 
@@ -541,7 +541,7 @@ select option {
 
 @media (max-width: 768px) {
   .content {
-    padding: 20px 15px;
+    padding: 15px 10px;
   }
   
   h1 {
@@ -549,8 +549,8 @@ select option {
   }
   
   .directors-grid {
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-    gap: 12px;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 10px;
   }
 
   .simple-controls {
@@ -614,7 +614,7 @@ select option {
   }
 
   .directors-grid {
-    margin-top: 30px;
+    margin-top: 20px;
     transition: margin-top 0.3s ease;
   }
 
@@ -638,8 +638,8 @@ select option {
   }
 
   .director-card a {
-    padding: 12px;
-    font-size: 0.8rem;
+    padding: 10px;
+    font-size: 0.75rem;
   }
 
   .notes-indicator {
@@ -651,18 +651,18 @@ select option {
   }
 
   .header {
-    padding: 20px;
+    padding: 15px;
   }
 }
 
 @media (max-width: 480px) {
   .directors-grid {
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
   }
   
   .director-card a {
-    padding: 10px;
-    font-size: 0.75rem;
+    padding: 8px;
+    font-size: 0.7rem;
   }
   
   .notes-indicator {
