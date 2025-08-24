@@ -1,8 +1,21 @@
-/* Profile Page Specific Styles */
+/* Profile Page Specific Styles - Letterboxd Theme */
+
+/* Import color variables from main styles */
+:root {
+  --letterboxd-orange: #ff8000;
+  --letterboxd-blue: #40bcf4;
+  --letterboxd-green: #00e054;
+  --bg-primary: #14181c;
+  --bg-secondary: #2c3440;
+  --bg-tertiary: #456;
+  --text-primary: #9ab;
+  --text-secondary: #678;
+  --text-accent: #fff;
+}
 
 /* Loading States */
 .loading-skeleton {
-  background: linear-gradient(90deg, #2c3440 25%, #3d4654 50%, #2c3440 75%);
+  background: linear-gradient(90deg, var(--bg-secondary) 25%, #3d4654 50%, var(--bg-secondary) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
   border-radius: 6px;
@@ -18,11 +31,11 @@
 }
 
 .profile-loading .profile-large-image {
-  background: #456;
+  background: var(--bg-tertiary);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #678;
+  color: var(--text-secondary);
   font-size: 0.9rem;
 }
 
@@ -31,7 +44,7 @@
 }
 
 .profile-loading #bioText {
-  color: #678;
+  color: var(--text-secondary);
   font-style: italic;
 }
 
@@ -39,7 +52,7 @@
   display: none;
   text-align: center;
   padding: 40px 20px;
-  color: #678;
+  color: var(--text-secondary);
   font-style: italic;
 }
 
@@ -197,27 +210,25 @@
 }
 
 .letterboxd-button {
-  background: #ff8000;
-  color: white;
+  background: var(--letterboxd-orange);
+  color: var(--text-accent);
 }
 
 .letterboxd-button:hover {
   background: #e6720a;
   transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(255, 128, 0, 0.3);
 }
 
 .edit-button {
-  background: #2c3440;
-  color: #9ab;
+  background: var(--letterboxd-blue);
+  color: var(--text-accent);
 }
 
 .edit-button:hover {
-  background: #3d4a5c;
+  background: #359fd8;
   transform: translateY(-1px);
-}
-
-.edit-button:hover {
-  background: #3d4654;
+  box-shadow: 0 4px 12px rgba(64, 188, 244, 0.3);
 }
 
 /* Bio and Notes */
@@ -272,9 +283,9 @@
 }
 
 .filter-btn {
-  background: #2c3440;
-  color: #9ab;
-  border: 1px solid #456;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--bg-tertiary);
   padding: 6px 12px;
   border-radius: 20px;
   cursor: pointer;
@@ -290,10 +301,30 @@
   border-color: #567;
 }
 
-.filter-btn.active {
-  background: #ff8000;
-  color: white;
-  border-color: #ff8000;
+/* Different colors for different filter types - Letterboxd style */
+.filter-btn[data-filter="all"].active {
+  background: var(--letterboxd-orange);
+  color: var(--text-accent);
+  border-color: var(--letterboxd-orange);
+}
+
+.filter-btn[data-filter="Directing"].active {
+  background: var(--letterboxd-orange);
+  color: var(--text-accent);
+  border-color: var(--letterboxd-orange);
+}
+
+.filter-btn[data-filter="Acting"].active {
+  background: var(--letterboxd-blue);
+  color: var(--text-accent);
+  border-color: var(--letterboxd-blue);
+}
+
+.filter-btn[data-filter="Writing"].active,
+.filter-btn[data-filter="other"].active {
+  background: var(--letterboxd-green);
+  color: var(--text-accent);
+  border-color: var(--letterboxd-green);
 }
 
 .loading-message {

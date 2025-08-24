@@ -4,11 +4,24 @@
   box-sizing: border-box;
 }
 
+/* Letterboxd-inspired color scheme */
+:root {
+  --letterboxd-orange: #ff8000;
+  --letterboxd-blue: #40bcf4;
+  --letterboxd-green: #00e054;
+  --bg-primary: #14181c;
+  --bg-secondary: #2c3440;
+  --bg-tertiary: #456;
+  --text-primary: #9ab;
+  --text-secondary: #678;
+  --text-accent: #fff;
+}
+
 body {
   font-family: 'PT Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   line-height: 1.6;
-  background: #14181c;
-  color: #9ab;
+  background: var(--bg-primary);
+  color: var(--text-primary);
   min-height: 100vh;
   padding: 0;
 }
@@ -16,14 +29,14 @@ body {
 .container {
   max-width: 1200px;
   margin: 0 auto;
-  background: #14181c;
+  background: var(--bg-primary);
   min-height: 100vh;
 }
 
 .header {
-  background: #2c3440;
-  border-bottom: 1px solid #456;
-  color: white;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--bg-tertiary);
+  color: var(--text-accent);
   text-align: center;
   padding: 20px 15px;
 }
@@ -32,20 +45,20 @@ h1 {
   font-size: 2.2rem;
   font-weight: 400;
   margin-bottom: 8px;
-  color: #ff8000;
+  color: var(--letterboxd-orange);
   font-family: 'PT Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 .header p {
-  color: #9ab;
+  color: var(--text-primary);
   font-size: 0.9rem;
   font-weight: 400;
   margin-bottom: 15px;
 }
 
 .add-person-btn {
-  background: #ff8000;
-  color: white;
+  background: var(--letterboxd-orange);
+  color: var(--text-accent);
   border: none;
   padding: 10px 20px;
   border-radius: 3px;
@@ -59,19 +72,20 @@ h1 {
 .add-person-btn:hover {
   background: #e67300;
   transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(255, 128, 0, 0.3);
 }
 
 .content {
   padding: 20px 15px;
-  background: #14181c;
+  background: var(--bg-primary);
 }
 
 .tabs {
   display: flex;
   justify-content: center;
   margin-bottom: 20px;
-  border-bottom: 1px solid #456;
-  background: #2c3440;
+  border-bottom: 1px solid var(--bg-tertiary);
+  background: var(--bg-secondary);
   border-radius: 3px;
 }
 
@@ -81,7 +95,7 @@ h1 {
   padding: 12px 24px;
   font-size: 0.875rem;
   font-weight: 600;
-  color: #9ab;
+  color: var(--text-primary);
   cursor: pointer;
   transition: all 0.2s ease;
   border-bottom: 2px solid transparent;
@@ -91,14 +105,30 @@ h1 {
 }
 
 .tab-button:hover {
-  color: #ff8000;
+  color: var(--text-accent);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Different colors for each tab - Letterboxd style */
+.tab-button[data-tab="directors"]:hover,
+.tab-button[data-tab="directors"].active {
+  color: var(--letterboxd-orange);
+  border-bottom-color: var(--letterboxd-orange);
   background: rgba(255, 128, 0, 0.1);
 }
 
-.tab-button.active {
-  color: #ff8000;
-  border-bottom-color: #ff8000;
-  background: rgba(255, 128, 0, 0.1);
+.tab-button[data-tab="actors"]:hover,
+.tab-button[data-tab="actors"].active {
+  color: var(--letterboxd-blue);
+  border-bottom-color: var(--letterboxd-blue);
+  background: rgba(64, 188, 244, 0.1);
+}
+
+.tab-button[data-tab="others"]:hover,
+.tab-button[data-tab="others"].active {
+  color: var(--letterboxd-green);
+  border-bottom-color: var(--letterboxd-green);
+  background: rgba(0, 224, 84, 0.1);
 }
 
 .tab-content {
@@ -318,8 +348,8 @@ select option {
 }
 
 .director-card {
-  background: #2c3440;
-  border: 1px solid #456;
+  background: var(--bg-secondary);
+  border: 1px solid var(--bg-tertiary);
   border-radius: 3px;
   transition: all 0.2s ease;
   overflow: hidden;
@@ -328,8 +358,24 @@ select option {
 
 .director-card:hover {
   background: #445566;
-  border-color: #ff8000;
   transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* Different hover colors for each tab - Letterboxd style */
+.directors-grid .director-card:hover {
+  border-color: var(--letterboxd-orange);
+  box-shadow: 0 4px 12px rgba(255, 128, 0, 0.2);
+}
+
+.actors-grid .director-card:hover {
+  border-color: var(--letterboxd-blue);
+  box-shadow: 0 4px 12px rgba(64, 188, 244, 0.2);
+}
+
+.others-grid .director-card:hover {
+  border-color: var(--letterboxd-green);
+  box-shadow: 0 4px 12px rgba(0, 224, 84, 0.2);
 }
 
 .director-card a {
@@ -351,7 +397,7 @@ select option {
   object-fit: cover;
   border-radius: 3px;
   margin-bottom: 6px;
-  background: #456;
+  background: var(--bg-tertiary);
 }
 
 .person-name {
@@ -362,7 +408,7 @@ select option {
 .role-badge {
   display: block;
   font-size: 0.7rem;
-  color: #9ab;
+  color: var(--text-primary);
   text-transform: capitalize;
   margin-top: 2px;
   font-weight: 400;
@@ -376,14 +422,14 @@ select option {
   font-size: 1rem;
   opacity: 1;
   z-index: 10;
-  background: rgba(255, 140, 0, 0.9);
+  background: rgba(255, 128, 0, 0.9);
   border-radius: 50%;
   width: 20px;
   height: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--text-accent);
 }
 
 .director-card a:hover {
@@ -689,16 +735,17 @@ select option {
 }
 
 .modal-content {
-  background: #2c3440;
+  background: var(--bg-secondary);
   margin: 5% auto;
   padding: 0;
-  border: 1px solid #456;
+  border: 1px solid var(--bg-tertiary);
   border-radius: 6px;
   width: 90%;
   max-width: 500px;
   max-height: 90vh;
   overflow-y: auto;
   animation: modalSlideIn 0.3s ease;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
 }
 
 @keyframes modalSlideIn {
@@ -1078,8 +1125,8 @@ form {
   text-align: center;
   padding: 30px 20px 20px;
   margin-top: 40px;
-  border-top: 1px solid #456;
-  color: #678;
+  border-top: 1px solid var(--bg-tertiary);
+  color: var(--text-secondary);
   font-size: 13px;
 }
 

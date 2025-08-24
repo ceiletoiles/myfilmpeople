@@ -86,7 +86,28 @@ class ProfilePageManager {
   
   init() {
     this.setupEventListeners();
+    // Test TMDb connectivity on startup
+    this.testTMDbConnectivity();
     this.loadPersonFromURL();
+  }
+  
+  // Test TMDb connectivity on startup to set blocking flag early
+  async testTMDbConnectivity() {
+    try {
+      // Quick test with a simple API call
+      const testUrl = `${TMDB_CONFIG.BASE_URL}/configuration?api_key=${TMDB_CONFIG.API_KEY}`;
+      const response = await this.fetchWithTimeout(testUrl, 2000); // Very short timeout
+      if (response.ok) {
+        console.log('✅ TMDb connectivity test passed');
+        localStorage.removeItem('tmdb_blocked');
+      } else {
+        console.log('⚠️ TMDb connectivity test failed - will use proxies');
+        localStorage.setItem('tmdb_blocked', 'true');
+      }
+    } catch (error) {
+      console.log('🚫 TMDb appears to be blocked - will use proxies only');
+      localStorage.setItem('tmdb_blocked', 'true');
+    }
   }
   
   setupEventListeners() {
@@ -193,22 +214,38 @@ class ProfilePageManager {
       
       // If we have TMDb ID, fetch detailed info
       if (person.tmdbId) {
-        await this.loadTMDbDetails(person.tmdbId);
-        await this.loadFilmography(person.tmdbId);
+        try {
+          await this.loadTMDbDetails(person.tmdbId);
+          await this.loadFilmography(person.tmdbId);
+        } catch (error) {
+          console.log('❌ TMDb requests failed - showing Letterboxd-only mode');
+          this.hideLoadingState();
+          this.showLetterboxdFirst('TMDb is currently unavailable. Showing Letterboxd-only mode.');
+        }
       } else {
         // Try to find TMDb ID by searching
-        const tmdbId = await this.findTMDbId(person.name);
-        if (tmdbId) {
-          await this.loadTMDbDetails(tmdbId);
-          await this.loadFilmography(tmdbId);
-        } else {
-          this.showTMDbError();
+        try {
+          const tmdbId = await this.findTMDbId(person.name);
+          if (tmdbId) {
+            console.log('✅ Found TMDb ID:', tmdbId);
+            await this.loadTMDbDetails(tmdbId);
+            await this.loadFilmography(tmdbId);
+          } else {
+            console.log('❌ Person not found in TMDb');
+            this.hideLoadingState();
+            this.showLetterboxdFirst('Person not found in TMDb database');
+          }
+        } catch (error) {
+          console.log('❌ TMDb search failed - showing Letterboxd-only mode');
+          this.hideLoadingState();
+          this.showLetterboxdFirst('Unable to access TMDb. Showing Letterboxd-only mode.');
         }
       }
       
     } catch (error) {
       console.error('Error loading profile:', error);
-      this.showError('Error loading profile');
+      this.hideLoadingState();
+      this.showLetterboxdFirst('Profile loading error - using Letterboxd mode');
     }
   }  getPersonFromStorage(personId) {
     try {
@@ -1037,22 +1074,19 @@ class ProfilePageManager {
     // Method 1: Try direct TMDb (fastest when it works) - unless we know it's blocked
     if (!shouldSkipDirect) {
       try {
-        const response = await this.fetchWithTimeout(directUrl, 5000); // Shorter timeout for direct
+        const response = await this.fetchWithTimeout(directUrl, 3000); // Shorter timeout for direct
         if (response.ok) {
           // Clear any previous block flag
           localStorage.removeItem('tmdb_blocked');
           return response;
         }
       } catch (error) {
-        console.log('Direct TMDb failed, trying proxies...');
         // Mark as potentially blocked for future requests
         localStorage.setItem('tmdb_blocked', 'true');
       }
-    } else {
-      console.log('Skipping direct TMDb (previously blocked), using proxies...');
     }
 
-    // Method 2: Try CORS proxies one by one
+    // Method 2: Try CORS proxies one by one with better error handling
     for (let i = 0; i < TMDB_CONFIG.CORS_PROXIES.length; i++) {
       try {
         let proxyUrl;
@@ -1064,14 +1098,11 @@ class ProfilePageManager {
           proxyUrl = TMDB_CONFIG.getPersonDetailsUrl(personId, true, i);
         }
         
-        console.log(`Trying proxy ${i + 1}: ${TMDB_CONFIG.CORS_PROXIES[i]}`);
-        const response = await this.fetchWithTimeout(proxyUrl, 8000);
+        const response = await this.fetchWithTimeout(proxyUrl, 6000); // Shorter timeout for proxies
         if (response.ok) {
-          console.log(`Success with proxy ${i + 1}`);
           return response;
         }
       } catch (error) {
-        console.log(`Proxy ${i + 1} failed:`, error.message);
         continue;
       }
     }
