@@ -117,6 +117,15 @@
           </div>
           
           <div class="form-group">
+            <label for="manualTmdbId">Manual TMDb ID (Optional)</label>
+            <input type="number" id="manualTmdbId" placeholder="e.g., 2975 for Christopher Nolan" min="1">
+            <small class="form-help">
+              If search gives wrong person, find the correct TMDb ID from themoviedb.org and enter it here.<br>
+              Example: For Christopher Nolan, the URL is themoviedb.org/person/2975, so enter "2975"
+            </small>
+          </div>
+          
+          <div class="form-group">
             <label for="personName">Name *</label>
             <input type="text" id="personName" required placeholder="e.g., Christopher Nolan">
           </div>
@@ -162,7 +171,11 @@
           <div class="form-group">
             <label for="letterboxdUrl">Letterboxd URL</label>
             <input type="url" id="letterboxdUrl" placeholder="https://letterboxd.com/director/christopher-nolan/">
-            <small class="form-help">(if tmdb doesnt work enter - https://letterboxd.com/role/name/)</small>
+            <small class="form-help">
+              Auto-filled URL may not be correct for people with same names.<br>
+              Check letterboxd.com to find the correct person's URL and update the slug if needed.<br>
+              Format: https://letterboxd.com/role/name-slug/
+            </small>
           </div>
           
           <div class="form-group">

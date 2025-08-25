@@ -126,6 +126,7 @@ class PeopleDatabase {
       letterboxdUrl: personData.letterboxdUrl || '',
       profilePicture: personData.profilePicture || '',
       notes: personData.notes || '',
+      tmdbId: personData.tmdbId || null,
       dateAdded: new Date().toISOString()
     };
     
@@ -328,6 +329,7 @@ class UIManager {
     // TMDb search functionality
     const searchInput = document.getElementById('personSearch');
     const searchResults = document.getElementById('searchResults');
+    const manualTmdbIdInput = document.getElementById('manualTmdbId');
     let searchTimeout;
     
     if (searchInput && searchResults) {
@@ -339,6 +341,16 @@ class UIManager {
           return;
         }
         searchTimeout = setTimeout(() => this.searchTMDbPeople(query), 300);
+      });
+    }
+    
+    // Manual TMDb ID functionality
+    if (manualTmdbIdInput) {
+      manualTmdbIdInput.addEventListener('change', async (e) => {
+        const tmdbId = e.target.value.trim();
+        if (tmdbId && !isNaN(tmdbId) && parseInt(tmdbId) > 0) {
+          await this.fetchPersonByTmdbId(parseInt(tmdbId));
+        }
       });
     }
     
@@ -667,6 +679,65 @@ class UIManager {
     
     return mapping[department] || department;
   }
+
+  async fetchPersonByTmdbId(tmdbId) {
+    try {
+      // Show loading message
+      this.showMessage(`Fetching data for TMDb ID: ${tmdbId}...`);
+      
+      let response;
+      let person;
+      
+      // Try direct API call first
+      try {
+        const directUrl = TMDB_CONFIG.getPersonDetailsUrl(tmdbId);
+        response = await this.fetchWithTimeout(directUrl, 8000);
+        
+        if (response.ok) {
+          person = await response.json();
+        } else {
+          throw new Error('Direct API failed');
+        }
+      } catch (error) {
+        console.log('Direct TMDb API failed, trying with proxy...');
+        
+        // Try with CORS proxies
+        for (let i = 0; i < TMDB_CONFIG.CORS_PROXIES.length; i++) {
+          try {
+            const proxyUrl = TMDB_CONFIG.getPersonDetailsUrl(tmdbId, true, i);
+            response = await this.fetchWithTimeout(proxyUrl, 8000);
+            
+            if (response.ok) {
+              person = await response.json();
+              break;
+            }
+          } catch (proxyError) {
+            console.log(`Proxy ${i} failed:`, proxyError.message);
+            continue;
+          }
+        }
+      }
+      
+      if (person && person.id) {
+        // Map the person data to our format and auto-fill the form
+        const mappedPerson = {
+          id: person.id,
+          name: person.name,
+          profile_path: person.profile_path,
+          known_for_department: person.known_for_department || 'Acting'
+        };
+        
+        this.selectPerson(mappedPerson);
+        this.showMessage(`Successfully loaded ${person.name} from TMDb ID: ${tmdbId}!`);
+      } else {
+        throw new Error('Person not found');
+      }
+      
+    } catch (error) {
+      console.error('Error fetching person by TMDb ID:', error);
+      this.showAlert('Error', `Could not fetch person with TMDb ID: ${tmdbId}. Please check the ID or try manual entry.`);
+    }
+  }
   
   selectPerson(person) {
     const knownFor = person.known_for_department || 'Acting';
@@ -682,11 +753,16 @@ class UIManager {
     document.getElementById('letterboxdUrl').value = letterboxdUrl;
     document.getElementById('profilePictureUrl').value = profilePicUrl;
     
-    // Clear search
+    // Show the TMDb ID so user can see and change it if needed
+    if (person.id) {
+      document.getElementById('manualTmdbId').value = person.id;
+    }
+    
+    // Clear search field
     document.getElementById('personSearch').value = '';
     
     // Show success message
-    this.showMessage(`Auto-filled data for ${person.name}!`);
+    this.showMessage(`Auto-filled data for ${person.name}! TMDb ID: ${person.id || 'Unknown'}`);
   }
   
   closeModal() {
@@ -715,7 +791,8 @@ class UIManager {
       role: document.getElementById('personRole').value,
       letterboxdUrl: document.getElementById('letterboxdUrl').value.trim(),
       profilePicture: document.getElementById('profilePictureUrl').value.trim(),
-      notes: document.getElementById('notes').value.trim()
+      notes: document.getElementById('notes').value.trim(),
+      tmdbId: document.getElementById('manualTmdbId').value.trim() || null
     };
     
     if (!personData.name || !personData.role) {
@@ -1098,32 +1175,28 @@ class UIManager {
     // Add menu items
     const menuItems = [];
     
-    // Delete option for user-added people
-    if (person.id > 1000 || person.dateAdded > new Date('2025-01-01').toISOString()) {
-      menuItems.push({
-        text: 'Delete',
-        action: async () => {
-          const confirmed = await this.showConfirm('Delete Person', `Are you sure you want to delete ${person.name}?`);
-          if (confirmed) {
-            db.deletePerson(person.id);
-            this.renderPeople();
-            this.showMessage(`${person.name} deleted`);
-          }
-        },
-        className: 'menu-item-delete'
-      });
-    }
+    // Delete option for all people
+    menuItems.push({
+      text: 'Delete',
+      action: async () => {
+        const confirmed = await this.showConfirm('Delete Person', `Are you sure you want to delete ${person.name}?`);
+        if (confirmed) {
+          db.deletePerson(person.id);
+          this.renderPeople();
+          this.showMessage(`${person.name} deleted`);
+        }
+      },
+      className: 'menu-item-delete'
+    });
     
-    // Edit option for user-added people
-    if (person.id > 1000 || person.dateAdded > new Date('2025-01-01').toISOString()) {
-      menuItems.push({
-        text: 'Edit',
-        action: () => {
-          this.editPerson(person);
-        },
-        className: 'menu-item-edit'
-      });
-    }
+    // Edit option for all people
+    menuItems.push({
+      text: 'Edit',
+      action: () => {
+        this.editPerson(person);
+      },
+      className: 'menu-item-edit'
+    });
     
     // View Notes option if notes exist
     if (person.notes && person.notes.trim()) {
@@ -1214,6 +1287,7 @@ class UIManager {
     document.getElementById('letterboxdUrl').value = person.letterboxdUrl || '';
     document.getElementById('profilePictureUrl').value = person.profilePicture || '';
     document.getElementById('notes').value = person.notes || '';
+    document.getElementById('manualTmdbId').value = person.tmdbId || '';
     
     // Change form to edit mode
     const form = document.getElementById('addPersonForm');
