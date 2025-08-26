@@ -1,3 +1,32 @@
+// Simple PeopleDatabase class for profile page
+class PeopleDatabase {
+  constructor() {
+    this.storageKey = 'myfilmpeople_data';
+  }
+  
+  getAllPeople() {
+    try {
+      const data = localStorage.getItem(this.storageKey);
+      return data ? JSON.parse(data) : [];
+    } catch (error) {
+      console.error('Error loading people data:', error);
+      return [];
+    }
+  }
+  
+  deletePerson(personId) {
+    try {
+      const people = this.getAllPeople();
+      const filteredPeople = people.filter(person => person.id !== personId);
+      localStorage.setItem(this.storageKey, JSON.stringify(filteredPeople));
+      return true;
+    } catch (error) {
+      console.error('Error deleting person:', error);
+      return false;
+    }
+  }
+}
+
 // TMDb API Configuration with CORS proxy support
 const TMDB_CONFIG = {
   API_KEY: '5f1ead96e48e2379102c77c2546331a4',
@@ -89,6 +118,117 @@ class ProfilePageManager {
     // Test TMDb connectivity on startup
     this.testTMDbConnectivity();
     this.loadPersonFromURL();
+  this.setupAddPersonModal();
+  }
+  setupAddPersonModal() {
+    // Modal elements
+    const modal = document.getElementById('addPersonModal');
+    const closeBtn = document.getElementById('closeModal');
+    const cancelBtn = document.getElementById('cancelBtn');
+    const form = document.getElementById('addPersonForm');
+    const personSearch = document.getElementById('personSearch');
+    const searchResults = document.getElementById('searchResults');
+    const manualTmdbId = document.getElementById('manualTmdbId');
+    const nameInput = document.getElementById('personName');
+    const lbUrlInput = document.getElementById('letterboxdUrl');
+    const profilePicInput = document.getElementById('profilePictureUrl');
+    const searchImageBtn = document.getElementById('searchImageBtn');
+    const roleSelect = document.getElementById('personRoleSelect');
+    const roleHidden = document.getElementById('personRole');
+    const tmdbIdDisplay = document.getElementById('tmdbIdDisplay');
+
+    // Modal close logic
+    if (closeBtn) closeBtn.onclick = () => { modal.style.display = 'none'; document.body.style.overflow = 'auto'; };
+    if (cancelBtn) cancelBtn.onclick = () => { modal.style.display = 'none'; document.body.style.overflow = 'auto'; };
+    modal.onclick = (e) => { if (e.target === modal) { modal.style.display = 'none'; document.body.style.overflow = 'auto'; } };
+
+    // Role selector logic
+    if (roleSelect) {
+      roleSelect.onclick = (e) => {
+        roleSelect.classList.toggle('open');
+      };
+      const options = roleSelect.querySelectorAll('.custom-option');
+      options.forEach(opt => {
+        opt.onclick = (e) => {
+          e.stopPropagation();
+          options.forEach(o => o.classList.remove('selected'));
+          opt.classList.add('selected');
+          const trigger = roleSelect.querySelector('.custom-select-text');
+          if (trigger) trigger.textContent = opt.textContent;
+          roleHidden.value = opt.dataset.value;
+          roleSelect.classList.remove('open');
+        };
+      });
+      document.addEventListener('click', (e) => {
+        if (!roleSelect.contains(e.target)) roleSelect.classList.remove('open');
+      });
+    }
+
+    // Letterboxd URL auto-fill from name
+    if (nameInput && lbUrlInput) {
+      nameInput.addEventListener('input', () => {
+        const slug = this.createNameSlug(nameInput.value);
+        const role = roleHidden.value || 'person';
+        lbUrlInput.value = slug ? `https://letterboxd.com/${role}/${slug}/` : '';
+      });
+    }
+
+    // TMDb search logic
+    if (personSearch && searchResults) {
+      let searchTimeout;
+      personSearch.addEventListener('input', () => {
+        clearTimeout(searchTimeout);
+        const query = personSearch.value.trim();
+        if (!query) { searchResults.innerHTML = ''; return; }
+        searchTimeout = setTimeout(async () => {
+          searchResults.innerHTML = '<div class="search-loading">Searching...</div>';
+          try {
+            const resp = await this.smartFetch({ requestType: 'search', query });
+            const data = await resp.json();
+            if (data.results && data.results.length > 0) {
+              searchResults.innerHTML = data.results.slice(0, 6).map(person => `
+                <div class="search-result-item" data-id="${person.id}" data-name="${person.name}" data-img="${person.profile_path ? TMDB_CONFIG.IMAGE_BASE_URL + person.profile_path : ''}">
+                  <img src="${person.profile_path ? TMDB_CONFIG.IMAGE_BASE_URL + person.profile_path : 'https://letterboxd.com/static/img/avatar500.png'}" class="search-result-img" />
+                  <span>${person.name}</span>
+                </div>
+              `).join('');
+              // Click to select
+              Array.from(searchResults.children).forEach(item => {
+                item.onclick = () => {
+                  nameInput.value = item.dataset.name;
+                  profilePicInput.value = item.dataset.img;
+                  manualTmdbId.value = item.dataset.id;
+                  if (tmdbIdDisplay) tmdbIdDisplay.textContent = item.dataset.id;
+                  // Auto-fill Letterboxd URL
+                  const slug = this.createNameSlug(item.dataset.name);
+                  const role = roleHidden.value || 'person';
+                  lbUrlInput.value = slug ? `https://letterboxd.com/${role}/${slug}/` : '';
+                  searchResults.innerHTML = '';
+                };
+              });
+            } else {
+              searchResults.innerHTML = '<div class="search-no-results">No results found</div>';
+            }
+          } catch (e) {
+            searchResults.innerHTML = '<div class="search-error">Error searching TMDb</div>';
+          }
+        }, 400);
+      });
+    }
+
+    // Custom image URL support: always use whatever is in the field
+    if (profilePicInput) {
+      profilePicInput.addEventListener('input', () => {
+        // No validation, just allow any URL
+      });
+    }
+
+    // Show TMDb ID if present
+    if (manualTmdbId && tmdbIdDisplay) {
+      manualTmdbId.addEventListener('input', () => {
+        tmdbIdDisplay.textContent = manualTmdbId.value;
+      });
+    }
   }
   
   // Test TMDb connectivity on startup to set blocking flag early
@@ -148,12 +288,203 @@ class ProfilePageManager {
     // Edit modal event listeners
     this.setupEditModalListeners();
     
+    // Profile menu setup
+    this.setupProfileMenu();
+    
     // Filter buttons
     document.addEventListener('click', (e) => {
       if (e.target.classList.contains('filter-btn')) {
         this.handleFilterClick(e.target);
       }
     });
+  }
+  
+  setupProfileMenu() {
+    const menuBtn = document.getElementById('profileMenuBtn');
+    const menu = document.getElementById('profileMenu');
+    
+    if (menuBtn && menu) {
+      // Toggle menu on button click
+      menuBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        menu.classList.toggle('show');
+      });
+      
+      // Close menu when clicking outside
+      document.addEventListener('click', (e) => {
+        if (!menuBtn.contains(e.target) && !menu.contains(e.target)) {
+          menu.classList.remove('show');
+        }
+      });
+      
+      // Handle menu item clicks
+      menu.addEventListener('click', (e) => {
+        const menuItem = e.target.closest('.profile-menu-item');
+        if (menuItem) {
+          const action = menuItem.dataset.action;
+          this.handleMenuAction(action);
+          menu.classList.remove('show');
+        }
+      });
+    }
+  }
+  
+  handleMenuAction(action) {
+    switch (action) {
+      case 'edit':
+        this.openEditPersonModal();
+        break;
+      case 'delete':
+        this.deletePersonFromCollection();
+        break;
+    }
+  }
+
+  openEditPersonModal() {
+    const modal = document.getElementById('addPersonModal');
+    if (!modal) return;
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+
+    // Pre-fill fields
+    document.getElementById('personName').value = this.currentPerson.name || '';
+    document.getElementById('profilePictureUrl').value = this.currentPerson.profilePicture || '';
+    document.getElementById('letterboxdUrl').value = this.currentPerson.letterboxdUrl || '';
+    document.getElementById('notes').value = this.currentPerson.notes || '';
+    document.getElementById('manualTmdbId').value = this.currentPerson.tmdbId || '';
+    const tmdbIdDisplay = document.getElementById('tmdbIdDisplay');
+    if (tmdbIdDisplay) tmdbIdDisplay.textContent = this.currentPerson.tmdbId || '';
+
+    // Set role in custom select
+    const roleValue = this.currentPerson.role || '';
+    document.getElementById('personRole').value = roleValue;
+    const select = document.getElementById('personRoleSelect');
+    if (select) {
+      const trigger = select.querySelector('.custom-select-text');
+      const options = select.querySelectorAll('.custom-option');
+      options.forEach(opt => {
+        if (opt.dataset.value === roleValue) {
+          opt.classList.add('selected');
+          if (trigger) trigger.textContent = opt.textContent;
+        } else {
+          opt.classList.remove('selected');
+        }
+      });
+    }
+
+    // Change modal title and button
+    const modalTitle = modal.querySelector('.modal-header h2');
+    if (modalTitle) modalTitle.textContent = 'Edit Person';
+    const submitBtn = document.getElementById('submitBtn');
+    if (submitBtn) submitBtn.textContent = 'Save Changes';
+
+    // Remove previous submit listeners by cloning the form
+    const form = document.getElementById('addPersonForm');
+    const newForm = form.cloneNode(true);
+    form.parentNode.replaceChild(newForm, form);
+
+    // Cancel button closes modal
+    newForm.querySelector('#cancelBtn').onclick = () => {
+      modal.style.display = 'none';
+      document.body.style.overflow = 'auto';
+    };
+    // (x) close button
+    const closeBtn = document.getElementById('closeModal');
+    if (closeBtn) closeBtn.onclick = () => { modal.style.display = 'none'; document.body.style.overflow = 'auto'; };
+
+    // Save changes on submit
+    newForm.onsubmit = (e) => {
+      e.preventDefault();
+      this.saveEditPerson();
+      modal.style.display = 'none';
+      document.body.style.overflow = 'auto';
+    };
+  }
+
+  saveEditPerson() {
+    // Get updated values
+    const name = document.getElementById('personName').value.trim();
+    const role = document.getElementById('personRole').value;
+    const profilePicture = document.getElementById('profilePictureUrl').value.trim();
+    const letterboxdUrl = document.getElementById('letterboxdUrl').value.trim();
+    const notes = document.getElementById('notes').value.trim();
+    const tmdbId = document.getElementById('manualTmdbId').value.trim();
+
+    // Update current person object
+    this.currentPerson.name = name;
+    this.currentPerson.role = role;
+    this.currentPerson.profilePicture = profilePicture;
+    this.currentPerson.letterboxdUrl = letterboxdUrl;
+    this.currentPerson.notes = notes;
+    this.currentPerson.tmdbId = tmdbId || undefined;
+
+    // Save to localStorage
+    const db = new PeopleDatabase();
+    const people = db.getAllPeople();
+    const idx = people.findIndex(p => p.id === this.currentPerson.id);
+    if (idx !== -1) {
+      people[idx] = this.currentPerson;
+      localStorage.setItem(db.storageKey, JSON.stringify(people));
+    }
+    // Update the UI
+    this.updateBasicInfo(this.currentPerson);
+  }
+  
+  deletePersonFromCollection() {
+    if (!this.currentPerson) return;
+    
+    // Show modern delete confirmation modal
+    this.showDeleteModal();
+  }
+  
+  showDeleteModal() {
+    const modal = document.getElementById('deleteModal');
+    const modalText = document.getElementById('deleteModalText');
+    const closeBtn = document.getElementById('closeDeleteModal');
+    const cancelBtn = document.getElementById('cancelDeleteBtn');
+    const confirmBtn = document.getElementById('confirmDeleteBtn');
+    
+    // Set the person's name in the modal text
+    modalText.textContent = `Are you sure you want to delete ${this.currentPerson.name} from your collection?`;
+    
+    // Show the modal
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden'; // Prevent background scrolling
+    
+    // Close modal handlers
+    const closeModal = () => {
+      modal.style.display = 'none';
+      document.body.style.overflow = 'auto';
+    };
+    
+    closeBtn.onclick = closeModal;
+    cancelBtn.onclick = closeModal;
+    
+    // Click outside to close
+    modal.onclick = (e) => {
+      if (e.target === modal) {
+        closeModal();
+      }
+    };
+    
+    // Confirm delete handler
+    confirmBtn.onclick = () => {
+      this.performDelete();
+      closeModal();
+    };
+  }
+  
+  performDelete() {
+    const database = new PeopleDatabase();
+    const success = database.deletePerson(this.currentPerson.id);
+    
+    if (success) {
+      // Redirect back to main page
+      window.location.href = 'index.html';
+    } else {
+      alert('Error deleting person. Please try again.');
+    }
   }
   
   loadPersonFromURL() {
@@ -307,7 +638,7 @@ class ProfilePageManager {
       profileImg.src = person.profilePicture;
       profileImg.alt = person.name;
     } else {
-      profileImg.src = `https://letterboxd.com/static/img/avatar500.png`;
+      profileImg.src = "https://letterboxd.com/static/img/avatar500.png";
       profileImg.alt = person.name;
     }
   }
@@ -985,10 +1316,10 @@ class ProfilePageManager {
     
     if (hasNotes) {
       // Update button text to "Show Notes"
-      editButton.innerHTML = '📄 Show Notes';
+      editButton.innerHTML = 'Show Notes';
     } else {
       // Update button text to "Add Notes"
-      editButton.innerHTML = '✏️ Add Notes';
+      editButton.innerHTML = 'Add Notes';
     }
   }
   

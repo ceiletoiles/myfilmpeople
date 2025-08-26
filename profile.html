@@ -24,16 +24,25 @@
           </div>
           
           <div class="profile-details">
-            <h2 id="profileFullName">Full Name</h2>
+            <div class="profile-name-section">
+              <h2 id="profileFullName">Full Name</h2>
+              <div class="profile-menu-container">
+                <button class="profile-menu-btn" id="profileMenuBtn">⋮</button>
+                <div class="profile-menu" id="profileMenu">
+                  <div class="profile-menu-item" data-action="edit">Edit</div>
+                  <div class="profile-menu-item" data-action="delete">Delete</div>
+                </div>
+              </div>
+            </div>
             <p class="profile-role" id="profileRole">Role</p>
             <p class="profile-birth" id="profileBirth">Birth Info</p>
             
             <div class="profile-actions">
               <button class="letterboxd-button" id="openLetterboxd">
-                📖 Open in Letterboxd
+                Open in Letterboxd
               </button>
               <button class="edit-button" id="editPerson">
-                ✏️ Add Notes
+                Add Notes
               </button>
             </div>
             
@@ -102,6 +111,110 @@
       </div>
     </div>
 
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Delete Person</h2>
+          <span class="close" id="closeDeleteModal">&times;</span>
+        </div>
+        <div class="modal-body">
+          <p id="deleteModalText">Are you sure you want to delete this person from your collection?</p>
+          <p class="delete-warning">This action cannot be undone.</p>
+        </div>
+        <div class="form-actions">
+          <button type="button" id="cancelDeleteBtn" class="btn btn-secondary">Cancel</button>
+          <button type="button" id="confirmDeleteBtn" class="btn btn-danger">Delete</button>
+        </div>
+      </div>
+    </div>
+
     <script src="assets/js/profile.js"></script>
+    <!-- Add Person Modal (for editing) -->
+    <div id="addPersonModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Add New Person</h2>
+          <span class="close" id="closeModal">&times;</span>
+        </div>
+        <form id="addPersonForm">
+          <div class="form-group">
+            <label for="personSearch">Search Person</label>
+            <div class="search-container">
+              <input type="text" id="personSearch" placeholder="Enter the correct spelling">
+              <div id="searchResults" class="search-results"></div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="manualTmdbId">Manual TMDb ID (Optional)</label>
+            <input type="number" id="manualTmdbId" placeholder="e.g., 525 for Christopher Nolan" min="1">
+            <small class="form-help">
+              If search gives wrong person, find the correct TMDb ID from themoviedb.org and enter it here.<br>
+              Example: For Christopher Nolan, the URL is themoviedb.org/person/525, so enter "525"
+            </small>
+            <div style="margin-top: 4px; color: #888; font-size: 0.95em;">
+              TMDb ID: <span id="tmdbIdDisplay"></span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="personName">Name *</label>
+            <input type="text" id="personName" required placeholder="e.g., Christopher Nolan">
+          </div>
+          <div class="form-group">
+            <label for="profilePictureUrl">Profile Picture URL</label>
+            <div class="input-with-button">
+              <input type="url" id="profilePictureUrl" placeholder="https://example.com/image.jpg" class="flex-input">
+              <button type="button" id="searchImageBtn" class="control-button" title="Search for images">🔍</button>
+            </div>
+            <small class="form-help">
+              Try these sources that work if TMDB doesn't works:<br>
+              • IMDb images<br>
+              • Google Images (copy image address)<br>
+              • Any direct image URL
+            </small>
+          </div>
+          <div class="form-group">
+            <label for="personRole">Role *</label>
+            <div class="custom-select-wrapper">
+              <div class="custom-select" id="personRoleSelect">
+                <div class="custom-select-trigger">
+                  <span class="custom-select-text">Select role...</span>
+                  <span class="custom-select-arrow">▼</span>
+                </div>
+                <div class="custom-select-options">
+                  <div class="custom-option" data-value="">Select role...</div>
+                  <div class="custom-option" data-value="director">Director</div>
+                  <div class="custom-option" data-value="actor">Actor</div>
+                  <div class="custom-option" data-value="writer">Writer</div>
+                  <div class="custom-option" data-value="cinematographer">Cinematographer</div>
+                  <div class="custom-option" data-value="composer">Composer</div>
+                  <div class="custom-option" data-value="producer">Producer</div>
+                  <div class="custom-option" data-value="editor">Editor</div>
+                  <div class="custom-option" data-value="other">Other</div>
+                </div>
+              </div>
+              <input type="hidden" id="personRole" name="personRole" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="letterboxdUrl">Letterboxd URL</label>
+            <input type="url" id="letterboxdUrl" placeholder="https://letterboxd.com/director/christopher-nolan/">
+            <small class="form-help">
+              Auto-filled URL may not be correct for people with same names.<br>
+              Check letterboxd.com to find the correct person's URL and update the slug if needed.<br>
+              Format: https://letterboxd.com/role/name-slug/
+            </small>
+          </div>
+          <div class="form-group">
+            <label for="notes">Personal Notes</label>
+            <textarea id="notes" placeholder="Your thoughts, favorite films, etc."></textarea>
+          </div>
+          <div class="form-actions">
+            <button type="button" id="cancelBtn">Cancel</button>
+            <button type="submit" id="submitBtn">Add Person</button>
+          </div>
+        </form>
+      </div>
+    </div>
   </body>
 </html>

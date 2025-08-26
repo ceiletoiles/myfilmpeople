@@ -4,6 +4,10 @@
   box-sizing: border-box;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 /* Letterboxd-inspired color scheme */
 :root {
   --letterboxd-orange: #ff8000;
@@ -27,8 +31,7 @@ body {
 }
 
 .container {
-  max-width: 1200px;
-  margin: 0 auto;
+  width: 100%;
   background: var(--bg-primary);
   min-height: 100vh;
 }
@@ -76,8 +79,9 @@ h1 {
 }
 
 .content {
-  padding: 20px 15px;
+  padding: 20px 5%;
   background: var(--bg-primary);
+  max-width: 100%;
 }
 
 .tabs {
@@ -342,98 +346,137 @@ select option {
 
 .directors-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 25px;
   margin-top: 20px;
+  align-items: start;
+  animation: fadeInUp 0.6s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .director-card {
-  background: var(--bg-secondary);
-  border: 1px solid var(--bg-tertiary);
-  border-radius: 3px;
-  transition: all 0.2s ease;
-  overflow: hidden;
+  /* Completely invisible container */
+  background: none;
+  border: none;
+  border-radius: 0;
+  transition: none;
+  overflow: visible;
   position: relative;
+  display: contents; /* This makes the div invisible! */
+  box-shadow: none;
+  margin: 0;
+  padding: 0;
 }
 
 .director-card:hover {
-  background: #445566;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  /* No hover effects on invisible container */
+  background: none;
+  transform: none;
+  box-shadow: none;
 }
 
-/* Different hover colors for each tab - Letterboxd style */
+.director-card:focus-within {
+  outline: none;
+}
+
+/* Remove tab-specific hover effects that create container feeling */
 .directors-grid .director-card:hover {
-  border-color: var(--letterboxd-orange);
-  box-shadow: 0 4px 12px rgba(255, 128, 0, 0.2);
+  border-color: transparent;
+  box-shadow: none;
 }
 
 .actors-grid .director-card:hover {
-  border-color: var(--letterboxd-blue);
-  box-shadow: 0 4px 12px rgba(64, 188, 244, 0.2);
+  border-color: transparent;
+  box-shadow: none;
 }
 
 .others-grid .director-card:hover {
-  border-color: var(--letterboxd-green);
-  box-shadow: 0 4px 12px rgba(0, 224, 84, 0.2);
+  border-color: transparent;
+  box-shadow: none;
 }
 
 .director-card a {
   display: block;
-  padding: 12px;
+  padding: 0;
+  margin: 0;
   text-decoration: none;
-  color: #cdf;
+  color: inherit;
   font-weight: 400;
-  font-size: 0.8rem;
+  font-size: inherit;
   position: relative;
-  transition: all 0.2s ease;
-  font-family: 'PT Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  line-height: 1.4;
+  transition: none;
+  font-family: inherit;
+  line-height: inherit;
+  background: transparent;
+  border: none;
+  outline: none;
 }
 
 .person-avatar {
   width: 100%;
-  height: 200px;
+  aspect-ratio: 2/3;
   object-fit: cover;
-  border-radius: 3px;
-  margin-bottom: 6px;
-  background: var(--bg-tertiary);
+  object-position: center top;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--bg-tertiary), #556677);
+  display: block;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.person-avatar:hover {
+  transform: scale(1.05);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
 }
 
 .person-name {
   display: block;
   text-align: center;
+  padding: 8px 4px 4px 4px;
+  font-size: 0.9rem;
+  line-height: 1.3;
+  color: var(--text-accent);
+  font-weight: 600;
+  margin-top: 8px;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
 }
 
 .role-badge {
   display: block;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   color: var(--text-primary);
   text-transform: capitalize;
-  margin-top: 2px;
+  margin: 4px 4px 0 4px;
   font-weight: 400;
   text-align: center;
+  padding: 2px 0;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
 }
 
 .notes-indicator {
   position: absolute;
-  top: 4px;
+  top: 8px;
   left: 8px;
-  font-size: 1rem;
+  font-size: 1.2rem;
   opacity: 1;
   z-index: 10;
-  background: rgba(255, 128, 0, 0.9);
-  border-radius: 50%;
-  width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-accent);
+  color: var(--letterboxd-orange);
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+  filter: drop-shadow(0 0 3px rgba(255, 128, 0, 0.8));
 }
 
 .director-card a:hover {
-  color: #ff8000;
+  color: inherit;
 }
 
 .director-card a::before {
@@ -442,62 +485,23 @@ select option {
 }
 
 .director-card a::after {
-  content: '→';
-  position: absolute;
-  right: 16px;
-  top: 50%;
-  transform: translateY(-50%);
-  opacity: 0;
-  transition: all 0.2s ease;
-  color: #ff8000;
-  font-weight: 600;
-}
-
-.director-card:hover a::after {
-  opacity: 1;
-  right: 12px;
+  display: none;
 }
 
 .card-menu-btn {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  background: rgba(44, 52, 64, 0.9);
-  color: #9ab;
-  border: none;
-  border-radius: 50%;
-  width: 28px;
-  height: 28px;
-  font-size: 16px;
-  font-weight: bold;
-  cursor: pointer;
-  opacity: 1; /* Always visible now */
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
-  z-index: 10;
-  -webkit-backdrop-filter: blur(4px);
-  backdrop-filter: blur(4px);
+  display: none; /* Hide 3-dots menu from main page */
 }
 
 .card-menu-btn:hover {
-  background: rgba(68, 85, 102, 0.9);
+  background: rgba(68, 85, 102, 0.8);
   color: #cdf;
   transform: scale(1.1);
+  opacity: 1;
 }
 
 .card-menu {
-  position: absolute;
-  top: 36px;
-  right: 8px;
-  background: #2c3440;
-  border: 1px solid #456;
-  border-radius: 3px;
-  min-width: 120px;
-  opacity: 0;
-  visibility: hidden;
+  display: none; /* Hide menu from main page */
+}
   transform: translateY(-10px);
   transition: all 0.2s ease;
   z-index: 1001; /* Higher z-index to prevent clipping */
@@ -585,9 +589,32 @@ select option {
   color: white;
 }
 
+/* Large screen optimizations */
+@media (min-width: 1200px) {
+  .directors-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 30px;
+  }
+  
+  .content {
+    padding: 25px 8%;
+  }
+}
+
+@media (min-width: 1600px) {
+  .directors-grid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 35px;
+  }
+  
+  .content {
+    padding: 30px 10%;
+  }
+}
+
 @media (max-width: 768px) {
   .content {
-    padding: 15px 10px;
+    padding: 15px 3%;
   }
   
   h1 {
@@ -595,8 +622,8 @@ select option {
   }
   
   .directors-grid {
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    gap: 10px;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 20px;
   }
 
   .simple-controls {
@@ -684,7 +711,7 @@ select option {
   }
 
   .director-card a {
-    padding: 10px;
+    padding: 0;
     font-size: 0.75rem;
   }
 
@@ -703,11 +730,16 @@ select option {
 
 @media (max-width: 480px) {
   .directors-grid {
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 15px;
+  }
+  
+  .content {
+    padding: 10px 2%;
   }
   
   .director-card a {
-    padding: 8px;
+    padding: 0;
     font-size: 0.7rem;
   }
   
@@ -736,13 +768,13 @@ select option {
 
 .modal-content {
   background: var(--bg-secondary);
-  margin: 5% auto;
+  margin: 2% auto;
   padding: 0;
   border: 1px solid var(--bg-tertiary);
   border-radius: 6px;
   width: 90%;
   max-width: 500px;
-  max-height: 90vh;
+  max-height: 85vh;
   overflow-y: auto;
   animation: modalSlideIn 0.3s ease;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
@@ -774,7 +806,7 @@ select option {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 24px;
+  padding: 16px 20px;
   border-bottom: 1px solid #456;
   background: #445566;
 }
@@ -801,7 +833,7 @@ select option {
 }
 
 .form-group {
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 .form-group label {
@@ -854,7 +886,7 @@ select option {
 
 .form-group textarea {
   resize: vertical;
-  min-height: 80px;
+  min-height: 60px;
 }
 
 .form-group input::placeholder,
@@ -932,15 +964,15 @@ select option {
 }
 
 form {
-  padding: 24px;
+  padding: 18px;
 }
 
 .form-actions {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
-  margin-top: 30px;
-  padding-top: 20px;
+  margin-top: 20px;
+  padding-top: 16px;
   border-top: 1px solid #456;
 }
 
@@ -985,16 +1017,16 @@ form {
 
 @media (max-width: 768px) {
   .modal-content {
-    margin: 10% auto;
+    margin: 5% auto;
     width: 95%;
   }
   
   .modal-header {
-    padding: 16px 20px;
+    padding: 14px 16px;
   }
   
   form {
-    padding: 20px;
+    padding: 16px;
   }
   
   .form-actions {
