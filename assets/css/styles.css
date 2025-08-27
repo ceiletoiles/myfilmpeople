@@ -762,13 +762,13 @@ select option {
 
 .modal-content {
   background: var(--bg-secondary);
-  margin: 5% auto;
+  margin: 2% auto; /* Adjusted to ensure the modal is positioned slightly higher */
   padding: 0;
   border: 1px solid var(--bg-tertiary);
   border-radius: 6px;
   width: 90%;
   max-width: 500px;
-  max-height: 90vh;
+  max-height: 85vh; /* Reduced height to prevent cutoff */
   overflow-y: auto;
   animation: modalSlideIn 0.3s ease;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
