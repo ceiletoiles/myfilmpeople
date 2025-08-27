@@ -1,0 +1,110 @@
+    // Add 3-dots menu for all cards (both default and user-added)
+    const menuButton = document.createElement('button');
+    menuButton.className = 'card-menu-btn';
+    menuButton.innerHTML = '⋯';
+    menuButton.title = 'Options';
+    
+    const menu = document.createElement('div');
+    menu.className = 'card-menu';
+    
+    // Add menu items
+    const menuItems = [];
+    
+    // Delete option for all people
+    menuItems.push({
+      text: 'Delete',
+      action: async () => {
+        const confirmed = await this.showConfirm('Delete Person', `Are you sure you want to delete ${person.name}?`);
+        if (confirmed) {
+          db.deletePerson(person.id);
+          this.renderPeople();
+          this.showMessage(`${person.name} deleted`);
+        }
+      },
+      className: 'menu-item-delete'
+    });
+    
+    // Edit option for all people
+    menuItems.push({
+      text: 'Edit',
+      action: () => {
+        this.editPerson(person);
+      },
+      className: 'menu-item-edit'
+    });
+    
+    // View Notes option if notes exist
+    if (person.notes && person.notes.trim()) {
+      menuItems.push({
+        text: 'View Notes',
+        action: () => {
+          this.showNotesModal(person);
+        },
+        className: 'menu-item-notes'
+      });
+    }
+    
+    // Copy Letterboxd URL option
+    if (person.letterboxdUrl) {
+      menuItems.push({
+        text: 'Copy URL',
+        action: () => {
+          navigator.clipboard.writeText(person.letterboxdUrl).then(() => {
+            this.showMessage('Letterboxd URL copied!');
+          });
+        },
+        className: 'menu-item-copy'
+      });
+    }
+    
+    // View on Letterboxd option
+    if (person.letterboxdUrl) {
+      menuItems.push({
+        text: 'View on Letterboxd',
+        action: () => {
+          window.open(person.letterboxdUrl, '_blank');
+        },
+        className: 'menu-item-letterboxd'
+      });
+    }
+    
+    // Create menu items
+    menuItems.forEach(item => {
+      const menuItem = document.createElement('div');
+      menuItem.className = `card-menu-item ${item.className}`;
+      menuItem.textContent = item.text;
+      menuItem.onclick = (e) => {
+        e.stopPropagation();
+        item.action();
+        menu.classList.remove('show');
+        card.classList.remove('menu-open');
+      };
+      menu.appendChild(menuItem);
+    });
+    
+    // Only add menu if there are items
+    if (menuItems.length > 0) {
+      menuButton.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        // Close all other menus and remove menu-open class
+        document.querySelectorAll('.card-menu').forEach(m => {
+          m.classList.remove('show');
+          m.closest('.director-card').classList.remove('menu-open');
+        });
+        
+        // Toggle this menu
+        const isShowing = menu.classList.toggle('show');
+        
+        // Add/remove menu-open class to card for z-index control
+        if (isShowing) {
+          card.classList.add('menu-open');
+        } else {
+          card.classList.remove('menu-open');
+        }
+      };
+      
+      card.appendChild(menuButton);
+      card.appendChild(menu);
+    }
