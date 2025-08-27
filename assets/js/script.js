@@ -1166,7 +1166,7 @@ class UIManager {
     // Add 3-dots menu for all cards (both default and user-added)
     const menuButton = document.createElement('button');
     menuButton.className = 'card-menu-btn';
-    menuButton.innerHTML = '⋯';
+    menuButton.innerHTML = '⋮';
     menuButton.title = 'Options';
     
     const menu = document.createElement('div');
