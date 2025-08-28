@@ -985,10 +985,10 @@ class ProfilePageManager {
     
     if (hasNotes) {
       // Update button text to "Show Notes"
-      editButton.innerHTML = '📄 Show Notes';
+      editButton.innerHTML = 'Show Notes';
     } else {
       // Update button text to "Add Notes"
-      editButton.innerHTML = '✏️ Add Notes';
+      editButton.innerHTML = 'Add Notes';
     }
   }
   

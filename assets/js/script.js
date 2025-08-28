@@ -921,13 +921,13 @@ class UIManager {
       `;
       
       modal.innerHTML = `
-        <div style="padding: 20px 24px; border-bottom: 1px solid #456;">
+        <div style="padding: 20px 24px; border-bottom: 0px solid #456;">
           <h3 style="margin: 0; color: #cdf; font-size: 1.1rem;">${title}</h3>
         </div>
         <div style="padding: 20px 24px;">
           <p style="margin: 0; color: #9ab; line-height: 1.5;">${message}</p>
         </div>
-        <div style="padding: 16px 24px; border-top: 1px solid #456; text-align: right; display: flex; gap: 12px; justify-content: flex-end;">
+        <div style="padding: 16px 24px; border-top: 0px solid #456; text-align: right; display: flex; gap: 12px; justify-content: flex-end;">
           <button id="confirmCancelBtn" style="background: transparent; color: #9ab; border: 1px solid #456; padding: 8px 16px; border-radius: 3px; cursor: pointer; font-family: 'Graphik', sans-serif;">Cancel</button>
           <button id="confirmOkBtn" style="background: #ff4444; color: white; border: none; padding: 8px 16px; border-radius: 3px; cursor: pointer; font-family: 'Graphik', sans-serif;">Confirm</button>
         </div>
@@ -1163,116 +1163,8 @@ class UIManager {
     profileLink.innerHTML = linkContent;
     card.appendChild(profileLink);
     
-    // Add 3-dots menu for all cards (both default and user-added)
-    const menuButton = document.createElement('button');
-    menuButton.className = 'card-menu-btn';
-    menuButton.innerHTML = '⋮';
-    menuButton.title = 'Options';
-    
-    const menu = document.createElement('div');
-    menu.className = 'card-menu';
-    
-    // Add menu items
-    const menuItems = [];
-    
-    // Delete option for all people
-    menuItems.push({
-      text: 'Delete',
-      action: async () => {
-        const confirmed = await this.showConfirm('Delete Person', `Are you sure you want to delete ${person.name}?`);
-        if (confirmed) {
-          db.deletePerson(person.id);
-          this.renderPeople();
-          this.showMessage(`${person.name} deleted`);
-        }
-      },
-      className: 'menu-item-delete'
-    });
-    
-    // Edit option for all people
-    menuItems.push({
-      text: 'Edit',
-      action: () => {
-        this.editPerson(person);
-      },
-      className: 'menu-item-edit'
-    });
-    
-    // View Notes option if notes exist
-    if (person.notes && person.notes.trim()) {
-      menuItems.push({
-        text: 'View Notes',
-        action: () => {
-          this.showNotesModal(person);
-        },
-        className: 'menu-item-notes'
-      });
-    }
-    
-    // Copy Letterboxd URL option
-    if (person.letterboxdUrl) {
-      menuItems.push({
-        text: 'Copy URL',
-        action: () => {
-          navigator.clipboard.writeText(person.letterboxdUrl).then(() => {
-            this.showMessage('Letterboxd URL copied!');
-          });
-        },
-        className: 'menu-item-copy'
-      });
-    }
-    
-    // View on Letterboxd option
-    if (person.letterboxdUrl) {
-      menuItems.push({
-        text: 'View on Letterboxd',
-        action: () => {
-          window.open(person.letterboxdUrl, '_blank');
-        },
-        className: 'menu-item-letterboxd'
-      });
-    }
-    
-    // Create menu items
-    menuItems.forEach(item => {
-      const menuItem = document.createElement('div');
-      menuItem.className = `card-menu-item ${item.className}`;
-      menuItem.textContent = item.text;
-      menuItem.onclick = (e) => {
-        e.stopPropagation();
-        item.action();
-        menu.classList.remove('show');
-        card.classList.remove('menu-open');
-      };
-      menu.appendChild(menuItem);
-    });
-    
-    // Only add menu if there are items
-    if (menuItems.length > 0) {
-      menuButton.onclick = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        
-        // Close all other menus and remove menu-open class
-        document.querySelectorAll('.card-menu').forEach(m => {
-          m.classList.remove('show');
-          m.closest('.director-card').classList.remove('menu-open');
-        });
-        
-        // Toggle this menu
-        const isShowing = menu.classList.toggle('show');
-        
-        // Add/remove menu-open class to card for z-index control
-        if (isShowing) {
-          card.classList.add('menu-open');
-        } else {
-          card.classList.remove('menu-open');
-        }
-      };
-      
-      card.appendChild(menuButton);
-      card.appendChild(menu);
-    }
+    // Add long-press menu for all cards (both default and user-added)
+    attachLongPressMenu(card, person, this, db);
     
     return card;
   }
@@ -1441,6 +1333,117 @@ class UIManager {
     this.renderPeople();
     this.closeSearch(); // Reset search when sorting
   }
+}
+
+// Debugging logs added to Delete and Edit options
+function attachLongPressMenu(card, person, ui, db) {
+  let pressTimer;
+  const menu = document.createElement('div');
+  menu.className = 'card-menu';
+
+  // Add menu items
+  const menuItems = [
+    {
+      text: 'Delete',
+      action: async () => {
+        console.log('Delete action triggered for:', person);
+        if (!ui || !db) {
+          console.error('UIManager or PeopleDatabase is not initialized.');
+          return;
+        }
+        const confirmed = await ui.showConfirm('Delete Person', `Are you sure you want to delete ${person.name}?`);
+        if (confirmed) {
+          console.log('Delete confirmed for:', person);
+          try {
+            db.deletePerson(person.id);
+            ui.renderPeople();
+            ui.showMessage(`${person.name} deleted successfully.`);
+          } catch (error) {
+            console.error('Error deleting person:', error);
+          }
+        } else {
+          console.log('Delete canceled for:', person);
+        }
+      },
+      className: 'menu-item-delete'
+    },
+    {
+      text: 'Edit',
+      action: () => {
+        console.log('Edit action triggered for:', person);
+        if (!ui) {
+          console.error('UIManager is not initialized.');
+          return;
+        }
+        try {
+          ui.editPerson(person);
+        } catch (error) {
+          console.error('Error editing person:', error);
+        }
+      },
+      className: 'menu-item-edit'
+    }
+  ];
+
+  menuItems.forEach(item => {
+    const menuItem = document.createElement('div');
+    menuItem.className = `card-menu-item ${item.className}`;
+    menuItem.textContent = item.text;
+
+    // Explicitly bind the action to the click event
+    menuItem.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      console.log(`Menu item clicked: ${item.text}`);
+      try {
+        await item.action();
+      } catch (error) {
+        console.error(`Error executing action for ${item.text}:`, error);
+      }
+      menu.classList.remove('show');
+      card.classList.remove('menu-open');
+    });
+
+    menu.appendChild(menuItem);
+  });
+
+  card.appendChild(menu);
+
+  const showMenu = (e) => {
+    e.preventDefault();
+    console.log('Menu triggered for:', person);
+    menu.classList.add('show');
+    card.classList.add('menu-open');
+
+    // Add a one-time click listener to close the menu
+    const closeMenu = (e) => {
+      if (!card.contains(e.target)) {
+        console.log('Closing menu for:', person);
+        menu.classList.remove('show');
+        card.classList.remove('menu-open');
+        document.removeEventListener('click', closeMenu);
+      }
+    };
+    document.addEventListener('click', closeMenu);
+  };
+
+  card.addEventListener('mousedown', (e) => {
+    if (e.button === 0) { // Left mouse button
+      pressTimer = setTimeout(() => showMenu(e), 600);
+    }
+  });
+
+  card.addEventListener('touchstart', (e) => {
+    pressTimer = setTimeout(() => showMenu(e), 600);
+  });
+
+  card.addEventListener('touchend', () => clearTimeout(pressTimer));
+  card.addEventListener('touchmove', () => clearTimeout(pressTimer));
+  card.addEventListener('mouseup', () => clearTimeout(pressTimer));
+  card.addEventListener('mouseleave', () => clearTimeout(pressTimer));
+
+  // Right-click or double-click to show menu
+  card.addEventListener('contextmenu', showMenu);
+  card.addEventListener('dblclick', showMenu);
 }
 
 // Initialize the app when DOM is ready

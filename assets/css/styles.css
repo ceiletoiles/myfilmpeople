@@ -407,7 +407,7 @@ select option {
 
 .person-name {
   display: block;
-  text-align: left;
+  text-align: center; /* Center align globally */
   padding: 8px 4px 4px 4px;
   font-size: 0.9rem;
   line-height: 1.3;
@@ -1173,15 +1173,5 @@ form {
     flex-direction: column;
     align-items: flex-start;
     gap: 4px;
-  }
-
-  .person-name {
-    text-align: left;
-    width: 100%;
-    word-wrap: break-word;
-  }
-
-  .card-menu-btn {
-    align-self: flex-end;
   }
 }
