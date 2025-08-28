@@ -1,0 +1,4 @@
+# robots.txt
+Sitemap: https://myfilmpeople.netlify.app/sitemap.xml
+User-agent: *
+Disallow:
