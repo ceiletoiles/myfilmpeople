@@ -4,11 +4,78 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>MyFilmPeople</title>
+    <meta name="description" content="MyFilmPeople helps film enthusiasts follow their favorite directors, actors, and crew members. Discover new work, add personal notes, and more." />
+    <meta name="keywords" content="film, directors, actors, crew, movies, filmmakers, Letterboxd, TMDb" />
+    <meta name="author" content="MyFilmPeople Team" />
+
+    <!-- Open Graph Meta Tags for Social Media -->
+    <meta property="og:title" content="MyFilmPeople - Follow Your Favorite Filmmakers" />
+    <meta property="og:description" content="Track your favorite directors, actors, and crew members. Discover their latest projects and add personal notes." />
+    <meta property="og:image" content="assets/images/og-image.jpg" />
+    <meta property="og:url" content="https://myfilmpeople.netlify.app" />
+    <meta property="og:type" content="website" />
+
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="MyFilmPeople - Follow Your Favorite Filmmakers" />
+    <meta name="twitter:description" content="Track your favorite directors, actors, and crew members. Discover their latest projects and add personal notes." />
+    <meta name="twitter:image" content="assets/images/twitter-image.jpg" />
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=PT+Sans:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="assets/css/styles.css?v=2025081905">
     <link rel="icon" href="assets/images/favicon.ico" type="image/x-icon">
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "MyFilmPeople",
+      "url": "https://myfilmpeople.netlify.app",
+      "description": "MyFilmPeople helps film enthusiasts follow their favorite directors, actors, and crew members.",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://myfilmpeople.netlify.app/search?q={search_term_string}",
+        "query-input": "required name=search_term_string"
+      }
+    }
+    </script>
+
+    <script>
+      // Function to dynamically update metadata
+      function updateMetaTags(title, description, imageUrl) {
+        document.title = title;
+
+        const metaDescription = document.querySelector('meta[name="description"]');
+        if (metaDescription) metaDescription.setAttribute('content', description);
+
+        const ogTitle = document.querySelector('meta[property="og:title"]');
+        if (ogTitle) ogTitle.setAttribute('content', title);
+
+        const ogDescription = document.querySelector('meta[property="og:description"]');
+        if (ogDescription) ogDescription.setAttribute('content', description);
+
+        const ogImage = document.querySelector('meta[property="og:image"]');
+        if (ogImage) ogImage.setAttribute('content', imageUrl);
+      }
+
+      // Example usage
+      updateMetaTags(
+        "Director Profile - MyFilmPeople",
+        "Explore the filmography of your favorite director.",
+        "assets/images/director-profile.jpg"
+      );
+    </script>
+
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=GA_TRACKING_ID"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'GA_TRACKING_ID');
+    </script>
   </head>
   <body>
     <div class="container">
