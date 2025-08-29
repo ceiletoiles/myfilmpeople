@@ -1175,3 +1175,29 @@ form {
     gap: 4px;
   }
 }
+
+/* Style for the welcome message */
+.welcome-message {
+  font-size: 2rem;
+  text-align: center;
+  color: #333;
+  margin: 0;
+  display: none; /* Hidden by default */
+  justify-content: center;
+  align-items: center;
+  flex-direction: column; /* Stack elements vertically */
+  height: 85vh; /* Reduce height to 70% of the viewport */
+  padding: 20px;
+  border-radius: 8px;
+}
+
+.welcome-message h2 {
+  font-size: 1.5rem;
+  color: #ff8000; /* Accent color */
+  margin-bottom: 10px;
+}
+
+.welcome-message p {
+  font-size: 1rem;
+  color: var(--text-primary);
+}
