@@ -1,0 +1,95 @@
+Directors:
+Akira Kurosawa
+Alex Garland
+Alfred Hitchcock
+Andrei Tarkovsky
+Ari Aster
+Bong Joon Ho
+Celine Song
+Christopher Nolan
+Damien Chazelle
+Danny Boyle
+Darren Aronofsky
+David Fincher
+David Lynch
+Denis Villeneuve
+Edward Yang
+Gaspar Noé
+Greta Gerwig
+Guillermo del Toro
+Hayao Miyazaki
+Joachim Trier
+Jordan Peele
+Joseph Kosinski
+Lars von Trier
+Luca Guadagnino
+Martin Scorsese
+Michael Haneke
+Park Chan Wook
+Paul Schrader
+Paul Thomas Anderson
+Quentin Tarantino
+Ridley Scott
+Robert Eggers
+Ryan Coogler
+Satoshi Kon
+Satyajit Ray
+Sean Baker
+Sofia Coppola
+Stanley Kubrick
+Steven Spielberg
+Terrence Malick
+Wes Anderson
+Woody Allen
+Wong Kar Wai
+Yorgos Lanthimos
+
+Actors:
+Al Pacino
+Alison Brie
+Amy Adams
+Anya Taylor-Joy
+Brad Pitt
+Brie Larson
+Cailee Spaeny
+Cate Blanchett
+Charlotte Gainsbourg
+Christian Bale
+Daniel Day-Lewis
+Dave Franco
+Emma Stone
+Henry Cavill
+Isabelle Huppert
+Jake Gyllenhaal
+Jeremy Renner
+Jesse Plemons
+Jessie Buckley
+Joaquin Phoenix
+LaKeith Stanfield
+Leonardo DiCaprio
+Logan Lerman
+Lupita Nyong'o
+Mads Mikkelsen
+Margot Robbie
+Marion Cotillard
+Meryl Streep
+Michael Shannon
+Oscar Isaac
+Paul Mescal
+Pedro Pascal
+Philip Seymour Hoffman
+Renate Reinsve
+Riz Ahmed
+Robert Pattinson
+Ryan Gosling
+Sally Hawkins
+Saoirse Ronan
+Tilda Swinton
+Timothée Chalamet
+Tom Cruise
+Toshiro Mifune
+
+Others:
+Emmanuel Lubezki
+Hans Zimmer
+Roger Deakens

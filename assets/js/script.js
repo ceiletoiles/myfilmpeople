@@ -159,113 +159,8 @@ class PeopleDatabase {
   }
 
   getDefaultPeople() {
-    // Convert existing hardcoded data to new format
-    const defaultDirectors = [
-      { name: "Alfred Hitchcock" },
-      { name: "Martin Scorsese" },
-      { name: "Steven Spielberg" },
-      { name: "Akira Kurosawa" },
-      { name: "Satyajit Ray" },
-      { name: "Andrei Tarkovsky" },
-      { name: "Christopher Nolan" },
-      { name: "Quentin Tarantino" },
-      { name: "Hayao Miyazaki" },
-      { name: "David Fincher" },
-      { name: "Paul Thomas Anderson" },
-      { name: "Denis Villeneuve" },
-      { name: "Wes Anderson" },
-      { name: "Guillermo del Toro" },
-      { name: "Bong Joon Ho" },
-      { name: "Wong Kar Wai" },
-      { name: "Park Chan Wook" },
-      { name: "Terrence Malick" },
-      { name: "David Lynch" },
-      { name: "Yorgos Lanthimos" },
-      { name: "Ridley Scott" },
-      { name: "Lars von Trier" },
-      { name: "Darren Aronofsky" },
-      { name: "Michael Haneke" },
-      { name: "Luca Guadagnino" },
-      { name: "Damien Chazelle" },
-      { name: "Greta Gerwig" },
-      { name: "Sofia Coppola" },
-      { name: "Gaspar Noé" },
-      { name: "Ari Aster" },
-      { name: "Robert Eggers" },
-      { name: "Jordan Peele" },
-      { name: "Alex Garland" },
-      { name: "Sean Baker" },
-      { name: "Celine Song" },
-      { name: "Ryan Coogler" },
-      { name: "Joachim Trier" },
-      { name: "Danny Boyle" },
-      { name: "Woody Allen" }
-    ];
-
-    const defaultActors = [
-      { name: "Leonardo DiCaprio" },
-      { name: "Robert De Niro" },
-      { name: "Al Pacino" },
-      { name: "Meryl Streep" },
-      { name: "Joaquin Phoenix" },
-      { name: "Daniel Day-Lewis" },
-      { name: "Frances McDormand" },
-      { name: "Oscar Isaac" },
-      { name: "Tilda Swinton" },
-      { name: "Adam Driver" },
-      { name: "Saoirse Ronan" },
-      { name: "Timothée Chalamet" },
-      { name: "Margot Robbie" },
-      { name: "Ryan Gosling" },
-      { name: "Jake Gyllenhaal" },
-      { name: "Amy Adams" },
-      { name: "Michael Shannon" },
-      { name: "Isabelle Huppert" },
-      { name: "Song Kang-ho" },
-      { name: "Choi Min-sik" },
-      { name: "Toshiro Mifune" },
-      { name: "Charlotte Gainsbourg" },
-      { name: "Mads Mikkelsen" },
-      { name: "Cate Blanchett" },
-      { name: "Christian Bale" },
-      { name: "Lupita Nyong'o" },
-      { name: "John Turturro" },
-      { name: "Thomasin McKenzie" },
-      { name: "Anya Taylor-Joy" },
-      { name: "Robert Pattinson" },
-      { name: "Emma Stone" },
-      { name: "LaKeith Stanfield" }
-    ];
-
-    let id = 1;
-    const people = [];
-    const baseDate = new Date('2025-01-01');
-    
-    // Add directors with different dates
-    defaultDirectors.forEach((director, index) => {
-      people.push({
-        id: id++,
-        name: director.name,
-        role: 'director',
-        letterboxdUrl: `https://letterboxd.com/director/${director.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}/`,
-        notes: '',
-        dateAdded: new Date(baseDate.getTime() + (index * 24 * 60 * 60 * 1000)).toISOString() // Different days
-      });
-    });
-    
-    // Add actors with different dates
-    defaultActors.forEach((actor, index) => {
-      people.push({
-        id: id++,
-        name: actor.name,
-        role: 'actor',
-        letterboxdUrl: `https://letterboxd.com/actor/${actor.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}/`,
-        notes: '',
-        dateAdded: new Date(baseDate.getTime() + ((defaultDirectors.length + index) * 24 * 60 * 60 * 1000)).toISOString() // Different days
-      });
-    });
-    
-    return people;
+    // Return an empty array to remove default data
+    return [];
   }
 }
 
@@ -274,7 +169,8 @@ const db = new PeopleDatabase();
 
 // UI Management
 class UIManager {
-  constructor() {
+  constructor(peopleDatabase) {
+    this.people = peopleDatabase.people; // Assign people data from PeopleDatabase
     this.activeTab = 'directors';
     this.currentSort = { directors: 'alphabetical', actors: 'alphabetical', others: 'alphabetical' };
     this.init();
@@ -1102,31 +998,44 @@ class UIManager {
   }
   
   renderPeople() {
+    if (!this.people) {
+      console.error('People data is undefined. Ensure PeopleDatabase is initialized correctly.');
+      return;
+    }
+
+    console.log('Current people data:', this.people); // Debug log
+
+    const content = document.querySelector('.content');
+    const welcomeMessage = document.querySelector('.welcome-message');
+
+    const hasData = this.people.length > 0;
+
+    if (hasData) {
+      content.style.display = 'block';
+      welcomeMessage.style.display = 'none';
+    } else {
+      content.style.display = 'none';
+      welcomeMessage.style.display = 'flex';
+    }
+
     const directorsGrid = document.getElementById('directorsGrid');
     const actorsGrid = document.getElementById('actorsGrid');
     const othersGrid = document.getElementById('othersGrid');
 
-    if (directorsGrid) {
-      directorsGrid.innerHTML = '';
-      const directors = this.getSortedPeople('director');
-      directors.forEach(person => {
-        directorsGrid.appendChild(this.createPersonCard(person));
-      });
-    }
+    // Clear existing grids
+    directorsGrid.innerHTML = '';
+    actorsGrid.innerHTML = '';
+    othersGrid.innerHTML = '';
 
-    if (actorsGrid) {
-      actorsGrid.innerHTML = '';
-      const actors = this.getSortedPeople('actor');
-      actors.forEach(person => {
-        actorsGrid.appendChild(this.createPersonCard(person));
-      });
-    }
-
-    if (othersGrid) {
-      othersGrid.innerHTML = '';
-      const others = this.getSortedPeopleOthers(); // Get all non-director/actor roles
-      others.forEach(person => {
-        othersGrid.appendChild(this.createPersonCard(person));
+    // Populate grids with sorted data
+    if (hasData) {
+      const roles = ['director', 'actor', 'other'];
+      roles.forEach(role => {
+        const grid = role === 'director' ? directorsGrid : role === 'actor' ? actorsGrid : othersGrid;
+        const sortedPeople = this.getSortedPeople(role);
+        sortedPeople.forEach(person => {
+          grid.appendChild(this.createPersonCard(person));
+        });
       });
     }
   }  createPersonCard(person) {
@@ -1448,5 +1357,5 @@ function attachLongPressMenu(card, person, ui, db) {
 
 // Initialize the app when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
-  const ui = new UIManager();
+  const ui = new UIManager(db); // Pass PeopleDatabase instance to UIManager
 });
