@@ -373,6 +373,16 @@ class UIManager {
         });
       }
     });
+    
+    // Add event listener to remove active class when clicking outside
+    const sortButtons = document.querySelectorAll('.control-button');
+    document.addEventListener('click', (e) => {
+      sortButtons.forEach(button => {
+        if (!button.contains(e.target)) {
+          button.classList.remove('active');
+        }
+      });
+    });
   }
   
   openModal() {
@@ -1003,8 +1013,6 @@ class UIManager {
       return;
     }
 
-    console.log('Current people data:', this.people); // Debug log
-
     const content = document.querySelector('.content');
     const welcomeMessage = document.querySelector('.welcome-message');
 
@@ -1015,12 +1023,17 @@ class UIManager {
       welcomeMessage.style.display = 'none';
     } else {
       content.style.display = 'none';
-      welcomeMessage.style.display = 'flex';
+      welcomeMessage.style.display = 'flex'; // Ensure welcome message is visible
     }
 
     const directorsGrid = document.getElementById('directorsGrid');
     const actorsGrid = document.getElementById('actorsGrid');
     const othersGrid = document.getElementById('othersGrid');
+
+    // Update renderPeople to use sorted data
+    const sortedDirectors = this.getSortedPeople('director');
+    const sortedActors = this.getSortedPeople('actor');
+    const sortedOthers = this.getSortedPeopleOthers();
 
     // Clear existing grids
     directorsGrid.innerHTML = '';
@@ -1028,16 +1041,15 @@ class UIManager {
     othersGrid.innerHTML = '';
 
     // Populate grids with sorted data
-    if (hasData) {
-      const roles = ['director', 'actor', 'other'];
-      roles.forEach(role => {
-        const grid = role === 'director' ? directorsGrid : role === 'actor' ? actorsGrid : othersGrid;
-        const sortedPeople = this.getSortedPeople(role);
-        sortedPeople.forEach(person => {
-          grid.appendChild(this.createPersonCard(person));
-        });
-      });
-    }
+    sortedDirectors.forEach(person => {
+      directorsGrid.appendChild(this.createPersonCard(person));
+    });
+    sortedActors.forEach(person => {
+      actorsGrid.appendChild(this.createPersonCard(person));
+    });
+    sortedOthers.forEach(person => {
+      othersGrid.appendChild(this.createPersonCard(person));
+    });
   }  createPersonCard(person) {
     const card = document.createElement('div');
     card.className = 'director-card';
