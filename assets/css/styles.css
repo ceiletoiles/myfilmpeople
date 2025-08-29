@@ -349,6 +349,13 @@ select option {
   margin-top: 20px;
 }
 
+.others-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+  margin-top: 20px;
+}
+
 .director-card {
   background: var(--bg-secondary);
   border: 1px solid var(--bg-tertiary);
