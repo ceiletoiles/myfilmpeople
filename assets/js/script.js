@@ -285,19 +285,19 @@ class UIManager {
         const name = nameInput.value.trim();
         const role = roleSelect.value;
         if (name && role) {
-          // Map form roles to Letterboxd URL paths
+          // Map form roles to TMDb department names
           const departmentMap = {
-            'director': 'director',
-            'actor': 'actor',
-            'writer': 'writer',
-            'cinematographer': 'cinematography',
-            'composer': 'composer',
-            'producer': 'producer',
-            'editor': 'editor',
-            'studio': 'studio', // Ensure studio maps to studio
-            'other': 'actor' // Default to actor for other roles
+            'director': 'Directing',
+            'actor': 'Acting',
+            'writer': 'Writing',
+            'cinematographer': 'Camera',
+            'composer': 'Sound',
+            'producer': 'Production',
+            'editor': 'Editing',
+            'studio': 'Studio',
+            'other': 'Acting' // Default to actor for other roles
           };
-          const department = departmentMap[role] || 'actor';
+          const department = departmentMap[role] || 'Acting';
           const url = TMDB_CONFIG.generateLetterboxdUrl(name, department);
           urlInput.value = url;
         }
@@ -305,6 +305,8 @@ class UIManager {
       
       roleSelect.addEventListener('change', updateLetterboxdUrl);
       nameInput.addEventListener('input', updateLetterboxdUrl);
+      roleSelect.addEventListener('input', updateLetterboxdUrl); // Ensure URL updates on manual role change
+      roleSelect.addEventListener('blur', updateLetterboxdUrl); // Ensure URL updates on blur
     }
     
     // Image search button functionality  
@@ -595,7 +597,8 @@ class UIManager {
       'Camera': 'Cinematographer',
       'Sound': 'Composer',
       'Production': 'Producer',
-      'Editing': 'Editor'
+      'Editing': 'Editor',
+      'Studio': 'Studio'
     };
     
     return mapping[department] || department;
