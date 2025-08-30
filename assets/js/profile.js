@@ -157,7 +157,7 @@ class ProfilePageManager {
   }
   
   loadPersonFromURL() {
-    // Get the clean URL path (e.g., "/alex-garland/")
+    // Get the clean URL path (e.g., "/akira-kurosawa/")
     const path = window.location.pathname;
     const nameSlug = path.replace(/^\/+|\/+$/g, ''); // Remove leading/trailing slashes
     

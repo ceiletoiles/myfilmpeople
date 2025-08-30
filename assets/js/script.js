@@ -43,12 +43,14 @@ const TMDB_CONFIG = {
     
   // Helper to generate Letterboxd URL
   generateLetterboxdUrl: (name, knownForDepartment) => {
-    const slug = name.toLowerCase()
+    const slug = name.normalize('NFD')
+      .replace(/\p{Diacritic}/gu, '') // Remove diacritics
+      .toLowerCase()
       .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
       .replace(/\s+/g, '-') // Replace spaces with hyphens
       .replace(/-+/g, '-') // Replace multiple hyphens with single
       .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
-    
+
     // Map departments to correct Letterboxd URL paths
     const departmentMap = {
       'Directing': 'director',
@@ -59,7 +61,7 @@ const TMDB_CONFIG = {
       'Production': 'producer',
       'Editing': 'editor'
     };
-    
+
     const department = departmentMap[knownForDepartment] || 'actor';
     return `https://letterboxd.com/${department}/${slug}/`;
   }
@@ -101,6 +103,8 @@ class PeopleDatabase {
   
   createNameSlug(name) {
     return name
+      .normalize('NFD')
+      .replace(/\p{Diacritic}/gu, '') // Remove diacritics
       .toLowerCase()
       .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
       .replace(/\s+/g, '-')         // Replace spaces with hyphens
@@ -187,6 +191,8 @@ class UIManager {
   
   createNameSlug(name) {
     return name
+      .normalize('NFD')
+      .replace(/\p{Diacritic}/gu, '') // Remove diacritics
       .toLowerCase()
       .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
       .replace(/\s+/g, '-')         // Replace spaces with hyphens
