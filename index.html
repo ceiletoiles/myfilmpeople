@@ -125,6 +125,7 @@
           </button>
           <button class="tab-button" data-tab="actors">Actors</button>
           <button class="tab-button" data-tab="others">Others</button>
+          <button class="tab-button" data-tab="companies">Companies</button>
         </div>
 
         <div id="directors-tab" class="tab-content active">
@@ -230,6 +231,36 @@
             <!-- Others will be populated by JavaScript -->
           </div>
         </div>
+
+        <div id="companies-tab" class="tab-content">
+          <div class="header-with-controls">
+            <div class="header-controls left">
+              <div class="control-group">
+                <button class="control-button" id="companiesSortButton">↕</button>
+                <div class="sort-dropdown" id="companiesSortDropdown">
+                  <div class="sort-option active" data-sort="alphabetical">A-Z</div>
+                  <div class="sort-option" data-sort="reverse">Z-A</div>
+                  <div class="sort-option" data-sort="random">Random Mix</div>
+                </div>
+              </div>
+            </div>
+            <h3>Companies</h3>
+            <div class="header-controls right">
+              <div class="control-group search-group">
+                <button class="control-button" id="companiesSearchButton">⌕</button>
+                <input
+                  type="text"
+                  class="search-input"
+                  id="companiesSearch"
+                  placeholder="Search companies..."
+                />
+              </div>
+            </div>
+          </div>
+          <div class="companies-grid" id="companiesGrid">
+            <!-- Companies will be populated by JavaScript -->
+          </div>
+        </div>
       </div>
 
       <!-- Add Person Modal -->
@@ -331,6 +362,7 @@
                       Producer
                     </div>
                     <div class="custom-option" data-value="editor">Editor</div>
+                    <div class="custom-option" data-value="studio">Studio</div>
                     <div class="custom-option" data-value="other">Other</div>
                   </div>
                 </div>
