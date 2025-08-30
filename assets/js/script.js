@@ -1137,8 +1137,8 @@ class UIManager {
   
   getSortedPeople(role) {
     let people = db.getPeopleByRole(role);
-    const sortType = this.currentSort[role + 's'] || 'alphabetical';
-    
+    const sortType = role === 'studio' ? this.currentSort.companies : this.currentSort[role + 's'] || 'alphabetical';
+
     let sorted;
     switch(sortType) {
       case 'alphabetical':
@@ -1153,7 +1153,7 @@ class UIManager {
       default:
         sorted = people;
     }
-    
+
     return sorted;
   }
   
