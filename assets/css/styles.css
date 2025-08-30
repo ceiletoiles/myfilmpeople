@@ -131,6 +131,13 @@ h1 {
   background: rgba(0, 224, 84, 0.1);
 }
 
+.tab-button[data-tab="companies"]:hover,
+.tab-button[data-tab="companies"].active {
+  color: var(--text-accent);
+  border-bottom-color: var(--text-accent);
+  background: rgba(255, 255, 255, 0.1);
+}
+
 .tab-content {
   display: none;
 }
@@ -350,6 +357,13 @@ select option {
 }
 
 .others-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.companies-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   gap: 12px;
@@ -1207,4 +1221,12 @@ form {
 .welcome-message p {
   font-size: 1rem;
   color: var(--text-primary);
+}
+
+#companies-tab {
+  display: none;
+}
+
+#companies-tab.active {
+  display: block;
 }

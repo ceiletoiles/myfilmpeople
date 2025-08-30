@@ -59,7 +59,8 @@ const TMDB_CONFIG = {
       'Camera': 'cinematography',
       'Sound': 'composer',
       'Production': 'producer',
-      'Editing': 'editor'
+      'Editing': 'editor',
+      'Studio': 'studio' // Added mapping for Studio
     };
 
     const department = departmentMap[knownForDepartment] || 'actor';
@@ -118,11 +119,11 @@ class PeopleDatabase {
       p.name.toLowerCase() === personData.name.toLowerCase() && 
       p.role === personData.role
     );
-    
+
     if (existingPerson) {
-      throw new Error(`${personData.name} (${personData.role}) already exists in your collection!`);
+      throw new Error(`${personData.name} already exists as a ${personData.role}.`); // Throw error for duplicate entries
     }
-    
+
     const person = {
       id: this.nextId++,
       name: personData.name,
@@ -133,7 +134,7 @@ class PeopleDatabase {
       tmdbId: personData.tmdbId || null,
       dateAdded: new Date().toISOString()
     };
-    
+
     this.people.push(person);
     this.saveToStorage();
     return person;
@@ -176,7 +177,7 @@ class UIManager {
   constructor(peopleDatabase) {
     this.people = peopleDatabase.people; // Assign people data from PeopleDatabase
     this.activeTab = 'directors';
-    this.currentSort = { directors: 'alphabetical', actors: 'alphabetical', others: 'alphabetical' };
+    this.currentSort = { directors: 'alphabetical', actors: 'alphabetical', others: 'alphabetical', companies: 'alphabetical' };
     this.init();
   }
   
@@ -210,8 +211,17 @@ class UIManager {
     // Tab switching
     document.querySelectorAll('.tab-button').forEach(button => {
       button.addEventListener('click', () => {
-        this.activeTab = button.getAttribute('data-tab');
-        this.updateTabButtons();
+        // Remove active class from all tabs
+        document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+
+        // Add active class to the clicked tab
+        button.classList.add('active');
+        const tabId = button.dataset.tab;
+        document.getElementById(`${tabId}-tab`).classList.add('active');
+
+        // Update activeTab and render people
+        this.activeTab = tabId;
         this.renderPeople();
       });
     });
@@ -275,18 +285,19 @@ class UIManager {
         const name = nameInput.value.trim();
         const role = roleSelect.value;
         if (name && role) {
-          // Map form roles to TMDb department names for URL generation
+          // Map form roles to Letterboxd URL paths
           const departmentMap = {
-            'director': 'Directing',
-            'actor': 'Acting',
-            'writer': 'Writing',      
-            'cinematographer': 'Camera', 
-            'composer': 'Sound',    
-            'producer': 'Production',    
-            'editor': 'Editing',      
-            'other': 'Acting'        // Default to actor for other roles
+            'director': 'director',
+            'actor': 'actor',
+            'writer': 'writer',
+            'cinematographer': 'cinematography',
+            'composer': 'composer',
+            'producer': 'producer',
+            'editor': 'editor',
+            'studio': 'studio', // Ensure studio maps to studio
+            'other': 'actor' // Default to actor for other roles
           };
-          const department = departmentMap[role] || 'Acting';
+          const department = departmentMap[role] || 'actor';
           const url = TMDB_CONFIG.generateLetterboxdUrl(name, department);
           urlInput.value = url;
         }
@@ -321,7 +332,7 @@ class UIManager {
     });
     
     // Search functionality
-    ['directors', 'actors', 'others'].forEach(role => {
+    ['directors', 'actors', 'others', 'companies'].forEach(role => {
       const searchBtn = document.getElementById(`${role}SearchButton`);
       const searchInput = document.getElementById(`${role}Search`);
       
@@ -340,7 +351,7 @@ class UIManager {
     });
     
     // Sort functionality
-    ['directors', 'actors', 'others'].forEach(role => {
+    ['directors', 'actors', 'others', 'companies'].forEach(role => {
       const sortBtnId = `${role}SortButton`;
       const dropdownId = `${role}SortDropdown`;
       const sortBtn = document.getElementById(sortBtnId);
@@ -446,26 +457,24 @@ class UIManager {
     }
 
     try {
-      const response = await this.smartSearchTMDb(query);
-      
-      if (!response.ok) {
-        console.error('TMDb API Error:', response.status, response.statusText);
-        if (response.status === 401) {
-          this.displaySearchError('Invalid API key');
-          return;
-        } else if (response.status === 404) {
-          this.displaySearchError('API endpoint not found');
-          return;
-        } else {
-          this.displaySearchError(`API Error: ${response.status}`);
-          return;
-        }
-      }
-      
-      const data = await response.json();
-      
-      if (data.results && data.results.length > 0) {
-        this.displaySearchResults(data.results.slice(0, 5)); // Show top 5 results
+      const personSearchUrl = TMDB_CONFIG.getPersonSearchUrl(query);
+      const companySearchUrl = `${TMDB_CONFIG.BASE_URL}/search/company?api_key=${TMDB_CONFIG.API_KEY}&query=${encodeURIComponent(query)}`;
+
+      const [personResponse, companyResponse] = await Promise.all([
+        fetch(personSearchUrl),
+        fetch(companySearchUrl)
+      ]);
+
+      const personData = personResponse.ok ? await personResponse.json() : { results: [] };
+      const companyData = companyResponse.ok ? await companyResponse.json() : { results: [] };
+
+      const combinedResults = [
+        ...personData.results.map(result => ({ ...result, media_type: 'person' })),
+        ...companyData.results.map(result => ({ ...result, media_type: 'company', known_for_department: 'Studio' }))
+      ];
+
+      if (combinedResults.length > 0) {
+        this.displaySearchResults(combinedResults.slice(0, 5)); // Show top 5 results
       } else {
         this.displayNoResults();
       }
@@ -1035,16 +1044,19 @@ class UIManager {
     const directorsGrid = document.getElementById('directorsGrid');
     const actorsGrid = document.getElementById('actorsGrid');
     const othersGrid = document.getElementById('othersGrid');
+    const companiesGrid = document.getElementById('companiesGrid');
 
     // Update renderPeople to use sorted data
     const sortedDirectors = this.getSortedPeople('director');
     const sortedActors = this.getSortedPeople('actor');
     const sortedOthers = this.getSortedPeopleOthers();
+    const sortedCompanies = this.getSortedPeople('studio'); // Assuming 'studio' role for companies
 
     // Clear existing grids
     directorsGrid.innerHTML = '';
     actorsGrid.innerHTML = '';
     othersGrid.innerHTML = '';
+    companiesGrid.innerHTML = '';
 
     // Populate grids with sorted data
     sortedDirectors.forEach(person => {
@@ -1055,6 +1067,9 @@ class UIManager {
     });
     sortedOthers.forEach(person => {
       othersGrid.appendChild(this.createPersonCard(person));
+    });
+    sortedCompanies.forEach(person => {
+      companiesGrid.appendChild(this.createPersonCard(person));
     });
   }  createPersonCard(person) {
     const card = document.createElement('div');
@@ -1143,9 +1158,9 @@ class UIManager {
   }
   
   getSortedPeopleOthers() {
-    // Get all people who are not directors or actors
+    // Get all people who are not directors, actors, or studios
     let people = db.getAllPeople().filter(person => 
-      person.role !== 'director' && person.role !== 'actor'
+      person.role !== 'director' && person.role !== 'actor' && person.role !== 'studio'
     );
     const sortType = this.currentSort.others || 'alphabetical';
     
@@ -1245,6 +1260,8 @@ class UIManager {
       this.currentSort.directors = sortType;
     } else if (role === 'actors') {
       this.currentSort.actors = sortType;
+    } else if (role === 'companies') {
+      this.currentSort.companies = sortType;
     }
     
     // Update active state in dropdown - fix the ID construction
