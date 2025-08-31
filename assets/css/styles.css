@@ -1168,10 +1168,49 @@ form {
   font-style: italic;
 }
 
-@media (max-width: 768px) {
-  .custom-select-options {
-    max-height: 150px;
-  }
+/* Custom dropdown styling */
+.custom-dropdown {
+  position: relative;
+  display: inline-block;
+  width: 150px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--bg-tertiary);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.custom-dropdown-trigger {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px;
+  color: var(--text-primary);
+}
+
+.custom-dropdown-options {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  background: var(--bg-secondary);
+  border: 1px solid var(--bg-tertiary);
+  border-radius: 4px;
+  z-index: 1000;
+}
+
+.custom-dropdown-options .custom-option {
+  padding: 8px;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.custom-dropdown-options .custom-option:hover {
+  background: var(--bg-tertiary);
+}
+
+.custom-dropdown.open .custom-dropdown-options {
+  display: block;
 }
 
 /* Footer */
@@ -1229,4 +1268,36 @@ form {
 
 #companies-tab.active {
   display: block;
+}
+
+/* Style for TMDb ID and Type Selector */
+.input-with-dropdown {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.input-with-dropdown input {
+  flex: 2;
+  min-width: 200px;
+  padding: 8px;
+  border: 1px solid var(--bg-tertiary);
+  border-radius: 4px;
+  background: #14181c;
+  color: var(--text-primary);
+}
+
+.input-with-dropdown select {
+  flex: 1;
+  min-width: 120px;
+  padding: 8px;
+  border: 1px solid var(--bg-tertiary);
+  border-radius: 4px;
+  background: var(--bg-secondary);
+  background-size: 12px;
+  cursor: pointer;
+}
+
+.input-with-dropdown select:hover {
+  background-color: var(--bg-tertiary);
 }

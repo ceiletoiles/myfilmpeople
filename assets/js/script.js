@@ -40,6 +40,51 @@ const TMDB_CONFIG = {
       return `${proxy}${url}`;
     }
   },
+  
+  // Helper to get combined credits URL for a person
+  getPersonCombinedCreditsUrl: (personId, useProxy = false, proxyIndex = 0) => {
+    const url = `${TMDB_CONFIG.BASE_URL}/person/${personId}/combined_credits?api_key=${TMDB_CONFIG.API_KEY}`;
+    if (!useProxy) return url;
+    
+    // Handle different proxy formats
+    const proxy = TMDB_CONFIG.CORS_PROXIES[proxyIndex];
+    if (proxy.includes('allorigins.win')) {
+      return `${proxy}${encodeURIComponent(url)}`;
+    } else {
+      // For corsproxy.io and cors-anywhere, don't double-encode
+      return `${proxy}${url}`;
+    }
+  },
+  
+  // Helper to get company details URL with optional proxy
+  getCompanyDetailsUrl: (companyId, useProxy = false, proxyIndex = 0) => {
+    const url = `${TMDB_CONFIG.BASE_URL}/company/${companyId}?api_key=${TMDB_CONFIG.API_KEY}`;
+    if (!useProxy) return url;
+    
+    // Handle different proxy formats
+    const proxy = TMDB_CONFIG.CORS_PROXIES[proxyIndex];
+    if (proxy.includes('allorigins.win')) {
+      return `${proxy}${encodeURIComponent(url)}`;
+    } else {
+      // For corsproxy.io and cors-anywhere, don't double-encode
+      return `${proxy}${url}`;
+    }
+  },
+  
+  // Helper to get movies by company URL with optional proxy
+  getMoviesByCompanyUrl: (companyId, useProxy = false, proxyIndex = 0) => {
+    const url = `${TMDB_CONFIG.BASE_URL}/company/${companyId}/movies?api_key=${TMDB_CONFIG.API_KEY}`;
+    if (!useProxy) return url;
+    
+    // Handle different proxy formats
+    const proxy = TMDB_CONFIG.CORS_PROXIES[proxyIndex];
+    if (proxy.includes('allorigins.win')) {
+      return `${proxy}${encodeURIComponent(url)}`;
+    } else {
+      // For corsproxy.io and cors-anywhere, don't double-encode
+      return `${proxy}${url}`;
+    }
+  },
     
   // Helper to generate Letterboxd URL
   generateLetterboxdUrl: (name, knownForDepartment) => {
@@ -241,7 +286,6 @@ class UIManager {
     // TMDb search functionality
     const searchInput = document.getElementById('personSearch');
     const searchResults = document.getElementById('searchResults');
-    const manualTmdbIdInput = document.getElementById('manualTmdbId');
     let searchTimeout;
     
     if (searchInput && searchResults) {
@@ -256,14 +300,30 @@ class UIManager {
       });
     }
     
-    // Manual TMDb ID functionality
-    if (manualTmdbIdInput) {
-      manualTmdbIdInput.addEventListener('change', async (e) => {
-        const tmdbId = e.target.value.trim();
-        if (tmdbId && !isNaN(tmdbId) && parseInt(tmdbId) > 0) {
-          await this.fetchPersonByTmdbId(parseInt(tmdbId));
-        }
-      });
+    // TMDb ID and Type Selector Integration
+    const manualTmdbIdInput = document.getElementById('manualTmdbId');
+    const tmdbTypeSelector = document.getElementById('tmdbTypeSelector');
+
+    if (manualTmdbIdInput && tmdbTypeSelector) {
+        manualTmdbIdInput.addEventListener('change', async (e) => {
+            const tmdbId = e.target.value.trim();
+            const selectedType = tmdbTypeSelector.querySelector('.custom-dropdown-trigger span').textContent.toLowerCase();
+
+            if (tmdbId && !isNaN(tmdbId) && parseInt(tmdbId) > 0) {
+                if (selectedType === 'person') {
+                    await this.fetchAndFillPersonData(tmdbId);
+                } else if (selectedType === 'company') {
+                    await this.fetchAndFillCompanyData(tmdbId);
+                }
+            }
+        });
+
+        tmdbTypeSelector.addEventListener('click', (e) => {
+            if (e.target.classList.contains('custom-option')) {
+                const selectedValue = e.target.getAttribute('data-value');
+                tmdbTypeSelector.querySelector('.custom-dropdown-trigger span').textContent = selectedValue.charAt(0).toUpperCase() + selectedValue.slice(1);
+            }
+        });
     }
     
     // Hide search results when clicking outside
@@ -401,6 +461,34 @@ class UIManager {
           button.classList.remove('active');
         }
       });
+    });
+    
+    // Custom dropdown functionality
+    const customDropdown = document.getElementById('tmdbTypeSelector');
+    const dropdownTrigger = customDropdown.querySelector('.custom-dropdown-trigger');
+    const dropdownOptions = customDropdown.querySelector('.custom-dropdown-options');
+    const dropdownSpan = dropdownTrigger.querySelector('span');
+    
+    // Toggle dropdown
+    dropdownTrigger.addEventListener('click', () => {
+      customDropdown.classList.toggle('open');
+    });
+    
+    // Handle option selection
+    dropdownOptions.addEventListener('click', (e) => {
+      if (e.target.classList.contains('custom-option')) {
+        const value = e.target.getAttribute('data-value');
+        dropdownSpan.textContent = e.target.textContent;
+        customDropdown.classList.remove('open');
+        customDropdown.setAttribute('data-value', value);
+      }
+    });
+    
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!customDropdown.contains(e.target)) {
+        customDropdown.classList.remove('open');
+      }
     });
   }
   
@@ -660,6 +748,74 @@ class UIManager {
     } catch (error) {
       console.error('Error fetching person by TMDb ID:', error);
       this.showAlert('Error', `Could not fetch person with TMDb ID: ${tmdbId}. Please check the ID or try manual entry.`);
+    }
+  }
+  
+  // Helper function to fetch TMDb data based on ID and type
+  async getTmdbInfo(id, type) {
+    try {
+      let url;
+      if (type === 'cast' || type === 'crew') {
+        url = TMDB_CONFIG.getPersonDetailsUrl(id);
+        const creditsUrl = TMDB_CONFIG.getPersonCombinedCreditsUrl(id);
+        const [personResponse, creditsResponse] = await Promise.all([
+          fetch(url),
+          fetch(creditsUrl)
+        ]);
+
+        if (personResponse.ok && creditsResponse.ok) {
+          const personData = await personResponse.json();
+          const creditsData = await creditsResponse.json();
+          return {
+            name: personData.name,
+            profile_path: personData.profile_path,
+            filmography: creditsData.cast || []
+          };
+        }
+      } else if (type === 'studio') {
+        url = TMDB_CONFIG.getCompanyDetailsUrl(id);
+        const moviesUrl = TMDB_CONFIG.getMoviesByCompanyUrl(id);
+        const [companyResponse, moviesResponse] = await Promise.all([
+          fetch(url),
+          fetch(moviesUrl)
+        ]);
+
+        if (companyResponse.ok && moviesResponse.ok) {
+          const companyData = await companyResponse.json();
+          const moviesData = await moviesResponse.json();
+          return {
+            name: companyData.name,
+            logo_path: companyData.logo_path,
+            movies: moviesData.results || []
+          };
+        }
+      }
+      throw new Error('Invalid TMDb ID or type');
+    } catch (error) {
+      console.error('Error fetching TMDb data:', error);
+      throw error;
+    }
+  }
+
+  // Update the form submission logic to handle raw TMDb ID input
+  async handleTmdbIdInput(tmdbId, type) {
+    try {
+      const data = await this.getTmdbInfo(tmdbId, type);
+
+      if (type === 'cast' || type === 'crew') {
+        document.getElementById('personName').value = data.name;
+        document.getElementById('profilePictureUrl').value = `${TMDB_CONFIG.IMAGE_BASE_URL}${data.profile_path}`;
+        // Populate filmography preview (if needed)
+      } else if (type === 'studio') {
+        document.getElementById('studioName').value = data.name;
+        document.getElementById('studioLogoUrl').value = `${TMDB_CONFIG.IMAGE_BASE_URL}${data.logo_path}`;
+        // Populate movies preview (if needed)
+      }
+
+      // Show success message
+      this.showMessage(`Successfully fetched data for TMDb ID: ${tmdbId}`);
+    } catch (error) {
+      this.showAlert('Error', `Could not fetch data for TMDb ID: ${tmdbId}. Please check the ID or try manual entry.`);
     }
   }
   
@@ -1280,6 +1436,52 @@ class UIManager {
     this.renderPeople();
     this.closeSearch(); // Reset search when sorting
   }
+  
+  async fetchAndFillPersonData(personId) {
+    try {
+        const response = await fetch(TMDB_CONFIG.getPersonDetailsUrl(personId));
+        if (!response.ok) throw new Error('Failed to fetch person data');
+
+        const personData = await response.json();
+        document.getElementById('personName').value = personData.name || '';
+        document.getElementById('profilePictureUrl').value = `${TMDB_CONFIG.IMAGE_BASE_URL}${personData.profile_path}` || '';
+        document.getElementById('letterboxdUrl').value = TMDB_CONFIG.generateLetterboxdUrl(personData.name, 'Acting');
+
+        // Update custom-dropdown-options dynamically
+        const tmdbTypeSelector = document.getElementById('tmdbTypeSelector');
+        const optionsContainer = tmdbTypeSelector.querySelector('.custom-dropdown-options');
+        optionsContainer.innerHTML = `
+            <div class="custom-option" data-value="person">Person</div>
+            <div class="custom-option" data-value="company">Company</div>
+        `;
+        tmdbTypeSelector.querySelector('.custom-dropdown-trigger span').textContent = 'Person';
+    } catch (error) {
+        console.error('Error fetching person data:', error);
+    }
+}
+
+async fetchAndFillCompanyData(companyId) {
+    try {
+        const response = await fetch(TMDB_CONFIG.getCompanyDetailsUrl(companyId));
+        if (!response.ok) throw new Error('Failed to fetch company data');
+
+        const companyData = await response.json();
+        document.getElementById('personName').value = companyData.name || '';
+        document.getElementById('profilePictureUrl').value = '';
+        document.getElementById('letterboxdUrl').value = TMDB_CONFIG.generateLetterboxdUrl(companyData.name, 'Studio');
+
+        // Update custom-dropdown-options dynamically
+        const tmdbTypeSelector = document.getElementById('tmdbTypeSelector');
+        const optionsContainer = tmdbTypeSelector.querySelector('.custom-dropdown-options');
+        optionsContainer.innerHTML = `
+            <div class="custom-option" data-value="company">Company</div>
+            <div class="custom-option" data-value="person">Person</div>
+        `;
+        tmdbTypeSelector.querySelector('.custom-dropdown-trigger span').textContent = 'Company';
+    } catch (error) {
+        console.error('Error fetching company data:', error);
+    }
+}
 }
 
 // Debugging logs added to Delete and Edit options

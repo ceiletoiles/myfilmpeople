@@ -285,20 +285,47 @@ class ProfilePageManager {
   updateBasicInfo(person) {
     document.getElementById('profileName').textContent = person.name;
     document.getElementById('profileFullName').textContent = person.name;
-    
+
     // Format role display nicely
     const formattedRole = this.formatRoleDisplay(person.role);
     document.getElementById('profileRole').textContent = formattedRole;
-    
-    // Set profile image
-    this.setupProfileImage(person);
-    
+
+    // Set profile image for studios
+    if (person.role === 'studio') {
+        this.setupStudioProfileImage(person);
+
+        // Remove bio, birthdate, read more/less, and filters for studios
+        const bioElement = document.getElementById('bioText');
+        const birthElement = document.getElementById('profileBirth');
+        const bioToggleBtn = document.getElementById('bioToggleBtn');
+        const filmographyFilters = document.getElementById('filmographyFilters');
+        if (bioElement) bioElement.style.display = 'none';
+        if (birthElement) birthElement.style.display = 'none';
+        if (bioToggleBtn) bioToggleBtn.style.display = 'none';
+        if (filmographyFilters) filmographyFilters.style.display = 'none';
+    } else {
+        this.setupProfileImage(person);
+    }
+
     // Update notes display
     this.updateNotesDisplay();
-    
+
     // Update page title
     document.title = `${person.name} - MyFilmPeople`;
-  }
+}
+
+setupStudioProfileImage(person) {
+    const profileImg = document.getElementById('profileImage');
+    const profileContainer = document.querySelector('.profile-image-container');
+
+    if (person.logoPath) {
+        profileImg.src = `${TMDB_CONFIG.IMAGE_BASE_URL}${person.logoPath}`;
+        profileImg.alt = `${person.name} Logo`;
+        profileImg.style.display = 'block';
+    } else {
+        profileContainer.style.display = 'none'; // Hide the container if no logo
+    }
+}
 
   setupProfileImage(person) {
     const profileImg = document.getElementById('profileImage');
