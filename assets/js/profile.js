@@ -912,20 +912,24 @@ setupStudioProfileImage(person) {
             isCompany: false
           });
           
-          loadingElement.textContent = 'Downloading filmography data...';
+          loadingElement.textContent = 'Successfully connected! Downloading complete filmography...';
           const data = await response.json();
           
           if (data.cast || data.crew) {
             // Update loading message to show processing
             const totalCredits = (data.cast?.length || 0) + (data.crew?.length || 0);
-            loadingElement.textContent = `Processing ${totalCredits} credits...`;
+            loadingElement.textContent = `Processing ${totalCredits} credits from TMDb...`;
             
             // Group movies by ID and combine roles
             const movieMap = new Map();
+            let processedCredits = 0;
             
             // Process cast credits
             if (data.cast) {
-              data.cast.forEach(movie => {
+              const castCount = data.cast.length;
+              loadingElement.textContent = `Processing ${castCount} acting credits...`;
+              
+              data.cast.forEach((movie, index) => {
                 // Filter out documentaries and self appearances
                 if (this.shouldIncludeMovie(movie)) {
                   const key = movie.id;
@@ -945,12 +949,22 @@ setupStudioProfileImage(person) {
                     });
                   }
                 }
+                processedCredits++;
+                
+                // Update progress every 10 items for large filmographies
+                if (index % 10 === 0 && castCount > 20) {
+                  const progress = Math.round(((index + 1) / castCount) * 100);
+                  loadingElement.textContent = `Processing acting credits... ${progress}% (${index + 1}/${castCount})`;
+                }
               });
             }
             
             // Process crew credits
             if (data.crew) {
-              data.crew.forEach(movie => {
+              const crewCount = data.crew.length;
+              loadingElement.textContent = `Processing ${crewCount} crew credits...`;
+              
+              data.crew.forEach((movie, index) => {
                 // Filter out documentaries and include only major crew roles
                 if (this.shouldIncludeMovie(movie) && this.shouldIncludeCrewRole(movie.job, movie.department)) {
                   const key = movie.id;
@@ -970,14 +984,21 @@ setupStudioProfileImage(person) {
                     });
                   }
                 }
+                processedCredits++;
+                
+                // Update progress every 10 items for large filmographies
+                if (index % 10 === 0 && crewCount > 20) {
+                  const progress = Math.round(((index + 1) / crewCount) * 100);
+                  loadingElement.textContent = `Processing crew credits... ${progress}% (${index + 1}/${crewCount})`;
+                }
               });
             }
             
             // Convert to array and sort by release date
             const uniqueMovies = Array.from(movieMap.values());
             
-            // Update loading message with movie count
-            loadingElement.textContent = `Organizing ${uniqueMovies.length} movies...`;
+            // Update loading message with movie count and filtering info
+            loadingElement.textContent = `Found ${uniqueMovies.length} unique movies! Organizing by release date...`;
             
             uniqueMovies.sort((a, b) => {
               const dateA = new Date(a.release_date || '1900-01-01');
@@ -985,9 +1006,21 @@ setupStudioProfileImage(person) {
               return dateB - dateA; // Most recent first
             });
             
+            // Show final step
+            loadingElement.textContent = `Creating filters for ${uniqueMovies.length} movies...`;
+            
+            // Add a small delay for large filmographies to show final progress
+            if (uniqueMovies.length > 50) {
+              await new Promise(resolve => setTimeout(resolve, 500));
+            }
+            
             this.allMovies = uniqueMovies;
             this.createDynamicFilters(uniqueMovies);
             this.setDefaultFilter(); // Set default filter based on person's role
+            
+            // Final loading message
+            loadingElement.textContent = `Ready! Displaying ${uniqueMovies.length} movies...`;
+            
             this.renderFilmography(this.filterMovies(uniqueMovies));
             loadingElement.style.display = 'none';
           } else {
@@ -1263,7 +1296,7 @@ setupStudioProfileImage(person) {
   formatDepartmentDisplay(department, roles) {
     // Simplify department names and show specific roles if needed
     const simplifiedDept = {
-      'Acting': roles.length > 1 ? 'Actor' : roles[0],
+      'Acting': 'Actor', // Always show "Actor" for acting department
       'Directing': 'Director',
       'Writing': roles.some(r => r.includes('Screenplay')) ? 'Writer' : 'Writer',
       'Production': 'Producer',
