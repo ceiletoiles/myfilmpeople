@@ -406,6 +406,35 @@
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
 }
 
+.acting-roles {
+  text-align: center;
+  line-height: 1.2;
+  margin-bottom: 2px;
+  font-weight: 500;
+}
+
+.crew-roles {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.crew-line {
+  display: flex;
+  justify-content: center;
+  gap: 0;
+  align-items: center;
+}
+
+.crew-line .role-badge:not(:last-child)::after {
+  content: ",\00a0";
+  color: #678;
+}
+
+.crew-line-single {
+  justify-content: center;
+}
+
 .role-badge {
   font-size: 0.75rem;
   color: #9ab;
@@ -415,12 +444,6 @@
   white-space: normal;
   /* Allow wrapping for longer names */
   overflow-wrap: break-word;
-  margin-right: 5px;
-}
-
-.role-badge:not(:last-child)::after {
-  content: ", ";
-  color: #678;
 }
 
 /* Mobile Responsiveness */

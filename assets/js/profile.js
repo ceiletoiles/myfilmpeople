@@ -291,6 +291,7 @@ class ProfilePageManager {
     } catch (error) {
       console.error('Error loading profile:', error);
       this.hideLoadingState();
+      // Use delay for profile loading failures too
       this.showLetterboxdFirst('Profile loading error - using Letterboxd mode');
     }
   }  getPersonFromStorage(personId) {
@@ -541,21 +542,36 @@ setupStudioProfileImage(person) {
   async fetchAllCompanyMovies(tmdbId) {
     console.log(`Starting company movies fetch for company ${tmdbId}`);
     
+    // Update loading with initial progress
+    const loadingElement = document.getElementById('loadingFilmography');
+    if (loadingElement) {
+      loadingElement.textContent = 'Connecting to studio database...';
+    }
+    
     // First, try the standard company movies endpoint (even though it's buggy)
     let standardResults = await this.tryStandardCompanyMovies(tmdbId);
     
     // If we got very few results (indicating API bug), try the discover endpoint
     if (standardResults.length <= 20) {
       console.log(`Standard endpoint returned only ${standardResults.length} movies, trying discover endpoint as fallback`);
+      if (loadingElement) {
+        loadingElement.textContent = `Found ${standardResults.length} movies via standard search, trying enhanced search...`;
+      }
       let discoverResults = await this.tryDiscoverCompanyMovies(tmdbId);
       
       // Use whichever gave us more results
       if (discoverResults.length > standardResults.length) {
         console.log(`Discover endpoint found ${discoverResults.length} movies vs ${standardResults.length} from standard endpoint - using discover results`);
+        if (loadingElement) {
+          loadingElement.textContent = `Enhanced search found ${discoverResults.length} movies! Finalizing...`;
+        }
         return discoverResults;
       }
     }
     
+    if (loadingElement) {
+      loadingElement.textContent = `Found ${standardResults.length} movies via standard search. Finalizing...`;
+    }
     return standardResults;
   }
 
@@ -836,9 +852,15 @@ setupStudioProfileImage(person) {
       if (isStudio) {
         // Handle company/studio filmography - fetch all pages
         try {
+          // Show initial progress
+          loadingElement.textContent = 'Starting studio filmography search...';
+          
           const allMovies = await this.fetchAllCompanyMovies(tmdbId);
           
           if (allMovies && allMovies.length > 0) {
+            // Show processing progress
+            loadingElement.textContent = `Processing ${allMovies.length} movies from studio...`;
+            
             // For studios, we get a simple array of movies - no role assignment needed
             const movies = allMovies.map(movie => ({
               ...movie,
@@ -852,6 +874,9 @@ setupStudioProfileImage(person) {
               return dateB - dateA; // Most recent first
             });
             
+            // Show final organization progress
+            loadingElement.textContent = `Organizing ${movies.length} movies...`;
+            
             this.allMovies = movies;
             this.createDynamicFilters(movies);
             this.setDefaultFilter();
@@ -860,23 +885,41 @@ setupStudioProfileImage(person) {
             
             console.log(`Successfully loaded ${movies.length} movies for studio`);
           } else {
-            loadingElement.textContent = 'No filmography found for this studio';
+            // Show progress-style message for empty results
+            loadingElement.textContent = 'No filmography found for this studio. This may be due to API limitations.';
+            setTimeout(() => {
+              this.showLetterboxdFirst('Studio filmography unavailable - data may be incomplete in TMDb', true);
+            }, 5000);
           }
         } catch (studioError) {
           console.error('Studio filmography error:', studioError);
-          loadingElement.textContent = 'Unable to load studio filmography. Please try refreshing the page.';
+          // Show loading failure message with progress style
+          loadingElement.textContent = 'Studio filmography loading failed. Retrying or try refreshing...';
+          setTimeout(() => {
+            this.showLetterboxdFirst('Studio filmography loading failed - large studios may timeout', true);
+          }, 8000);
         }
+        return; // Exit early for studios to avoid the general catch block
       } else {
         // Handle person filmography (existing logic)
         try {
+          // Update loading message to show progress
+          loadingElement.textContent = 'Connecting to TMDb for filmography...';
+          
           const response = await this.smartFetch({
             requestType: 'credits',
             personId: tmdbId,
             isCompany: false
           });
+          
+          loadingElement.textContent = 'Downloading filmography data...';
           const data = await response.json();
           
           if (data.cast || data.crew) {
+            // Update loading message to show processing
+            const totalCredits = (data.cast?.length || 0) + (data.crew?.length || 0);
+            loadingElement.textContent = `Processing ${totalCredits} credits...`;
+            
             // Group movies by ID and combine roles
             const movieMap = new Map();
             
@@ -932,6 +975,10 @@ setupStudioProfileImage(person) {
             
             // Convert to array and sort by release date
             const uniqueMovies = Array.from(movieMap.values());
+            
+            // Update loading message with movie count
+            loadingElement.textContent = `Organizing ${uniqueMovies.length} movies...`;
+            
             uniqueMovies.sort((a, b) => {
               const dateA = new Date(a.release_date || '1900-01-01');
               const dateB = new Date(b.release_date || '1900-01-01');
@@ -944,17 +991,34 @@ setupStudioProfileImage(person) {
             this.renderFilmography(this.filterMovies(uniqueMovies));
             loadingElement.style.display = 'none';
           } else {
-            loadingElement.textContent = 'No filmography found';
+            loadingElement.textContent = 'No filmography data found. Checking alternatives...';
+            setTimeout(() => {
+              this.showLetterboxdFirst('No filmography found in TMDb database', true);
+            }, 3000);
           }
         } catch (personError) {
           console.error('Person filmography error:', personError);
-          loadingElement.textContent = 'Unable to load filmography. Please try refreshing the page.';
+          // Show progressive loading failure message
+          loadingElement.textContent = 'Filmography loading encountered issues. Please wait...';
+          setTimeout(() => {
+            this.showLetterboxdFirst('Filmography loading failed - connection or API issues', true);
+          }, 8000);
         }
+        return; // Exit early for persons to avoid the general catch block
       }
       
     } catch (error) {
-      console.error('Error loading filmography:', error);
-      this.showLetterboxdFirst('Unable to load filmography from TMDb');
+      console.error('Critical error loading filmography:', error);
+      // Only show Letterboxd fallback for critical errors that couldn't be handled above
+      const loadingElement = document.getElementById('loadingFilmography');
+      loadingElement.textContent = 'Critical loading error occurred. Preparing alternative...';
+      setTimeout(() => {
+        if (error.message && error.message.includes('not found')) {
+          this.showLetterboxdFirst('Person not found in TMDb database', true);
+        } else {
+          this.showLetterboxdFirst('Critical loading error - please try refreshing or use Letterboxd', true);
+        }
+      }, 5000);
     }
   }
   
@@ -973,49 +1037,57 @@ setupStudioProfileImage(person) {
   }
 
   createDynamicFilters(movies) {
-    const counts = {
-      all: movies.length,
-      Acting: 0,
-      Directing: 0,
-      Writing: 0,
-      other: 0
-    };
+    // Collect all unique departments/roles that the person actually has
+    const departmentCounts = new Map();
+    departmentCounts.set('all', movies.length);
     
-    // Count movies in each category
+    // Count movies in each department
     movies.forEach(movie => {
+      const uniqueDepartments = new Set();
       movie.roles.forEach(role => {
-        if (role.department === 'Acting') counts.Acting++;
-        else if (role.department === 'Directing') counts.Directing++;
-        else if (role.department === 'Writing') counts.Writing++;
-        else counts.other++;
+        uniqueDepartments.add(role.department);
+      });
+      
+      // Count each department only once per movie
+      uniqueDepartments.forEach(dept => {
+        departmentCounts.set(dept, (departmentCounts.get(dept) || 0) + 1);
       });
     });
     
-    // Create filter buttons only for categories with content
+    // Create filter buttons only for roles this person actually has
     const filtersContainer = document.getElementById('filmographyFilters');
     filtersContainer.innerHTML = '';
     
     // Always add "All" filter first
     const allBtn = document.createElement('button');
-    allBtn.className = 'filter-btn active';
+    allBtn.className = 'filter-btn';
     allBtn.dataset.filter = 'all';
-    allBtn.textContent = `All (${counts.all})`;
+    allBtn.textContent = `All (${departmentCounts.get('all')})`;
     filtersContainer.appendChild(allBtn);
     
-    // Add other filters only if they have content
-    const filterOrder = [
-      { key: 'Acting', label: 'Acting' },
-      { key: 'Directing', label: 'Directing' },
-      { key: 'Writing', label: 'Writing' },
-      { key: 'other', label: 'Other' }
-    ];
+    // Define priority order for common departments
+    const priorityOrder = ['Acting', 'Directing', 'Writing', 'Production', 'Camera', 'Sound', 'Editing'];
+    const addedDepartments = new Set(['all']);
     
-    filterOrder.forEach(filter => {
-      if (counts[filter.key] > 0) {
+    // Add priority departments first if they exist
+    priorityOrder.forEach(dept => {
+      if (departmentCounts.has(dept) && departmentCounts.get(dept) > 0) {
         const btn = document.createElement('button');
         btn.className = 'filter-btn';
-        btn.dataset.filter = filter.key;
-        btn.textContent = `${filter.label} (${counts[filter.key]})`;
+        btn.dataset.filter = dept;
+        btn.textContent = `${this.formatDepartmentDisplay(dept, [])} (${departmentCounts.get(dept)})`;
+        filtersContainer.appendChild(btn);
+        addedDepartments.add(dept);
+      }
+    });
+    
+    // Add any remaining departments that weren't in the priority list
+    departmentCounts.forEach((count, dept) => {
+      if (!addedDepartments.has(dept) && count > 0) {
+        const btn = document.createElement('button');
+        btn.className = 'filter-btn';
+        btn.dataset.filter = dept;
+        btn.textContent = `${this.formatDepartmentDisplay(dept, [])} (${count})`;
         filtersContainer.appendChild(btn);
       }
     });
@@ -1033,9 +1105,49 @@ setupStudioProfileImage(person) {
     
     // Group and format roles
     const rolesByDept = this.groupRolesByDepartment(movie.roles);
-    const roleDisplay = rolesByDept.map(dept => 
-      `<span class="role-badge ${dept.className}">${dept.display}</span>`
-    ).join('');
+    
+    // Separate acting roles from crew roles
+    const actingRoles = rolesByDept.filter(dept => dept.department === 'Acting');
+    const crewRoles = rolesByDept.filter(dept => dept.department !== 'Acting');
+    
+    // Create role display with acting first, then crew roles
+    let roleDisplay = '';
+    
+    // Add acting roles first (prioritized and on their own line)
+    if (actingRoles.length > 0) {
+      const actingDisplay = actingRoles.map(dept => 
+        `<span class="role-badge ${dept.className}">${dept.display}</span>`
+      ).join('');
+      roleDisplay += `<div class="acting-roles">${actingDisplay}</div>`;
+    }
+    
+    // Add crew roles (2 per line, with special handling for odd numbers)
+    if (crewRoles.length > 0) {
+      let crewDisplay = '<div class="crew-roles">';
+      
+      for (let i = 0; i < crewRoles.length; i += 2) {
+        // Check if this is the last line and has only one item (odd total count)
+        const isLastSingleItem = (i + 1 === crewRoles.length);
+        const lineClass = isLastSingleItem ? 'crew-line crew-line-single' : 'crew-line';
+        
+        crewDisplay += `<div class="${lineClass}">`;
+        
+        // Add first role of the pair
+        const role1 = crewRoles[i];
+        crewDisplay += `<span class="role-badge ${role1.className}">${role1.display}</span>`;
+        
+        // Add second role of the pair if it exists
+        if (i + 1 < crewRoles.length) {
+          const role2 = crewRoles[i + 1];
+          crewDisplay += `<span class="role-badge ${role2.className}">${role2.display}</span>`;
+        }
+        
+        crewDisplay += '</div>';
+      }
+      
+      crewDisplay += '</div>';
+      roleDisplay += crewDisplay;
+    }
     
     const posterHtml = posterUrl 
       ? `<img src="${posterUrl}" alt="${movie.title}" class="film-poster" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">`
@@ -1189,16 +1301,52 @@ setupStudioProfileImage(person) {
         case 'actor':
           defaultFilter = 'Acting';
           break;
+        case 'writer':
+          defaultFilter = 'Writing';
+          break;
+        case 'producer':
+          defaultFilter = 'Production';
+          break;
+        case 'cinematographer':
+          defaultFilter = 'Camera';
+          break;
+        case 'composer':
+          defaultFilter = 'Sound';
+          break;
+        case 'editor':
+          defaultFilter = 'Editing';
+          break;
         default:
-          // For other roles, check if we have any movies in "other" category
-          const hasOtherRoles = this.allMovies.some(movie => 
-            movie.roles.some(role => 
-              !['Acting', 'Directing', 'Writing'].includes(role.department)
-            )
-          );
-          defaultFilter = hasOtherRoles ? 'other' : 'all';
+          // For other roles, try to find the most common department in their filmography
+          if (this.allMovies && this.allMovies.length > 0) {
+            const departmentCounts = new Map();
+            this.allMovies.forEach(movie => {
+              const uniqueDepartments = new Set();
+              movie.roles.forEach(role => {
+                uniqueDepartments.add(role.department);
+              });
+              uniqueDepartments.forEach(dept => {
+                departmentCounts.set(dept, (departmentCounts.get(dept) || 0) + 1);
+              });
+            });
+            
+            // Find the department with the most movies
+            let maxCount = 0;
+            departmentCounts.forEach((count, dept) => {
+              if (count > maxCount) {
+                maxCount = count;
+                defaultFilter = dept;
+              }
+            });
+          }
           break;
       }
+    }
+    
+    // Verify that the default filter actually exists as a button
+    const filterButton = document.querySelector(`.filter-btn[data-filter="${defaultFilter}"]`);
+    if (!filterButton) {
+      defaultFilter = 'all'; // fallback to 'all' if the specific filter doesn't exist
     }
     
     // Update the active filter
@@ -1228,15 +1376,8 @@ setupStudioProfileImage(person) {
     }
     
     return movies.filter(movie => {
-      if (this.activeFilter === 'other') {
-        // Show movies where person has roles outside of Acting, Directing, Writing
-        return movie.roles.some(role => 
-          !['Acting', 'Directing', 'Writing'].includes(role.department)
-        );
-      } else {
-        // Show movies where person has the specific role
-        return movie.roles.some(role => role.department === this.activeFilter);
-      }
+      // Show movies where person has the specific department/role
+      return movie.roles.some(role => role.department === this.activeFilter);
     });
   }
   
@@ -1522,7 +1663,9 @@ setupStudioProfileImage(person) {
     // Method 1: Try direct TMDb (fastest when it works) - unless we know it's blocked
     if (!shouldSkipDirect) {
       try {
-        const response = await this.fetchWithTimeout(directUrl, 3000); // Shorter timeout for direct
+        // Use longer timeout for company requests since they might involve multiple API calls
+        const timeout = isCompany ? 8000 : 3000;
+        const response = await this.fetchWithTimeout(directUrl, timeout);
         if (response.ok) {
           // Clear any previous block flag
           localStorage.removeItem('tmdb_blocked');
@@ -1558,7 +1701,7 @@ setupStudioProfileImage(person) {
           }
         }
         
-        const response = await this.fetchWithTimeout(proxyUrl, 6000); // Shorter timeout for proxies
+        const response = await this.fetchWithTimeout(proxyUrl, isCompany ? 10000 : 6000); // Longer timeout for companies
         if (response.ok) {
           return response;
         }
@@ -1595,7 +1738,25 @@ setupStudioProfileImage(person) {
     });
   }
   
-  showLetterboxdFirst(message = 'TMDb data unavailable') {
+  showLetterboxdFirst(message = 'TMDb data unavailable', showImmediately = false) {
+    // If not showing immediately, add a delay to give loading time
+    if (!showImmediately) {
+      // Wait 15 seconds before showing fallback to give loading time
+      setTimeout(() => {
+        // Check if loading is still happening
+        const loadingElement = document.getElementById('loadingFilmography');
+        if (loadingElement && loadingElement.style.display !== 'none' && 
+            loadingElement.textContent.includes('Loading')) {
+          this.showLetterboxdFirstImmediate(message);
+        }
+      }, 15000);
+      return;
+    }
+    
+    this.showLetterboxdFirstImmediate(message);
+  }
+  
+  showLetterboxdFirstImmediate(message = 'TMDb data unavailable') {
     // Hide loading states
     this.hideLoadingState();
     
