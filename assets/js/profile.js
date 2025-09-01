@@ -200,37 +200,6 @@ class ProfilePageManager {
         this.handleFilterClick(e.target);
       }
     });
-
-    // Search functionality
-    const searchInput = document.getElementById('filmographySearch');
-    const clearButton = document.getElementById('clearSearch');
-    const searchToggleBtn = document.getElementById('searchToggleBtn');
-    const searchInputContainer = document.getElementById('searchInputContainer');
-    
-    if (searchToggleBtn && searchInputContainer) {
-      searchToggleBtn.addEventListener('click', () => {
-        this.toggleSearchInput();
-      });
-    }
-    
-    if (searchInput) {
-      searchInput.addEventListener('input', (e) => {
-        this.handleSearch(e.target.value);
-        this.updateClearButtonVisibility();
-      });
-      
-      searchInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-          this.clearSearch();
-        }
-      });
-    }
-    
-    if (clearButton) {
-      clearButton.addEventListener('click', () => {
-        this.clearSearch();
-      });
-    }
   }
   
   loadPersonFromURL() {
@@ -887,7 +856,6 @@ setupStudioProfileImage(person) {
             this.createDynamicFilters(movies);
             this.setDefaultFilter();
             this.renderFilmography(this.filterMovies(movies));
-            this.restoreSearchState(); // Restore search state after filmography loads
             loadingElement.style.display = 'none';
             
             console.log(`Successfully loaded ${movies.length} movies for studio`);
@@ -974,7 +942,6 @@ setupStudioProfileImage(person) {
             this.createDynamicFilters(uniqueMovies);
             this.setDefaultFilter(); // Set default filter based on person's role
             this.renderFilmography(this.filterMovies(uniqueMovies));
-            this.restoreSearchState(); // Restore search state after filmography loads
             loadingElement.style.display = 'none';
           } else {
             loadingElement.textContent = 'No filmography found';
@@ -994,57 +961,15 @@ setupStudioProfileImage(person) {
   renderFilmography(movies) {
     const grid = document.getElementById('filmographyGrid');
     const loadingElement = document.getElementById('loadingFilmography');
-    const countElement = document.getElementById('filmographyCount');
     
     // Hide loading and clear skeleton
     loadingElement.style.display = 'none';
     grid.innerHTML = '';
     
-    // Update count display
-    this.updateFilmographyCount(movies.length);
-    
     movies.forEach(movie => { // Show all movies
       const movieCard = this.createMovieCard(movie);
       grid.appendChild(movieCard);
     });
-  }
-  
-  updateFilmographyCount(filteredCount) {
-    const countElement = document.getElementById('filmographyCount');
-    const searchTerm = this.getSearchTerm();
-    const activeFilter = this.activeFilter;
-    
-    if (!countElement) return;
-    
-    let countText = '';
-    
-    if (searchTerm && activeFilter !== 'all') {
-      // Both search and filter active
-      countText = `${filteredCount} of ${this.allMovies.length} movies (filtered & searched)`;
-    } else if (searchTerm) {
-      // Only search active
-      countText = `${filteredCount} of ${this.allMovies.length} movies (search: "${searchTerm}")`;
-    } else if (activeFilter !== 'all') {
-      // Only filter active
-      const filterName = this.getFilterDisplayName(activeFilter);
-      countText = `${filteredCount} of ${this.allMovies.length} movies (${filterName})`;
-    } else {
-      // No filters, show total
-      countText = `${filteredCount} movies`;
-    }
-    
-    countElement.textContent = countText;
-  }
-  
-  getFilterDisplayName(filter) {
-    const filterNames = {
-      'Acting': 'Acting',
-      'Directing': 'Directing', 
-      'Writing': 'Writing',
-      'Production': 'Production',
-      'other': 'Other roles'
-    };
-    return filterNames[filter] || filter;
   }
 
   createDynamicFilters(movies) {
@@ -1298,144 +1223,21 @@ setupStudioProfileImage(person) {
   }
   
   filterMovies(movies) {
-    let filteredMovies = movies;
-    
-    // Apply category filter first
-    if (this.activeFilter !== 'all') {
-      filteredMovies = filteredMovies.filter(movie => {
-        if (this.activeFilter === 'other') {
-          // Show movies where person has roles outside of Acting, Directing, Writing
-          return movie.roles.some(role => 
-            !['Acting', 'Directing', 'Writing'].includes(role.department)
-          );
-        } else {
-          // Show movies where person has the specific role
-          return movie.roles.some(role => role.department === this.activeFilter);
-        }
-      });
+    if (this.activeFilter === 'all') {
+      return movies;
     }
     
-    // Apply search filter
-    const searchTerm = this.getSearchTerm();
-    if (searchTerm) {
-      filteredMovies = this.applySearchFilter(filteredMovies, searchTerm);
-    }
-    
-    return filteredMovies;
-  }
-  
-  handleSearch(searchTerm) {
-    this.renderFilmography(this.filterMovies(this.allMovies));
-    
-    // Update URL hash with search term (optional for browser back/forward)
-    if (searchTerm.trim()) {
-      const url = new URL(window.location);
-      url.searchParams.set('search', searchTerm);
-      window.history.replaceState({}, '', url);
-    } else {
-      const url = new URL(window.location);
-      url.searchParams.delete('search');
-      window.history.replaceState({}, '', url);
-    }
-  }
-  
-  clearSearch() {
-    const searchInput = document.getElementById('filmographySearch');
-    if (searchInput) {
-      searchInput.value = '';
-      this.updateClearButtonVisibility();
-      this.renderFilmography(this.filterMovies(this.allMovies));
-      
-      // Clear search from URL
-      const url = new URL(window.location);
-      url.searchParams.delete('search');
-      window.history.replaceState({}, '', url);
-    }
-  }
-  
-  toggleSearchInput() {
-    const searchInputContainer = document.getElementById('searchInputContainer');
-    const searchInput = document.getElementById('filmographySearch');
-    
-    if (searchInputContainer) {
-      const isHidden = searchInputContainer.classList.contains('hidden');
-      
-      if (isHidden) {
-        // Show search input
-        searchInputContainer.classList.remove('hidden');
-        if (searchInput) {
-          // Focus the input after a brief delay to ensure it's visible
-          setTimeout(() => searchInput.focus(), 100);
-        }
-      } else {
-        // Hide search input and clear search if there's a value
-        if (searchInput && searchInput.value.trim()) {
-          this.clearSearch();
-        }
-        searchInputContainer.classList.add('hidden');
-      }
-    }
-  }
-  
-  updateClearButtonVisibility() {
-    const searchInput = document.getElementById('filmographySearch');
-    const clearButton = document.getElementById('clearSearch');
-    
-    if (searchInput && clearButton) {
-      if (searchInput.value.trim()) {
-        clearButton.classList.add('visible');
-      } else {
-        clearButton.classList.remove('visible');
-      }
-    }
-  }
-  
-  getSearchTerm() {
-    const searchInput = document.getElementById('filmographySearch');
-    return searchInput ? searchInput.value.trim().toLowerCase() : '';
-  }
-  
-  applySearchFilter(movies, searchTerm) {
     return movies.filter(movie => {
-      // Search in movie title
-      if (movie.title && movie.title.toLowerCase().includes(searchTerm)) {
-        return true;
+      if (this.activeFilter === 'other') {
+        // Show movies where person has roles outside of Acting, Directing, Writing
+        return movie.roles.some(role => 
+          !['Acting', 'Directing', 'Writing'].includes(role.department)
+        );
+      } else {
+        // Show movies where person has the specific role
+        return movie.roles.some(role => role.department === this.activeFilter);
       }
-      
-      // Search in release year
-      if (movie.release_date) {
-        const year = new Date(movie.release_date).getFullYear().toString();
-        if (year.includes(searchTerm)) {
-          return true;
-        }
-      }
-      
-      // Search in roles (for people, not studios)
-      if (movie.roles && movie.roles.length > 0) {
-        return movie.roles.some(role => {
-          return (role.role && role.role.toLowerCase().includes(searchTerm)) ||
-                 (role.department && role.department.toLowerCase().includes(searchTerm));
-        });
-      }
-      
-      return false;
     });
-  }
-  
-  restoreSearchState() {
-    // Restore search term from URL parameters
-    const urlParams = new URLSearchParams(window.location.search);
-    const searchTerm = urlParams.get('search');
-    
-    if (searchTerm) {
-      const searchInput = document.getElementById('filmographySearch');
-      if (searchInput) {
-        searchInput.value = searchTerm;
-        this.updateClearButtonVisibility();
-        // Re-render with search applied
-        this.renderFilmography(this.filterMovies(this.allMovies));
-      }
-    }
   }
   
   setupBio(biography) {
