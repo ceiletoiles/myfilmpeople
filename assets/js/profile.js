@@ -1007,7 +1007,7 @@ setupStudioProfileImage(person) {
             });
             
             // Show final step
-            loadingElement.textContent = `Creating filters for ${uniqueMovies.length} movies...`;
+            loadingElement.textContent = `Loading ${uniqueMovies.length} movies...`;
             
             // Add a small delay for large filmographies to show final progress
             if (uniqueMovies.length > 50) {
@@ -1108,7 +1108,9 @@ setupStudioProfileImage(person) {
         const btn = document.createElement('button');
         btn.className = 'filter-btn';
         btn.dataset.filter = dept;
-        btn.textContent = `${this.formatDepartmentDisplay(dept, [])} (${departmentCounts.get(dept)})`;
+        // Use special display logic for filter buttons
+        const filterDisplayName = dept === 'Acting' ? 'Actor' : this.formatDepartmentDisplay(dept, []);
+        btn.textContent = `${filterDisplayName} (${departmentCounts.get(dept)})`;
         filtersContainer.appendChild(btn);
         addedDepartments.add(dept);
       }
@@ -1120,7 +1122,9 @@ setupStudioProfileImage(person) {
         const btn = document.createElement('button');
         btn.className = 'filter-btn';
         btn.dataset.filter = dept;
-        btn.textContent = `${this.formatDepartmentDisplay(dept, [])} (${count})`;
+        // Use special display logic for filter buttons
+        const filterDisplayName = dept === 'Acting' ? 'Actor' : this.formatDepartmentDisplay(dept, []);
+        btn.textContent = `${filterDisplayName} (${count})`;
         filtersContainer.appendChild(btn);
       }
     });
@@ -1296,7 +1300,7 @@ setupStudioProfileImage(person) {
   formatDepartmentDisplay(department, roles) {
     // Simplify department names and show specific roles if needed
     const simplifiedDept = {
-      'Acting': 'Actor', // Always show "Actor" for acting department
+      'Acting': roles.length > 1 ? 'Actor' : roles[0], // Show character name for single role, "Actor" for multiple
       'Directing': 'Director',
       'Writing': roles.some(r => r.includes('Screenplay')) ? 'Writer' : 'Writer',
       'Production': 'Producer',
