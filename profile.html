@@ -47,8 +47,23 @@
         <div class="filmography-section">
           <div class="filmography-header">
             <h2>Filmography</h2>
-            <div class="filmography-filters" id="filmographyFilters">
-              <!-- Filters will be dynamically populated by JavaScript -->
+            <div class="filmography-controls">
+              <div class="filmography-search" id="searchContainer">
+                <button class="search-toggle-btn" id="searchToggleBtn" title="Search movies">
+                  <span class="search-icon">🔍</span>
+                  <span class="search-text">Search</span>
+                </button>
+                <div class="search-input-container hidden" id="searchInputContainer">
+                  <input type="text" id="filmographySearch" placeholder="Search movies..." class="search-input">
+                  <button class="clear-search" id="clearSearch" title="Clear search">&times;</button>
+                </div>
+              </div>
+              <div class="filmography-info">
+                <span id="filmographyCount" class="results-count"></span>
+              </div>
+              <div class="filmography-filters" id="filmographyFilters">
+                <!-- Filters will be dynamically populated by JavaScript -->
+              </div>
             </div>
           </div>
           <div class="loading-message" id="loadingFilmography">

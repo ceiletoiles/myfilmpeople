@@ -54,6 +54,52 @@ const TMDB_CONFIG = {
     } else {
       return `${proxy}${url}`;
     }
+  },
+  
+  // Helper to get company details URL with optional proxy
+  getCompanyDetailsUrl: (companyId, useProxy = false, proxyIndex = 0) => {
+    const url = `${TMDB_CONFIG.BASE_URL}/company/${companyId}?api_key=${TMDB_CONFIG.API_KEY}`;
+    if (!useProxy) return url;
+    
+    // Handle different proxy formats
+    const proxy = TMDB_CONFIG.CORS_PROXIES[proxyIndex];
+    if (proxy.includes('allorigins.win')) {
+      return `${proxy}${encodeURIComponent(url)}`;
+    } else {
+      return `${proxy}${url}`;
+    }
+  },
+  
+  // Helper to get company movies URL with optional proxy (alternative approach)
+  getCompanyMoviesDiscoverUrl: (companyId, useProxy = false, proxyIndex = 0, page = 1) => {
+    // Use discover endpoint as alternative since company movies endpoint has pagination bugs
+    const url = `${TMDB_CONFIG.BASE_URL}/discover/movie?api_key=${TMDB_CONFIG.API_KEY}&with_companies=${companyId}&page=${page}&sort_by=release_date.desc`;
+    if (!useProxy) return url;
+    
+    // Handle different proxy formats
+    const proxy = TMDB_CONFIG.CORS_PROXIES[proxyIndex];
+    if (proxy.includes('allorigins.win')) {
+      return `${proxy}${encodeURIComponent(url)}`;
+    } else {
+      return `${proxy}${url}`;
+    }
+  },
+
+  // Helper to get company movies URL with optional proxy
+  getCompanyMoviesUrl: (companyId, useProxy = false, proxyIndex = 0, page = 1) => {
+    // Note: TMDb API doesn't support per_page parameter for company movies endpoint
+    // It's fixed at 20 results per page
+    // WARNING: This endpoint has pagination bugs - returns same results on all pages
+    const url = `${TMDB_CONFIG.BASE_URL}/company/${companyId}/movies?api_key=${TMDB_CONFIG.API_KEY}&page=${page}`;
+    if (!useProxy) return url;
+    
+    // Handle different proxy formats
+    const proxy = TMDB_CONFIG.CORS_PROXIES[proxyIndex];
+    if (proxy.includes('allorigins.win')) {
+      return `${proxy}${encodeURIComponent(url)}`;
+    } else {
+      return `${proxy}${url}`;
+    }
   }
 };
 
@@ -154,6 +200,37 @@ class ProfilePageManager {
         this.handleFilterClick(e.target);
       }
     });
+
+    // Search functionality
+    const searchInput = document.getElementById('filmographySearch');
+    const clearButton = document.getElementById('clearSearch');
+    const searchToggleBtn = document.getElementById('searchToggleBtn');
+    const searchInputContainer = document.getElementById('searchInputContainer');
+    
+    if (searchToggleBtn && searchInputContainer) {
+      searchToggleBtn.addEventListener('click', () => {
+        this.toggleSearchInput();
+      });
+    }
+    
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => {
+        this.handleSearch(e.target.value);
+        this.updateClearButtonVisibility();
+      });
+      
+      searchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          this.clearSearch();
+        }
+      });
+    }
+    
+    if (clearButton) {
+      clearButton.addEventListener('click', () => {
+        this.clearSearch();
+      });
+    }
   }
   
   loadPersonFromURL() {
@@ -419,41 +496,67 @@ setupStudioProfileImage(person) {
   
   async loadTMDbDetails(tmdbId) {
     try {
+      // Check if this is a studio/company
+      const isStudio = this.currentPerson && this.currentPerson.role === 'studio';
+      
       const response = await this.smartFetch({
         requestType: 'details',
-        personId: tmdbId
+        personId: tmdbId,
+        isCompany: isStudio
       });
-      const person = await response.json();
+      const data = await response.json();
       
-      if (person.biography) {
-        this.setupBio(person.biography);
-      } else {
-        this.showLetterboxdFirst('No biography available from TMDb');
-      }
-      
-      // Update birth info
-      if (person.birthday || person.place_of_birth) {
-        let birthInfo = '';
-        if (person.birthday) {
-          const birthDate = new Date(person.birthday);
-          birthInfo += `Born: ${birthDate.toLocaleDateString('en-US', { 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric' 
-          })}`;
+      if (isStudio) {
+        // Handle company details
+        if (data.description) {
+          this.setupBio(data.description);
+        } else {
+          this.showLetterboxdFirst('No description available from TMDb');
         }
-        if (person.place_of_birth) {
-          birthInfo += birthInfo ? ` in ${person.place_of_birth}` : `Born in ${person.place_of_birth}`;
+        
+        // For studios, hide birth info since it's not applicable
+        const birthElement = document.getElementById('profileBirth');
+        if (birthElement) {
+          birthElement.style.display = 'none';
         }
-        document.getElementById('profileBirth').textContent = birthInfo;
+        
+        // Update company logo if available
+        if (data.logo_path) {
+          const profileImg = document.getElementById('profileImage');
+          profileImg.src = `${TMDB_CONFIG.IMAGE_BASE_URL_LARGE}${data.logo_path}`;
+        }
       } else {
-        document.getElementById('profileBirth').style.display = 'none';
-      }
-      
-      // Update profile image with higher quality
-      if (person.profile_path) {
-        const profileImg = document.getElementById('profileImage');
-        profileImg.src = `${TMDB_CONFIG.IMAGE_BASE_URL_LARGE}${person.profile_path}`;
+        // Handle person details (existing logic)
+        if (data.biography) {
+          this.setupBio(data.biography);
+        } else {
+          this.showLetterboxdFirst('No biography available from TMDb');
+        }
+        
+        // Update birth info
+        if (data.birthday || data.place_of_birth) {
+          let birthInfo = '';
+          if (data.birthday) {
+            const birthDate = new Date(data.birthday);
+            birthInfo += `Born: ${birthDate.toLocaleDateString('en-US', { 
+              year: 'numeric', 
+              month: 'long', 
+              day: 'numeric' 
+            })}`;
+          }
+          if (data.place_of_birth) {
+            birthInfo += birthInfo ? ` in ${data.place_of_birth}` : `Born in ${data.place_of_birth}`;
+          }
+          document.getElementById('profileBirth').textContent = birthInfo;
+        } else {
+          document.getElementById('profileBirth').style.display = 'none';
+        }
+        
+        // Update profile image with higher quality
+        if (data.profile_path) {
+          const profileImg = document.getElementById('profileImage');
+          profileImg.src = `${TMDB_CONFIG.IMAGE_BASE_URL_LARGE}${data.profile_path}`;
+        }
       }
       
       // Hide loading state for profile details
@@ -466,86 +569,420 @@ setupStudioProfileImage(person) {
     }
   }
   
+  async fetchAllCompanyMovies(tmdbId) {
+    console.log(`Starting company movies fetch for company ${tmdbId}`);
+    
+    // First, try the standard company movies endpoint (even though it's buggy)
+    let standardResults = await this.tryStandardCompanyMovies(tmdbId);
+    
+    // If we got very few results (indicating API bug), try the discover endpoint
+    if (standardResults.length <= 20) {
+      console.log(`Standard endpoint returned only ${standardResults.length} movies, trying discover endpoint as fallback`);
+      let discoverResults = await this.tryDiscoverCompanyMovies(tmdbId);
+      
+      // Use whichever gave us more results
+      if (discoverResults.length > standardResults.length) {
+        console.log(`Discover endpoint found ${discoverResults.length} movies vs ${standardResults.length} from standard endpoint - using discover results`);
+        return discoverResults;
+      }
+    }
+    
+    return standardResults;
+  }
+
+  async tryStandardCompanyMovies(tmdbId) {
+    const allMovies = [];
+    const seenMovieIds = new Set();
+    let currentPage = 1;
+    let consecutiveEmptyPages = 0;
+    const maxPages = 5; // Limit standard endpoint to 5 pages since it's buggy
+    
+    try {
+      while (currentPage <= maxPages && consecutiveEmptyPages < 3) {
+        console.log(`Trying standard endpoint page ${currentPage} for company ${tmdbId}`);
+        
+        const response = await this.smartFetch({
+          requestType: 'credits',
+          personId: tmdbId,
+          isCompany: true,
+          page: currentPage,
+          useDiscoverFallback: false
+        });
+        const data = await response.json();
+        
+        if (data.results && data.results.length > 0) {
+          const newMovies = data.results.filter(movie => {
+            if (seenMovieIds.has(movie.id)) {
+              return false;
+            }
+            seenMovieIds.add(movie.id);
+            return true;
+          });
+          
+          allMovies.push(...newMovies);
+          
+          if (newMovies.length === 0) {
+            consecutiveEmptyPages++;
+            console.log(`Page ${currentPage} had no new movies (duplicates)`);
+          } else {
+            consecutiveEmptyPages = 0;
+            console.log(`Found ${newMovies.length} new movies on page ${currentPage}`);
+          }
+        }
+        
+        currentPage++;
+      }
+      
+      console.log(`Standard endpoint result: ${allMovies.length} unique movies`);
+      return allMovies;
+      
+    } catch (error) {
+      console.error('Error with standard company movies endpoint:', error);
+      return allMovies;
+    }
+  }
+
+  async tryDiscoverCompanyMovies(tmdbId) {
+    const allMovies = [];
+    const seenMovieIds = new Set();
+    let currentPage = 1;
+    let totalPages = 1;
+    let consecutiveErrors = 0;
+    
+    try {
+      do {
+        console.log(`Trying discover endpoint page ${currentPage} for company ${tmdbId}`);
+        
+        const response = await this.smartFetch({
+          requestType: 'credits',
+          personId: tmdbId,
+          isCompany: true,
+          page: currentPage,
+          useDiscoverFallback: true
+        });
+        const data = await response.json();
+        
+        console.log(`Discover page ${currentPage} response:`, {
+          results: data.results?.length || 0,
+          total_pages: data.total_pages,
+          total_results: data.total_results
+        });
+        
+        if (data.results && data.results.length > 0) {
+          const newMovies = data.results.filter(movie => {
+            if (seenMovieIds.has(movie.id)) {
+              return false;
+            }
+            seenMovieIds.add(movie.id);
+            return true;
+          });
+          
+          allMovies.push(...newMovies);
+          totalPages = data.total_pages || 1;
+          consecutiveErrors = 0;
+          
+          console.log(`Discover page ${currentPage}: ${newMovies.length} new movies (${allMovies.length} total)`);
+        } else {
+          console.log(`No results on discover page ${currentPage}`);
+          break;
+        }
+        
+        // Update loading message
+        const loadingElement = document.getElementById('loadingFilmography');
+        if (loadingElement) {
+          loadingElement.textContent = `Loading filmography from TMDb... (${allMovies.length} movies found via discover, page ${currentPage} of ${totalPages})`;
+        }
+        
+        currentPage++;
+        
+        // Safety limit for discover endpoint
+        if (currentPage > 100) {
+          console.warn('Reached safety limit for discover endpoint');
+          break;
+        }
+        
+      } while (currentPage <= totalPages && consecutiveErrors < 3);
+      
+      console.log(`Discover endpoint result: ${allMovies.length} unique movies`);
+      return allMovies;
+      
+    } catch (error) {
+      console.error('Error with discover company movies endpoint:', error);
+      return allMovies;
+    }
+  }
+
+  async fetchAllCompanyMovies_OLD(tmdbId) {
+    const allMovies = [];
+    const seenMovieIds = new Set(); // Track unique movie IDs to prevent duplicates
+    let currentPage = 1;
+    let totalPages = 1;
+    let consecutiveErrors = 0;
+    let consecutiveEmptyPages = 0; // Track consecutive pages with no new movies
+    const maxConsecutiveErrors = 3;
+    
+    try {
+      do {
+        try {
+          console.log(`Fetching company movies page ${currentPage} for company ${tmdbId}`);
+          
+          const response = await this.smartFetch({
+            requestType: 'credits',
+            personId: tmdbId,
+            isCompany: true,
+            page: currentPage
+          });
+          const data = await response.json();
+          
+          console.log(`Page ${currentPage} response:`, {
+            results: data.results?.length || 0,
+            total_pages: data.total_pages,
+            total_results: data.total_results
+          });
+          
+          // Reset error counter on successful request
+          consecutiveErrors = 0;
+          
+          if (data.results && data.results.length > 0) {
+            // Filter out duplicates using movie ID
+            const newMovies = data.results.filter(movie => {
+              if (seenMovieIds.has(movie.id)) {
+                return false; // Skip duplicate
+              }
+              seenMovieIds.add(movie.id);
+              return true;
+            });
+            
+            console.log(`Found ${newMovies.length} new movies on page ${currentPage} (${data.results.length} total on page)`);
+            
+            // Log some movie IDs for debugging
+            if (data.results.length > 0) {
+              const movieIds = data.results.slice(0, 5).map(m => m.id);
+              console.log(`First 5 movie IDs on page ${currentPage}:`, movieIds);
+            }
+            
+            allMovies.push(...newMovies);
+            
+            // Be more lenient about duplicates - only stop if we get many consecutive pages with no new movies
+            if (newMovies.length === 0) {
+              consecutiveEmptyPages++;
+              console.log(`Page ${currentPage} had no new movies (consecutive empty pages: ${consecutiveEmptyPages})`);
+              
+              // Only stop if we get 3 consecutive pages with no new movies
+              if (consecutiveEmptyPages >= 3 && currentPage > 3) {
+                console.log('Too many consecutive pages with no new movies, stopping pagination');
+                break;
+              }
+            } else {
+              // Reset counter if we found new movies
+              consecutiveEmptyPages = 0;
+            }
+            
+            // Update total pages, but don't trust it completely
+            totalPages = Math.max(totalPages, data.total_pages || 1);
+            
+          } else {
+            console.log(`No results on page ${currentPage}`);
+            // If we get no results, try a few more pages in case of API inconsistency
+            if (currentPage === 1) {
+              break; // No movies at all on first page
+            } else if (currentPage > totalPages + 2) {
+              // If we're well beyond reported total pages and no results, stop
+              console.log('No results beyond reported total pages, stopping');
+              break;
+            }
+          }
+          
+          console.log(`Total pages reported: ${totalPages}`);
+          
+          // Update loading message to show progress
+          const loadingElement = document.getElementById('loadingFilmography');
+          if (loadingElement) {
+            if (totalPages > 1) {
+              loadingElement.textContent = `Loading filmography from TMDb... (${allMovies.length} movies found, page ${currentPage} of ${totalPages})`;
+            } else {
+              loadingElement.textContent = `Loading filmography from TMDb... (${allMovies.length} movies found)`;
+            }
+          }
+          
+          currentPage++;
+          
+          // Safety limits - be more aggressive about fetching since we know there are more movies
+          if (currentPage > 100) {
+            console.warn('Reached safety limit of 100 pages for company movies');
+            break;
+          }
+          
+          // If we haven't found any new movies for several pages but the API says there are more, 
+          // try skipping ahead to see if it's just a pagination issue
+          if (consecutiveEmptyPages >= 5 && currentPage < totalPages / 2) {
+            console.log(`Skipping ahead due to repeated duplicates. Jumping to page ${currentPage + 10}`);
+            currentPage += 10;
+            consecutiveEmptyPages = 0;
+            continue;
+          }
+          
+        } catch (pageError) {
+          consecutiveErrors++;
+          console.warn(`Error fetching page ${currentPage}:`, pageError);
+          
+          // If we get too many consecutive errors, stop trying
+          if (consecutiveErrors >= maxConsecutiveErrors) {
+            console.warn(`Too many consecutive errors (${consecutiveErrors}), stopping pagination`);
+            break;
+          }
+          
+          // Still increment page to try next one
+          currentPage++;
+        }
+        
+        // Continue until we've tried a reasonable number of pages
+        // Don't rely too heavily on total_pages since the API might have pagination bugs
+      } while (consecutiveErrors < maxConsecutiveErrors && 
+               currentPage <= 100 && 
+               (consecutiveEmptyPages < 10 || currentPage <= 20)); // Try at least 20 pages even with duplicates
+      
+      console.log(`Final result: Fetched ${allMovies.length} unique movies for company ${tmdbId} across ${currentPage - 1} pages`);
+      return allMovies;
+      
+    } catch (error) {
+      console.error('Error in fetchAllCompanyMovies:', error);
+      // If we have some movies already, return them instead of failing completely
+      if (allMovies.length > 0) {
+        console.log(`Returning ${allMovies.length} movies despite error`);
+        return allMovies;
+      }
+      throw error;
+    }
+  }
+
   async loadFilmography(tmdbId) {
     try {
-      const response = await this.smartFetch({
-        requestType: 'credits',
-        personId: tmdbId
-      });
-      const credits = await response.json();
+      // Check if this is a studio/company
+      const isStudio = this.currentPerson && this.currentPerson.role === 'studio';
       
       const loadingElement = document.getElementById('loadingFilmography');
       const gridElement = document.getElementById('filmographyGrid');
       
-      if (credits.cast || credits.crew) {
-        // Group movies by ID and combine roles
-        const movieMap = new Map();
-        
-        // Process cast credits
-        if (credits.cast) {
-          credits.cast.forEach(movie => {
-            // Filter out documentaries and self appearances
-            if (this.shouldIncludeMovie(movie)) {
-              const key = movie.id;
-              if (movieMap.has(key)) {
-                const existing = movieMap.get(key);
-                existing.roles.push({
-                  role: movie.character || 'Actor',
-                  department: 'Acting'
-                });
-              } else {
-                movieMap.set(key, {
-                  ...movie,
-                  roles: [{
-                    role: movie.character || 'Actor',
-                    department: 'Acting'
-                  }]
-                });
-              }
-            }
-          });
+      if (isStudio) {
+        // Handle company/studio filmography - fetch all pages
+        try {
+          const allMovies = await this.fetchAllCompanyMovies(tmdbId);
+          
+          if (allMovies && allMovies.length > 0) {
+            // For studios, we get a simple array of movies - no role assignment needed
+            const movies = allMovies.map(movie => ({
+              ...movie,
+              roles: [] // Empty roles array - studios don't need role badges
+            }));
+            
+            // Sort by release date
+            movies.sort((a, b) => {
+              const dateA = new Date(a.release_date || '1900-01-01');
+              const dateB = new Date(b.release_date || '1900-01-01');
+              return dateB - dateA; // Most recent first
+            });
+            
+            this.allMovies = movies;
+            this.createDynamicFilters(movies);
+            this.setDefaultFilter();
+            this.renderFilmography(this.filterMovies(movies));
+            this.restoreSearchState(); // Restore search state after filmography loads
+            loadingElement.style.display = 'none';
+            
+            console.log(`Successfully loaded ${movies.length} movies for studio`);
+          } else {
+            loadingElement.textContent = 'No filmography found for this studio';
+          }
+        } catch (studioError) {
+          console.error('Studio filmography error:', studioError);
+          loadingElement.textContent = 'Unable to load studio filmography. Please try refreshing the page.';
         }
-        
-        // Process crew credits
-        if (credits.crew) {
-          credits.crew.forEach(movie => {
-            // Filter out documentaries and include only major crew roles
-            if (this.shouldIncludeMovie(movie) && this.shouldIncludeCrewRole(movie.job, movie.department)) {
-              const key = movie.id;
-              if (movieMap.has(key)) {
-                const existing = movieMap.get(key);
-                existing.roles.push({
-                  role: movie.job,
-                  department: movie.department
-                });
-              } else {
-                movieMap.set(key, {
-                  ...movie,
-                  roles: [{
-                    role: movie.job,
-                    department: movie.department
-                  }]
-                });
-              }
-            }
-          });
-        }
-        
-        // Convert to array and sort by release date
-        const uniqueMovies = Array.from(movieMap.values());
-        uniqueMovies.sort((a, b) => {
-          const dateA = new Date(a.release_date || '1900-01-01');
-          const dateB = new Date(b.release_date || '1900-01-01');
-          return dateB - dateA; // Most recent first
-        });
-        
-        this.allMovies = uniqueMovies;
-        this.createDynamicFilters(uniqueMovies);
-        this.setDefaultFilter(); // Set default filter based on person's role
-        this.renderFilmography(this.filterMovies(uniqueMovies));
-        loadingElement.style.display = 'none';
       } else {
-        loadingElement.textContent = 'No filmography found';
+        // Handle person filmography (existing logic)
+        try {
+          const response = await this.smartFetch({
+            requestType: 'credits',
+            personId: tmdbId,
+            isCompany: false
+          });
+          const data = await response.json();
+          
+          if (data.cast || data.crew) {
+            // Group movies by ID and combine roles
+            const movieMap = new Map();
+            
+            // Process cast credits
+            if (data.cast) {
+              data.cast.forEach(movie => {
+                // Filter out documentaries and self appearances
+                if (this.shouldIncludeMovie(movie)) {
+                  const key = movie.id;
+                  if (movieMap.has(key)) {
+                    const existing = movieMap.get(key);
+                    existing.roles.push({
+                      role: movie.character || 'Actor',
+                      department: 'Acting'
+                    });
+                  } else {
+                    movieMap.set(key, {
+                      ...movie,
+                      roles: [{
+                        role: movie.character || 'Actor',
+                        department: 'Acting'
+                      }]
+                    });
+                  }
+                }
+              });
+            }
+            
+            // Process crew credits
+            if (data.crew) {
+              data.crew.forEach(movie => {
+                // Filter out documentaries and include only major crew roles
+                if (this.shouldIncludeMovie(movie) && this.shouldIncludeCrewRole(movie.job, movie.department)) {
+                  const key = movie.id;
+                  if (movieMap.has(key)) {
+                    const existing = movieMap.get(key);
+                    existing.roles.push({
+                      role: movie.job,
+                      department: movie.department
+                    });
+                  } else {
+                    movieMap.set(key, {
+                      ...movie,
+                      roles: [{
+                        role: movie.job,
+                        department: movie.department
+                      }]
+                    });
+                  }
+                }
+              });
+            }
+            
+            // Convert to array and sort by release date
+            const uniqueMovies = Array.from(movieMap.values());
+            uniqueMovies.sort((a, b) => {
+              const dateA = new Date(a.release_date || '1900-01-01');
+              const dateB = new Date(b.release_date || '1900-01-01');
+              return dateB - dateA; // Most recent first
+            });
+            
+            this.allMovies = uniqueMovies;
+            this.createDynamicFilters(uniqueMovies);
+            this.setDefaultFilter(); // Set default filter based on person's role
+            this.renderFilmography(this.filterMovies(uniqueMovies));
+            this.restoreSearchState(); // Restore search state after filmography loads
+            loadingElement.style.display = 'none';
+          } else {
+            loadingElement.textContent = 'No filmography found';
+          }
+        } catch (personError) {
+          console.error('Person filmography error:', personError);
+          loadingElement.textContent = 'Unable to load filmography. Please try refreshing the page.';
+        }
       }
       
     } catch (error) {
@@ -557,15 +994,57 @@ setupStudioProfileImage(person) {
   renderFilmography(movies) {
     const grid = document.getElementById('filmographyGrid');
     const loadingElement = document.getElementById('loadingFilmography');
+    const countElement = document.getElementById('filmographyCount');
     
     // Hide loading and clear skeleton
     loadingElement.style.display = 'none';
     grid.innerHTML = '';
     
+    // Update count display
+    this.updateFilmographyCount(movies.length);
+    
     movies.forEach(movie => { // Show all movies
       const movieCard = this.createMovieCard(movie);
       grid.appendChild(movieCard);
     });
+  }
+  
+  updateFilmographyCount(filteredCount) {
+    const countElement = document.getElementById('filmographyCount');
+    const searchTerm = this.getSearchTerm();
+    const activeFilter = this.activeFilter;
+    
+    if (!countElement) return;
+    
+    let countText = '';
+    
+    if (searchTerm && activeFilter !== 'all') {
+      // Both search and filter active
+      countText = `${filteredCount} of ${this.allMovies.length} movies (filtered & searched)`;
+    } else if (searchTerm) {
+      // Only search active
+      countText = `${filteredCount} of ${this.allMovies.length} movies (search: "${searchTerm}")`;
+    } else if (activeFilter !== 'all') {
+      // Only filter active
+      const filterName = this.getFilterDisplayName(activeFilter);
+      countText = `${filteredCount} of ${this.allMovies.length} movies (${filterName})`;
+    } else {
+      // No filters, show total
+      countText = `${filteredCount} movies`;
+    }
+    
+    countElement.textContent = countText;
+  }
+  
+  getFilterDisplayName(filter) {
+    const filterNames = {
+      'Acting': 'Acting',
+      'Directing': 'Directing', 
+      'Writing': 'Writing',
+      'Production': 'Production',
+      'other': 'Other roles'
+    };
+    return filterNames[filter] || filter;
   }
 
   createDynamicFilters(movies) {
@@ -698,6 +1177,11 @@ setupStudioProfileImage(person) {
   }
   
   groupRolesByDepartment(roles) {
+    // Handle empty roles array (for studios/companies)
+    if (!roles || roles.length === 0) {
+      return [];
+    }
+    
     const deptMap = new Map();
     
     roles.forEach(roleObj => {
@@ -814,21 +1298,144 @@ setupStudioProfileImage(person) {
   }
   
   filterMovies(movies) {
-    if (this.activeFilter === 'all') {
-      return movies;
+    let filteredMovies = movies;
+    
+    // Apply category filter first
+    if (this.activeFilter !== 'all') {
+      filteredMovies = filteredMovies.filter(movie => {
+        if (this.activeFilter === 'other') {
+          // Show movies where person has roles outside of Acting, Directing, Writing
+          return movie.roles.some(role => 
+            !['Acting', 'Directing', 'Writing'].includes(role.department)
+          );
+        } else {
+          // Show movies where person has the specific role
+          return movie.roles.some(role => role.department === this.activeFilter);
+        }
+      });
     }
     
-    return movies.filter(movie => {
-      if (this.activeFilter === 'other') {
-        // Show movies where person has roles outside of Acting, Directing, Writing
-        return movie.roles.some(role => 
-          !['Acting', 'Directing', 'Writing'].includes(role.department)
-        );
+    // Apply search filter
+    const searchTerm = this.getSearchTerm();
+    if (searchTerm) {
+      filteredMovies = this.applySearchFilter(filteredMovies, searchTerm);
+    }
+    
+    return filteredMovies;
+  }
+  
+  handleSearch(searchTerm) {
+    this.renderFilmography(this.filterMovies(this.allMovies));
+    
+    // Update URL hash with search term (optional for browser back/forward)
+    if (searchTerm.trim()) {
+      const url = new URL(window.location);
+      url.searchParams.set('search', searchTerm);
+      window.history.replaceState({}, '', url);
+    } else {
+      const url = new URL(window.location);
+      url.searchParams.delete('search');
+      window.history.replaceState({}, '', url);
+    }
+  }
+  
+  clearSearch() {
+    const searchInput = document.getElementById('filmographySearch');
+    if (searchInput) {
+      searchInput.value = '';
+      this.updateClearButtonVisibility();
+      this.renderFilmography(this.filterMovies(this.allMovies));
+      
+      // Clear search from URL
+      const url = new URL(window.location);
+      url.searchParams.delete('search');
+      window.history.replaceState({}, '', url);
+    }
+  }
+  
+  toggleSearchInput() {
+    const searchInputContainer = document.getElementById('searchInputContainer');
+    const searchInput = document.getElementById('filmographySearch');
+    
+    if (searchInputContainer) {
+      const isHidden = searchInputContainer.classList.contains('hidden');
+      
+      if (isHidden) {
+        // Show search input
+        searchInputContainer.classList.remove('hidden');
+        if (searchInput) {
+          // Focus the input after a brief delay to ensure it's visible
+          setTimeout(() => searchInput.focus(), 100);
+        }
       } else {
-        // Show movies where person has the specific role
-        return movie.roles.some(role => role.department === this.activeFilter);
+        // Hide search input and clear search if there's a value
+        if (searchInput && searchInput.value.trim()) {
+          this.clearSearch();
+        }
+        searchInputContainer.classList.add('hidden');
       }
+    }
+  }
+  
+  updateClearButtonVisibility() {
+    const searchInput = document.getElementById('filmographySearch');
+    const clearButton = document.getElementById('clearSearch');
+    
+    if (searchInput && clearButton) {
+      if (searchInput.value.trim()) {
+        clearButton.classList.add('visible');
+      } else {
+        clearButton.classList.remove('visible');
+      }
+    }
+  }
+  
+  getSearchTerm() {
+    const searchInput = document.getElementById('filmographySearch');
+    return searchInput ? searchInput.value.trim().toLowerCase() : '';
+  }
+  
+  applySearchFilter(movies, searchTerm) {
+    return movies.filter(movie => {
+      // Search in movie title
+      if (movie.title && movie.title.toLowerCase().includes(searchTerm)) {
+        return true;
+      }
+      
+      // Search in release year
+      if (movie.release_date) {
+        const year = new Date(movie.release_date).getFullYear().toString();
+        if (year.includes(searchTerm)) {
+          return true;
+        }
+      }
+      
+      // Search in roles (for people, not studios)
+      if (movie.roles && movie.roles.length > 0) {
+        return movie.roles.some(role => {
+          return (role.role && role.role.toLowerCase().includes(searchTerm)) ||
+                 (role.department && role.department.toLowerCase().includes(searchTerm));
+        });
+      }
+      
+      return false;
     });
+  }
+  
+  restoreSearchState() {
+    // Restore search term from URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const searchTerm = urlParams.get('search');
+    
+    if (searchTerm) {
+      const searchInput = document.getElementById('filmographySearch');
+      if (searchInput) {
+        searchInput.value = searchTerm;
+        this.updateClearButtonVisibility();
+        // Re-render with search applied
+        this.renderFilmography(this.filterMovies(this.allMovies));
+      }
+    }
   }
   
   setupBio(biography) {
@@ -1082,16 +1689,28 @@ setupStudioProfileImage(person) {
   }
   
   async smartFetch(options = {}) {
-    const { personId, requestType = 'details', query } = options;
+    const { personId, requestType = 'details', query, isCompany = false, page = 1, useDiscoverFallback = false } = options;
     
-    // Build the direct TMDb URL based on request type
+    // Build the direct TMDb URL based on request type and whether it's a company
     let directUrl;
     if (requestType === 'search') {
       directUrl = TMDB_CONFIG.getSearchUrl(query);
     } else if (requestType === 'credits') {
-      directUrl = TMDB_CONFIG.getPersonCreditsUrl(personId);
+      if (isCompany) {
+        if (useDiscoverFallback) {
+          directUrl = TMDB_CONFIG.getCompanyMoviesDiscoverUrl(personId, false, 0, page);
+        } else {
+          directUrl = TMDB_CONFIG.getCompanyMoviesUrl(personId, false, 0, page);
+        }
+      } else {
+        directUrl = TMDB_CONFIG.getPersonCreditsUrl(personId);
+      }
     } else {
-      directUrl = TMDB_CONFIG.getPersonDetailsUrl(personId);
+      if (isCompany) {
+        directUrl = TMDB_CONFIG.getCompanyDetailsUrl(personId);
+      } else {
+        directUrl = TMDB_CONFIG.getPersonDetailsUrl(personId);
+      }
     }
 
     // Check if we're likely in a region where TMDb is blocked
@@ -1120,9 +1739,21 @@ setupStudioProfileImage(person) {
         if (requestType === 'search') {
           proxyUrl = TMDB_CONFIG.getSearchUrl(query, true, i);
         } else if (requestType === 'credits') {
-          proxyUrl = TMDB_CONFIG.getPersonCreditsUrl(personId, true, i);
+          if (isCompany) {
+            if (useDiscoverFallback) {
+              proxyUrl = TMDB_CONFIG.getCompanyMoviesDiscoverUrl(personId, true, i, page);
+            } else {
+              proxyUrl = TMDB_CONFIG.getCompanyMoviesUrl(personId, true, i, page);
+            }
+          } else {
+            proxyUrl = TMDB_CONFIG.getPersonCreditsUrl(personId, true, i);
+          }
         } else {
-          proxyUrl = TMDB_CONFIG.getPersonDetailsUrl(personId, true, i);
+          if (isCompany) {
+            proxyUrl = TMDB_CONFIG.getCompanyDetailsUrl(personId, true, i);
+          } else {
+            proxyUrl = TMDB_CONFIG.getPersonDetailsUrl(personId, true, i);
+          }
         }
         
         const response = await this.fetchWithTimeout(proxyUrl, 6000); // Shorter timeout for proxies
