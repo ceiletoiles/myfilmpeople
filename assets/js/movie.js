@@ -40,7 +40,7 @@ class MoviePage {
     this.movieId = null;
     this.movieData = null;
     this.returnUrl = null;
-    this.studiosLoaded = false;
+    this.detailsLoaded = false;
     this.init();
   }
 
@@ -65,11 +65,11 @@ class MoviePage {
     // Ensure only cast tab is visible initially
     const castSection = document.getElementById('castSection');
     const crewSection = document.getElementById('crewSection');
-    const studiosSection = document.getElementById('studiosSection');
+    const detailsSection = document.getElementById('detailsSection');
 
     if (castSection) castSection.classList.remove('hidden');
     if (crewSection) crewSection.classList.add('hidden');
-    if (studiosSection) studiosSection.classList.add('hidden');
+    if (detailsSection) detailsSection.classList.add('hidden');
   }
 
   setupEventListeners() {
@@ -100,23 +100,23 @@ class MoviePage {
     // Update tab content
     const castSection = document.getElementById('castSection');
     const crewSection = document.getElementById('crewSection');
-    const studiosSection = document.getElementById('studiosSection');
+    const detailsSection = document.getElementById('detailsSection');
 
     // Hide all sections first
     castSection.classList.add('hidden');
     crewSection.classList.add('hidden');
-    studiosSection.classList.add('hidden');
+    detailsSection.classList.add('hidden');
 
     // Show selected section
     if (tabName === 'cast') {
       castSection.classList.remove('hidden');
     } else if (tabName === 'crew') {
       crewSection.classList.remove('hidden');
-    } else if (tabName === 'studios') {
-      studiosSection.classList.remove('hidden');
-      // Load studios data if not already loaded
-      if (!this.studiosLoaded) {
-        this.loadStudiosData();
+    } else if (tabName === 'details') {
+      detailsSection.classList.remove('hidden');
+      // Load details data if not already loaded
+      if (!this.detailsLoaded) {
+        this.loadDetailsData();
       }
     }
   }
@@ -278,10 +278,37 @@ class MoviePage {
       movieFullTitle.textContent = movie.title;
     }
 
-    const movieYear = document.getElementById('movieYear');
-    if (movieYear && movie.release_date) {
-      const year = new Date(movie.release_date).getFullYear();
-      movieYear.textContent = year;
+    // Display year and runtime together
+    const movieYearRuntime = document.getElementById('movieYearRuntime');
+    if (movieYearRuntime) {
+      let yearRuntimeText = '';
+      
+      // Add year
+      if (movie.release_date) {
+        const year = new Date(movie.release_date).getFullYear();
+        yearRuntimeText = year.toString();
+      }
+      
+      // Add runtime
+      if (movie.runtime) {
+        const hours = Math.floor(movie.runtime / 60);
+        const minutes = movie.runtime % 60;
+        let runtimeText = '';
+        
+        if (hours > 0) {
+          runtimeText = `${hours}h ${minutes}m`;
+        } else {
+          runtimeText = `${minutes}m`;
+        }
+        
+        if (yearRuntimeText) {
+          yearRuntimeText += ` • ${runtimeText}`;
+        } else {
+          yearRuntimeText = runtimeText;
+        }
+      }
+      
+      movieYearRuntime.textContent = yearRuntimeText || 'Release info not available';
     }
 
     // Find and display director
@@ -294,6 +321,14 @@ class MoviePage {
       } else {
         movieDirector.textContent = 'Director information not available';
       }
+    }
+
+    // Display tagline
+    const movieTagline = document.getElementById('movieTagline');
+    if (movieTagline && movie.tagline && movie.tagline.trim()) {
+      movieTagline.textContent = movie.tagline.toUpperCase();
+    } else if (movieTagline) {
+      movieTagline.style.display = 'none';
     }
 
     // Update ratings
@@ -423,7 +458,7 @@ class MoviePage {
 
   createCrewPersonHTML(person) {
     return `
-      <div class="crew-person" data-person-id="${person.id}" data-person-name="${person.name}">
+      <div class="crew-person" data-person-id="${person.id}" data-person-name="${person.name}" data-person-job="${person.job}">
         <span class="crew-name">${person.name}</span>
       </div>
     `;
@@ -444,8 +479,8 @@ class MoviePage {
       return;
     }
 
-    // Show top 30 cast members in a grid similar to the image
-    const castToShow = cast.slice(0, 30);
+    // Show all cast members (no limit)
+    const castToShow = cast;
 
     castList.innerHTML = castToShow.map(person => `
       <div class="cast-person" data-person-id="${person.id}" data-person-name="${person.name}">
@@ -464,10 +499,11 @@ class MoviePage {
       person.addEventListener('click', () => {
         const personId = person.dataset.personId;
         const personName = person.dataset.personName;
+        const personJob = person.dataset.personJob;
         
         if (personId && personId !== 'null') {
-          console.log(`Navigating to crew member profile: ${personName} (ID: ${personId})`);
-          this.navigateToProfile(personId);
+          console.log(`Navigating to crew member profile: ${personName} (ID: ${personId}, Job: ${personJob})`);
+          this.navigateToProfile(personId, personJob);
         } else {
           console.log(`No ID available for crew member: ${personName}`);
         }
@@ -484,7 +520,7 @@ class MoviePage {
         
         if (personId && personId !== 'null') {
           console.log(`Navigating to cast member profile: ${personName} (ID: ${personId})`);
-          this.navigateToProfile(personId);
+          this.navigateToProfile(personId, 'Actor'); // Cast members are actors
         } else {
           console.log(`No ID available for cast member: ${personName}`);
         }
@@ -492,10 +528,15 @@ class MoviePage {
     });
   }
 
-  navigateToProfile(personId) {
+  navigateToProfile(personId, role = null) {
     // Navigate to profile page with TMDb ID, ensuring it's handled as TMDb data
     const currentUrl = window.location.href;
-    const profileUrl = `profile.html?id=${personId}&tmdb=true&return=${encodeURIComponent(currentUrl)}`;
+    let profileUrl = `profile.html?id=${personId}&tmdb=true&return=${encodeURIComponent(currentUrl)}`;
+    
+    // Add role parameter if provided
+    if (role) {
+      profileUrl += `&role=${encodeURIComponent(role)}`;
+    }
     
     window.location.href = profileUrl;
   }
@@ -508,40 +549,40 @@ class MoviePage {
     window.location.href = profileUrl;
   }
 
-  async loadStudiosData() {
+  async loadDetailsData() {
     if (!this.movieData) return;
     
     try {
-      this.studiosLoaded = true;
-      const studiosList = document.getElementById('studiosList');
-      const loadingStudios = document.getElementById('loadingStudios');
+      this.detailsLoaded = true;
+      const detailsList = document.getElementById('detailsList');
+      const loadingDetails = document.getElementById('loadingDetails');
       
-      if (loadingStudios) {
-        loadingStudios.style.display = 'none';
+      if (loadingDetails) {
+        loadingDetails.style.display = 'none';
       }
       
-      if (!studiosList) return;
+      if (!detailsList) return;
       
       // Clear existing content
-      studiosList.innerHTML = '';
+      detailsList.innerHTML = '';
       
       // Production Companies
       if (this.movieData.production_companies && this.movieData.production_companies.length > 0) {
         const companiesSection = document.createElement('div');
-        companiesSection.className = 'studio-category';
+        companiesSection.className = 'detail-category';
         
         const companiesTitle = document.createElement('h4');
-        companiesTitle.className = 'studio-category-title';
+        companiesTitle.className = 'detail-category-title';
         companiesTitle.textContent = 'Production Companies';
         companiesSection.appendChild(companiesTitle);
         
         const companiesGrid = document.createElement('div');
-        companiesGrid.className = 'studio-items';
+        companiesGrid.className = 'detail-items';
         
         this.movieData.production_companies.forEach(company => {
           const companyElement = document.createElement('button');
-          companyElement.className = 'studio-item';
-          companyElement.innerHTML = `<div class="studio-name">${company.name}</div>`;
+          companyElement.className = 'detail-item';
+          companyElement.innerHTML = `<div class="detail-name">${company.name}</div>`;
           companyElement.addEventListener('click', () => {
             this.navigateToCompany(company.id);
           });
@@ -549,21 +590,45 @@ class MoviePage {
         });
         
         companiesSection.appendChild(companiesGrid);
-        studiosList.appendChild(companiesSection);
+        detailsList.appendChild(companiesSection);
+      }
+      
+      // Genres
+      if (this.movieData.genres && this.movieData.genres.length > 0) {
+        const genresSection = document.createElement('div');
+        genresSection.className = 'detail-category';
+        
+        const genresTitle = document.createElement('h4');
+        genresTitle.className = 'detail-category-title';
+        genresTitle.textContent = 'Genres';
+        genresSection.appendChild(genresTitle);
+        
+        const genresGrid = document.createElement('div');
+        genresGrid.className = 'detail-items';
+        
+        this.movieData.genres.forEach(genre => {
+          const genreElement = document.createElement('div');
+          genreElement.className = 'genre-item';
+          genreElement.textContent = genre.name;
+          genresGrid.appendChild(genreElement);
+        });
+        
+        genresSection.appendChild(genresGrid);
+        detailsList.appendChild(genresSection);
       }
       
       // Production Countries
       if (this.movieData.production_countries && this.movieData.production_countries.length > 0) {
         const countriesSection = document.createElement('div');
-        countriesSection.className = 'studio-category';
+        countriesSection.className = 'detail-category';
         
         const countriesTitle = document.createElement('h4');
-        countriesTitle.className = 'studio-category-title';
+        countriesTitle.className = 'detail-category-title';
         countriesTitle.textContent = 'Production Countries';
         countriesSection.appendChild(countriesTitle);
         
         const countriesGrid = document.createElement('div');
-        countriesGrid.className = 'studio-items';
+        countriesGrid.className = 'detail-items';
         
         this.movieData.production_countries.forEach(country => {
           const countryElement = document.createElement('div');
@@ -573,21 +638,21 @@ class MoviePage {
         });
         
         countriesSection.appendChild(countriesGrid);
-        studiosList.appendChild(countriesSection);
+        detailsList.appendChild(countriesSection);
       }
       
       // Spoken Languages
       if (this.movieData.spoken_languages && this.movieData.spoken_languages.length > 0) {
         const languagesSection = document.createElement('div');
-        languagesSection.className = 'studio-category';
+        languagesSection.className = 'detail-category';
         
         const languagesTitle = document.createElement('h4');
-        languagesTitle.className = 'studio-category-title';
+        languagesTitle.className = 'detail-category-title';
         languagesTitle.textContent = 'Languages';
         languagesSection.appendChild(languagesTitle);
         
         const languagesGrid = document.createElement('div');
-        languagesGrid.className = 'studio-items';
+        languagesGrid.className = 'detail-items';
         
         this.movieData.spoken_languages.forEach(language => {
           const languageElement = document.createElement('div');
@@ -597,19 +662,113 @@ class MoviePage {
         });
         
         languagesSection.appendChild(languagesGrid);
-        studiosList.appendChild(languagesSection);
+        detailsList.appendChild(languagesSection);
+      }
+      
+      // Technical Specifications
+      const techSpecs = [];
+      
+      // Aspect Ratio (estimated from poster if available)
+      if (this.movieData.poster_path) {
+        // Most theatrical releases are either 2.39:1 (Cinemascope), 1.85:1, or 1.78:1 (16:9)
+        // We can make educated guesses based on genre and year, but let's use common ratios
+        const year = this.movieData.release_date ? new Date(this.movieData.release_date).getFullYear() : null;
+        
+        // Default to common theatrical aspect ratio
+        let aspectRatio = '2.39:1'; // Default Cinemascope
+        
+        // Older films often used 1.85:1 or 4:3
+        if (year && year < 1960) {
+          aspectRatio = '1.37:1'; // Academy ratio
+        } else if (year && year < 1990) {
+          aspectRatio = '1.85:1'; // Standard widescreen
+        }
+        
+        // Check genres for common ratios
+        if (this.movieData.genres) {
+          const genreNames = this.movieData.genres.map(g => g.name.toLowerCase());
+          
+          // IMAX or action films often use 1.90:1 or 2.39:1
+          if (genreNames.includes('action') || genreNames.includes('adventure')) {
+            aspectRatio = '2.39:1';
+          }
+          // Dramas sometimes use 1.85:1
+          else if (genreNames.includes('drama')) {
+            aspectRatio = '1.85:1';
+          }
+          // Comedies often use 1.85:1
+          else if (genreNames.includes('comedy')) {
+            aspectRatio = '1.85:1';
+          }
+        }
+        
+        techSpecs.push(`Aspect Ratio: ${aspectRatio}`);
+      }
+      
+      // Budget (if available)
+      if (this.movieData.budget && this.movieData.budget > 0) {
+        techSpecs.push(`Budget: $${this.movieData.budget.toLocaleString()}`);
+      }
+      
+      // Revenue (if available)
+      if (this.movieData.revenue && this.movieData.revenue > 0) {
+        techSpecs.push(`Box Office: $${this.movieData.revenue.toLocaleString()}`);
+      }
+      
+      // Vote average
+      if (this.movieData.vote_average && this.movieData.vote_average > 0) {
+        techSpecs.push(`TMDb Rating: ${this.movieData.vote_average.toFixed(1)}/10`);
+      }
+      
+      // Vote count
+      if (this.movieData.vote_count && this.movieData.vote_count > 0) {
+        techSpecs.push(`${this.movieData.vote_count.toLocaleString()} votes`);
+      }
+      
+      // Status
+      if (this.movieData.status) {
+        techSpecs.push(`Status: ${this.movieData.status}`);
+      }
+      
+      // Original Language
+      if (this.movieData.original_language) {
+        const langCode = this.movieData.original_language.toUpperCase();
+        techSpecs.push(`Original Language: ${langCode}`);
+      }
+      
+      if (techSpecs.length > 0) {
+        const techSection = document.createElement('div');
+        techSection.className = 'detail-category';
+        
+        const techTitle = document.createElement('h4');
+        techTitle.className = 'detail-category-title';
+        techTitle.textContent = 'Technical Specifications';
+        techSection.appendChild(techTitle);
+        
+        const techGrid = document.createElement('div');
+        techGrid.className = 'detail-items';
+        
+        techSpecs.forEach(spec => {
+          const specElement = document.createElement('div');
+          specElement.className = 'tech-spec-item';
+          specElement.textContent = spec;
+          techGrid.appendChild(specElement);
+        });
+        
+        techSection.appendChild(techGrid);
+        detailsList.appendChild(techSection);
       }
       
       // If no data available
-      if (studiosList.children.length === 0) {
-        studiosList.innerHTML = '<p style="color: #9ab; text-align: center; padding: 2rem;">No studio information available</p>';
+      if (detailsList.children.length === 0) {
+        detailsList.innerHTML = '<p style="color: #9ab; text-align: center; padding: 2rem;">No details available</p>';
       }
       
     } catch (error) {
-      console.error('Error loading studios data:', error);
-      const loadingStudios = document.getElementById('loadingStudios');
-      if (loadingStudios) {
-        loadingStudios.textContent = 'Failed to load studio information';
+      console.error('Error loading details data:', error);
+      const loadingDetails = document.getElementById('loadingDetails');
+      if (loadingDetails) {
+        loadingDetails.textContent = 'Failed to load details';
       }
     }
   }

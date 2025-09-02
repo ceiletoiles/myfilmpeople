@@ -25,10 +25,10 @@
           
           <div class="movie-details">
             <h2 id="movieFullTitle">Full Movie Title</h2>
-            <p class="movie-year" id="movieYear">Release Year</p>
+            <p class="movie-year-runtime" id="movieYearRuntime">Release Year • Runtime</p>
             <p class="movie-director" id="movieDirector">Director</p>
             <div class="movie-ratings" id="movieRatings">
-              <span class="rating-tmdb" id="tmdbRating">--</span>
+              <span class="rating-tmdb" id="tmdbRating">--/10</span>
             </div>
             
             <div class="movie-actions">
@@ -37,6 +37,10 @@
               </button>
             </div>
           </div>
+        </div>
+        
+        <div class="movie-tagline-section">
+          <p class="movie-tagline" id="movieTagline">Movie Tagline</p>
         </div>
         
         <div class="movie-synopsis" id="movieSynopsis">
@@ -48,7 +52,7 @@
           <div class="credits-tabs">
             <button class="credits-tab active" data-tab="cast">Cast</button>
             <button class="credits-tab" data-tab="crew">Crew</button>
-            <button class="credits-tab" data-tab="studios">Studios</button>
+            <button class="credits-tab" data-tab="details">Details</button>
           </div>
           
           <div class="credits-content">
@@ -70,12 +74,12 @@
               </div>
             </div>
             
-            <div class="studios-section hidden" id="studiosSection">
-              <div class="loading-message" id="loadingStudios">
-                Loading studios...
+            <div class="details-section hidden" id="detailsSection">
+              <div class="loading-message" id="loadingDetails">
+                Loading details...
               </div>
-              <div class="studios-list" id="studiosList">
-                <!-- Studios will be populated by JavaScript -->
+              <div class="details-list" id="detailsList">
+                <!-- Details will be populated by JavaScript -->
               </div>
             </div>
           </div>

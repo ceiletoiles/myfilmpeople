@@ -132,6 +132,8 @@ class ProfilePageManager {
 
   // Helper to generate Letterboxd person search URLs
   generateLetterboxdPersonUrl(personName, role = 'actor') {
+    console.log(`🎭 generateLetterboxdPersonUrl called with: name="${personName}", role="${role}"`);
+    
     if (!personName || personName === 'Unknown Person') {
       return 'https://letterboxd.com/';
     }
@@ -150,20 +152,79 @@ class ProfilePageManager {
     let rolePath = 'actor'; // default
     if (role && typeof role === 'string') {
       const lowerRole = role.toLowerCase();
-      if (lowerRole.includes('director')) {
+      
+      // Check for cinematography roles FIRST (before director check)
+      // since "Director of Photography" contains "director"
+      if (lowerRole.includes('cinematography') || lowerRole.includes('director of photography') ||
+          lowerRole.includes('camera operator') || lowerRole.includes('steadicam') ||
+          lowerRole.includes('camera technician') || lowerRole.includes('camera')) {
+        rolePath = 'cinematography';
+      }
+      // Director roles (but not Director of Photography)
+      else if (lowerRole.includes('director') && !lowerRole.includes('photography') && !lowerRole.includes('assistant')) {
         rolePath = 'director';
-      } else if (lowerRole.includes('writer') || lowerRole.includes('screenplay')) {
+      }
+      // Writer roles
+      else if (lowerRole.includes('writer') || lowerRole.includes('screenplay') || 
+               lowerRole.includes('story') || lowerRole.includes('novel') || 
+               lowerRole.includes('book') || lowerRole.includes('characters')) {
         rolePath = 'writer';
-      } else if (lowerRole.includes('producer')) {
+      }
+      // Producer roles
+      else if (lowerRole.includes('producer')) {
         rolePath = 'producer';
-      } else if (lowerRole.includes('cinematography') || lowerRole.includes('camera')) {
-        rolePath = 'cinematographer';
-      } else if (lowerRole.includes('composer') || lowerRole.includes('music')) {
+      }
+      // Music and composer roles
+      else if (lowerRole.includes('composer') || lowerRole.includes('music') || 
+               lowerRole.includes('original music') || lowerRole.includes('score') ||
+               lowerRole.includes('music producer')) {
         rolePath = 'composer';
-      } else if (lowerRole.includes('editor')) {
+      }
+      // Editor roles
+      else if (lowerRole.includes('editor') || lowerRole.includes('film editor')) {
         rolePath = 'editor';
-      } else if (lowerRole.includes('actor') || lowerRole.includes('acting')) {
+      }
+      // Casting roles
+      else if (lowerRole.includes('casting')) {
+        rolePath = 'casting';
+      }
+      // Visual Effects and Special Effects
+      else if (lowerRole.includes('visual effects') || lowerRole.includes('special effects') ||
+               lowerRole.includes('vfx') || lowerRole.includes('cgi')) {
+        rolePath = 'visual-effects';
+      }
+      // Sound roles
+      else if (lowerRole.includes('sound') || lowerRole.includes('audio')) {
+        rolePath = 'crew';
+      }
+      // Art/Production Design roles
+      else if (lowerRole.includes('production design') || lowerRole.includes('art director') ||
+               lowerRole.includes('set decoration') || lowerRole.includes('costume') ||
+               lowerRole.includes('makeup') || lowerRole.includes('hair')) {
+        rolePath = 'crew';
+      }
+      // Lighting and Grip roles
+      else if (lowerRole.includes('gaffer') || lowerRole.includes('grip') || 
+               lowerRole.includes('lighting') || lowerRole.includes('electric')) {
+        rolePath = 'crew';
+      }
+      // Assistant Director roles
+      else if (lowerRole.includes('assistant director')) {
+        rolePath = 'crew';
+      }
+      // Acting roles
+      else if (lowerRole.includes('actor') || lowerRole.includes('acting') || 
+               lowerRole.includes('actress')) {
         rolePath = 'actor';
+      }
+      // For any other crew roles not specifically handled
+      else {
+        // If it's clearly not an acting role, use crew
+        const actingKeywords = ['actor', 'actress', 'acting', 'cast', 'character'];
+        const isActingRole = actingKeywords.some(keyword => lowerRole.includes(keyword));
+        if (!isActingRole) {
+          rolePath = 'crew';
+        }
       }
     }
     
@@ -251,6 +312,7 @@ class ProfilePageManager {
               this.currentPerson.name || 'Unknown Person',
               this.currentPerson.role || 'actor'
             );
+            console.log(`🔗 Generated Letterboxd URL: ${letterboxdUrl} (role: ${this.currentPerson.role})`);
           }
           
           window.open(letterboxdUrl, '_blank');
@@ -305,6 +367,7 @@ class ProfilePageManager {
     const personId = urlParams.get('id');
     const companyId = urlParams.get('company');
     const isTmdb = urlParams.get('tmdb') === 'true';
+    const passedRole = urlParams.get('role'); // Get role from URL parameter
     this.returnUrl = urlParams.get('return') || 'index.html'; // Store return URL
     
     if (companyId) {
@@ -314,25 +377,25 @@ class ProfilePageManager {
       const person = this.findPersonByNameSlug(personName);
       if (person) {
         // Load the person profile directly
-        this.loadPersonProfile(person.id);
+        this.loadPersonProfile(person.id, passedRole);
       } else if (personId) {
-        this.loadPersonProfile(personId);
+        this.loadPersonProfile(personId, passedRole);
       } else {
         this.showError('Person not found');
       }
     } else if (personId) {
       if (isTmdb) {
         // Force load from TMDb even if not in local database
-        this.loadTMDbPersonProfile(personId);
+        this.loadTMDbPersonProfile(personId, passedRole);
       } else {
-        this.loadPersonProfile(personId);
+        this.loadPersonProfile(personId, passedRole);
       }
     } else {
       this.showError('No person specified');
     }
   }
   
-  async loadPersonProfile(personId) {
+  async loadPersonProfile(personId, passedRole = null) {
     try {
       // Get person from localStorage
       const person = this.getPersonFromStorage(personId);
@@ -374,7 +437,7 @@ class ProfilePageManager {
       // If we have TMDb ID, fetch detailed info
       if (person.tmdbId) {
         try {
-          await this.loadTMDbDetails(person.tmdbId);
+          await this.loadTMDbDetails(person.tmdbId, passedRole);
           await this.loadFilmography(person.tmdbId);
         } catch (error) {
           console.log('❌ TMDb requests failed - showing Letterboxd-only mode');
@@ -387,7 +450,7 @@ class ProfilePageManager {
           const tmdbId = await this.findTMDbId(person.name);
           if (tmdbId) {
             console.log('✅ Found TMDb ID:', tmdbId);
-            await this.loadTMDbDetails(tmdbId);
+            await this.loadTMDbDetails(tmdbId, passedRole);
             await this.loadFilmography(tmdbId);
           } else {
             console.log('❌ Person not found in TMDb');
@@ -409,7 +472,7 @@ class ProfilePageManager {
     }
   }
 
-  async loadTMDbPersonProfile(personId) {
+  async loadTMDbPersonProfile(personId, passedRole = null) {
     try {
       console.log(`Loading TMDb person profile for ID: ${personId}`);
       
@@ -434,7 +497,7 @@ class ProfilePageManager {
       this.showFilmographyLoading();
       
       // Load from TMDb directly
-      await this.loadTMDbDetails(personId);
+      await this.loadTMDbDetails(personId, passedRole);
       await this.loadFilmography(personId);
       
     } catch (error) {
@@ -691,7 +754,7 @@ setupStudioProfileImage(person) {
     }
   }
   
-  async loadTMDbDetails(tmdbId) {
+  async loadTMDbDetails(tmdbId, passedRole = null) {
     try {
       // Check if this is a studio/company
       const isStudio = this.currentPerson && this.currentPerson.role === 'studio';
@@ -739,12 +802,19 @@ setupStudioProfileImage(person) {
         document.getElementById('profileName').textContent = data.name || 'Unknown Person';
         document.getElementById('profileFullName').textContent = data.name || 'Unknown Person';
         
-        // Set role based on known_for_department or default
+        // Set role based on passed parameter or known_for_department or default
         let role = 'Filmmaker';
-        if (data.known_for_department) {
+        if (passedRole) {
+          // Use the role passed from movie credits
+          role = passedRole;
+          console.log(`🎬 Using passed role: ${passedRole}`);
+        } else if (data.known_for_department) {
           role = data.known_for_department === 'Acting' ? 'Actor' : data.known_for_department;
+          console.log(`📽️ Using TMDb known_for_department: ${data.known_for_department} -> ${role}`);
         }
         document.getElementById('profileRole').textContent = role;
+        
+        console.log(`🔗 Final role for Letterboxd: ${role}`);
         
         // Update currentPerson object for Letterboxd button
         if (this.currentPerson) {

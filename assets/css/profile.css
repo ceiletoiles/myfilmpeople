@@ -595,7 +595,7 @@
 .bio-toggle-btn {
   background: none;
   border: none;
-  color: #ff8000;
+  color: #9ab;
   cursor: pointer;
   font-size: 0.9rem;
   margin-top: 5px;
@@ -605,7 +605,7 @@
 }
 
 .bio-toggle-btn:hover {
-  color: #ffa500;
+  color: #9ab;
 }
 
 .bio-collapsed {

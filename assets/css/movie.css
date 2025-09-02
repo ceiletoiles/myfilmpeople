@@ -129,7 +129,7 @@
     line-height: 1.2;
 }
 
-.movie-year {
+.movie-year-runtime {
     margin: 0;
     font-size: 1.1rem;
     color: #9ab;
@@ -146,6 +146,29 @@
 .movie-director::before {
     content: "Directed by ";
     color: #678;
+}
+
+.movie-tagline-section {
+    padding: 0;
+    margin: 0;
+}
+
+.movie-tagline {
+    margin: 0;
+    padding: 0;
+    font-size: 1rem;
+    color: #9ab;
+    font-style: normal;
+    font-weight: 600;
+    text-align: left;
+    line-height: 1.2;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.movie-synopsis {
+    margin: 0;
+    padding: 0rem;
 }
 
 .movie-ratings {
@@ -168,7 +191,8 @@
 }
 
 .movie-synopsis {
-    margin-top: 1.5rem;
+    margin: 0;
+    padding: 0rem;
 }
 
 .movie-synopsis h3 {
@@ -246,14 +270,14 @@
 
 .crew-section.hidden,
 .cast-section.hidden,
-.studios-section.hidden {
+.details-section.hidden {
     display: none;
 }
 
 .crew-section,
 .cast-section,
-.studios-section {
-    margin-bottom: 3rem;
+.details-section {
+    margin-bottom: 1.5rem;
 }
 
 .crew-section h3,
@@ -351,18 +375,18 @@
     font-style: italic;
 }
 
-/* Studios Section Styling */
-.studios-list {
+/* Details Section Styling */
+.details-list {
     display: flex;
     flex-direction: column;
-    gap: 2rem;
+    gap: 1rem;
 }
 
-.studio-category {
-    margin-bottom: 1.5rem;
+.detail-category {
+    margin-bottom: 0.75rem;
 }
 
-.studio-category-title {
+.detail-category-title {
     font-size: 1rem;
     font-weight: 600;
     color: var(--letterboxd-orange);
@@ -371,7 +395,7 @@
     letter-spacing: 0.5px;
 }
 
-.studio-items {
+.detail-items {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 0.4rem 1rem;
@@ -379,7 +403,7 @@
     column-gap: 2rem;
 }
 
-.studio-item {
+.detail-item {
     background: none;
     padding: 0.4rem 0;
     border: none;
@@ -390,13 +414,13 @@
     border-bottom: 1px solid transparent;
 }
 
-.studio-item:hover {
+.detail-item:hover {
     background-color: rgba(255, 128, 0, 0.1);
     border-bottom-color: var(--letterboxd-orange);
     padding-left: 0.5rem;
 }
 
-.studio-name {
+.detail-name {
     font-weight: 600;
     color: #ffffff;
     font-size: 0.9rem;
@@ -405,7 +429,9 @@
 }
 
 .country-item,
-.language-item {
+.language-item,
+.genre-item,
+.tech-spec-item {
     background: none;
     padding: 0.4rem 0;
     border: none;
@@ -500,11 +526,17 @@
         line-height: 1.2;
     }
 
-    .movie-year,
+    .movie-year-runtime,
     .movie-director {
         text-align: left;
         margin: 0.2rem 0;
         font-size: clamp(0.8rem, 3vw, 0.95rem);
+    }
+
+    .movie-tagline {
+        font-size: clamp(0.8rem, 3vw, 1rem);
+        padding: 0 0.5rem;
+        text-align: left;
     }
 
     .movie-ratings {
