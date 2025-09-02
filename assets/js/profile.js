@@ -129,6 +129,76 @@ class ProfilePageManager {
     // Use Letterboxd's search URL - this will show results and let user pick the right film
     return `https://letterboxd.com/search/films/${encodedQuery}/`;
   }
+
+  // Helper to generate Letterboxd person search URLs
+  generateLetterboxdPersonUrl(personName, role = 'actor') {
+    if (!personName || personName === 'Unknown Person') {
+      return 'https://letterboxd.com/';
+    }
+    
+    // Handle production companies differently
+    if (role && role.toLowerCase().includes('production company')) {
+      // For production companies, use studio format or search
+      const slug = this.createLetterboxdSlug(personName);
+      return `https://letterboxd.com/studio/${slug}/`;
+    }
+    
+    // Create a slug from the person's name
+    const slug = this.createLetterboxdSlug(personName);
+    
+    // Determine the role path for Letterboxd
+    let rolePath = 'actor'; // default
+    if (role && typeof role === 'string') {
+      const lowerRole = role.toLowerCase();
+      if (lowerRole.includes('director')) {
+        rolePath = 'director';
+      } else if (lowerRole.includes('writer') || lowerRole.includes('screenplay')) {
+        rolePath = 'writer';
+      } else if (lowerRole.includes('producer')) {
+        rolePath = 'producer';
+      } else if (lowerRole.includes('cinematography') || lowerRole.includes('camera')) {
+        rolePath = 'cinematographer';
+      } else if (lowerRole.includes('composer') || lowerRole.includes('music')) {
+        rolePath = 'composer';
+      } else if (lowerRole.includes('editor')) {
+        rolePath = 'editor';
+      } else if (lowerRole.includes('actor') || lowerRole.includes('acting')) {
+        rolePath = 'actor';
+      }
+    }
+    
+    // Generate Letterboxd URL in format: letterboxd.com/role/slug-name/
+    return `https://letterboxd.com/${rolePath}/${slug}/`;
+  }
+
+  // Helper to create Letterboxd-style slugs from names
+  createLetterboxdSlug(name) {
+    return name
+      .toLowerCase()
+      // Remove diacritics/accents by normalizing and removing combining characters
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      // Handle specific character replacements for common cases
+      .replace(/ñ/g, 'n')
+      .replace(/ç/g, 'c')
+      .replace(/ß/g, 'ss')
+      .replace(/æ/g, 'ae')
+      .replace(/œ/g, 'oe')
+      .replace(/ø/g, 'o')
+      .replace(/å/g, 'a')
+      // Remove any remaining special characters except spaces and hyphens
+      .replace(/[^a-z0-9\s-]/g, '')
+      // Replace multiple spaces with single space
+      .replace(/\s+/g, ' ')
+      // Trim spaces
+      .trim()
+      // Replace spaces with hyphens
+      .replace(/\s/g, '-')
+      // Replace multiple hyphens with single hyphen
+      .replace(/-+/g, '-')
+      // Remove leading/trailing hyphens
+      .replace(/^-|-$/g, '');
+  }
   
   init() {
     this.setupEventListeners();
@@ -161,7 +231,7 @@ class ProfilePageManager {
     const backButton = document.getElementById('backToMain');
     if (backButton) {
       backButton.addEventListener('click', () => {
-        window.location.href = 'index.html';
+        window.location.href = this.returnUrl || 'index.html';
       });
     }
     
@@ -169,8 +239,21 @@ class ProfilePageManager {
     const letterboxdButton = document.getElementById('openLetterboxd');
     if (letterboxdButton) {
       letterboxdButton.addEventListener('click', () => {
-        if (this.currentPerson && this.currentPerson.letterboxdUrl) {
-          window.open(this.currentPerson.letterboxdUrl, '_blank');
+        if (this.currentPerson) {
+          let letterboxdUrl;
+          
+          // Use existing letterboxdUrl if available (from local database)
+          if (this.currentPerson.letterboxdUrl) {
+            letterboxdUrl = this.currentPerson.letterboxdUrl;
+          } else {
+            // Generate Letterboxd URL for TMDb-loaded profiles
+            letterboxdUrl = this.generateLetterboxdPersonUrl(
+              this.currentPerson.name || 'Unknown Person',
+              this.currentPerson.role || 'actor'
+            );
+          }
+          
+          window.open(letterboxdUrl, '_blank');
         }
       });
     }
@@ -220,8 +303,14 @@ class ProfilePageManager {
     const urlParams = new URLSearchParams(window.location.search);
     const personName = urlParams.get('name');
     const personId = urlParams.get('id');
+    const companyId = urlParams.get('company');
+    const isTmdb = urlParams.get('tmdb') === 'true';
+    this.returnUrl = urlParams.get('return') || 'index.html'; // Store return URL
     
-    if (personName) {
+    if (companyId) {
+      // Load company profile
+      this.loadCompanyProfile(companyId);
+    } else if (personName) {
       const person = this.findPersonByNameSlug(personName);
       if (person) {
         // Load the person profile directly
@@ -232,7 +321,12 @@ class ProfilePageManager {
         this.showError('Person not found');
       }
     } else if (personId) {
-      this.loadPersonProfile(personId);
+      if (isTmdb) {
+        // Force load from TMDb even if not in local database
+        this.loadTMDbPersonProfile(personId);
+      } else {
+        this.loadPersonProfile(personId);
+      }
     } else {
       this.showError('No person specified');
     }
@@ -248,6 +342,25 @@ class ProfilePageManager {
       }
 
       this.currentPerson = person;
+      
+      // Check if this is actually a company/studio based on role
+      const isCompany = person.role && (
+        person.role.toLowerCase().includes('production') || 
+        person.role.toLowerCase().includes('company') ||
+        person.role.toLowerCase().includes('studio') ||
+        person.role === 'Production Company' ||
+        person.role === 'Studio'
+      );
+      
+      if (isCompany && person.tmdbId) {
+        // Route to company profile instead
+        console.log(`Detected company role: ${person.role}, routing to company profile`);
+        await this.loadCompanyProfile(person.tmdbId);
+        return;
+      }
+      
+      // Set up profile layout for person
+      this.setupPersonProfileLayout();
       
       // Show initial loading state
       this.showLoadingState();
@@ -293,6 +406,120 @@ class ProfilePageManager {
       this.hideLoadingState();
       // Use delay for profile loading failures too
       this.showLetterboxdFirst('Profile loading error - using Letterboxd mode');
+    }
+  }
+
+  async loadTMDbPersonProfile(personId) {
+    try {
+      console.log(`Loading TMDb person profile for ID: ${personId}`);
+      
+      // Set up profile layout for person
+      this.setupPersonProfileLayout();
+      
+      // Show loading state
+      this.showLoadingState();
+      
+      // Create a temporary person object for display
+      const tempPerson = {
+        id: personId,
+        name: 'Loading...',
+        role: 'Loading...'
+      };
+      this.currentPerson = tempPerson;
+      
+      // Update basic info with loading state
+      this.updateBasicInfo(tempPerson);
+      
+      // Show filmography loading
+      this.showFilmographyLoading();
+      
+      // Load from TMDb directly
+      await this.loadTMDbDetails(personId);
+      await this.loadFilmography(personId);
+      
+    } catch (error) {
+      console.error('Error loading TMDb profile:', error);
+      this.hideLoadingState();
+      this.showLetterboxdFirst('Failed to load profile from TMDb');
+    }
+  }
+
+  async loadCompanyProfile(companyId) {
+    try {
+      console.log(`Loading company profile for ID: ${companyId}`);
+      
+      // Set up profile layout for company
+      this.setupCompanyProfileLayout();
+      
+      // Show loading state
+      this.showLoadingState();
+      
+      // Load company details from TMDb
+      await this.loadCompanyDetails(companyId);
+      await this.loadCompanyFilmography(companyId);
+      
+    } catch (error) {
+      console.error('Error loading company profile:', error);
+      this.hideLoadingState();
+      this.showError('Failed to load company profile');
+    }
+  }
+
+  setupPersonProfileLayout() {
+    // Show elements relevant to people
+    const profileBirth = document.getElementById('profileBirth');
+    const profileBio = document.getElementById('profileBio');
+    const editButton = document.getElementById('editPerson');
+    
+    if (profileBirth) profileBirth.style.display = 'block';
+    if (profileBio) profileBio.style.display = 'block';
+    if (editButton) editButton.style.display = 'inline-block';
+    
+    // Update page title
+    document.title = 'Profile - MyFilmPeople';
+    
+    // Remove company-logo class from profile image if present
+    const profileImage = document.getElementById('profileImage');
+    if (profileImage) {
+      profileImage.classList.remove('company-logo');
+    }
+    
+    // Remove studio-layout class from profile info if present
+    const profileInfo = document.querySelector('.profile-info');
+    if (profileInfo) {
+      profileInfo.classList.remove('studio-layout');
+    }
+  }
+
+  setupCompanyProfileLayout() {
+    // Hide elements not relevant to companies
+    const profileBirth = document.getElementById('profileBirth');
+    const profileBio = document.getElementById('profileBio');
+    const editButton = document.getElementById('editPerson');
+    
+    if (profileBirth) profileBirth.style.display = 'none';
+    if (profileBio) profileBio.style.display = 'none';
+    if (editButton) editButton.style.display = 'none';
+    
+    // Update page title
+    document.title = 'Studio Profile - MyFilmPeople';
+    
+    // Update section header
+    const filmographyHeader = document.querySelector('.filmography-header h2');
+    if (filmographyHeader) {
+      filmographyHeader.textContent = 'Productions';
+    }
+    
+    // Add company-logo class to profile image for proper aspect ratio
+    const profileImage = document.getElementById('profileImage');
+    if (profileImage) {
+      profileImage.classList.add('company-logo');
+    }
+    
+    // Add studio-layout class to profile info for responsive layout
+    const profileInfo = document.querySelector('.profile-info');
+    if (profileInfo) {
+      profileInfo.classList.add('studio-layout');
     }
   }  getPersonFromStorage(personId) {
     try {
@@ -478,6 +705,17 @@ setupStudioProfileImage(person) {
       
       if (isStudio) {
         // Handle company details
+        // Update basic company info
+        document.getElementById('profileName').textContent = data.name || 'Unknown Company';
+        document.getElementById('profileFullName').textContent = data.name || 'Unknown Company';
+        document.getElementById('profileRole').textContent = 'Production Company';
+        
+        // Update currentPerson object for Letterboxd button
+        if (this.currentPerson) {
+          this.currentPerson.name = data.name || 'Unknown Company';
+          this.currentPerson.role = 'Production Company';
+        }
+        
         if (data.description) {
           this.setupBio(data.description);
         } else {
@@ -496,7 +734,24 @@ setupStudioProfileImage(person) {
           profileImg.src = `${TMDB_CONFIG.IMAGE_BASE_URL_LARGE}${data.logo_path}`;
         }
       } else {
-        // Handle person details (existing logic)
+        // Handle person details
+        // Update basic person info
+        document.getElementById('profileName').textContent = data.name || 'Unknown Person';
+        document.getElementById('profileFullName').textContent = data.name || 'Unknown Person';
+        
+        // Set role based on known_for_department or default
+        let role = 'Filmmaker';
+        if (data.known_for_department) {
+          role = data.known_for_department === 'Acting' ? 'Actor' : data.known_for_department;
+        }
+        document.getElementById('profileRole').textContent = role;
+        
+        // Update currentPerson object for Letterboxd button
+        if (this.currentPerson) {
+          this.currentPerson.name = data.name || 'Unknown Person';
+          this.currentPerson.role = role;
+        }
+        
         if (data.biography) {
           this.setupBio(data.biography);
         } else {
@@ -538,6 +793,96 @@ setupStudioProfileImage(person) {
       this.showLetterboxdFirst('Unable to load profile data from TMDb');
     }
   }
+
+  async loadCompanyDetails(companyId) {
+    try {
+      console.log(`Loading company details for ID: ${companyId}`);
+      
+      // Use smart fetch to get company data
+      const response = await this.smartFetch({
+        requestType: 'details',
+        personId: companyId,
+        isCompany: true
+      });
+      const companyData = await response.json();
+      
+      if (companyData && companyData.name) {
+        // Update profile info for company
+        document.getElementById('profileName').textContent = companyData.name;
+        document.getElementById('profileFullName').textContent = companyData.name;
+        document.getElementById('profileRole').textContent = 'Production Company';
+        
+        // Update currentPerson object for Letterboxd button
+        if (!this.currentPerson) {
+          this.currentPerson = {};
+        }
+        this.currentPerson.name = companyData.name;
+        this.currentPerson.role = 'Production Company';
+        
+        // Update description if available
+        if (companyData.description) {
+          document.getElementById('bioText').textContent = companyData.description;
+        } else {
+          document.getElementById('bioText').textContent = 'No description available.';
+        }
+        
+        // Update location info
+        let locationInfo = [];
+        if (companyData.headquarters) {
+          locationInfo.push(`Headquarters: ${companyData.headquarters}`);
+        }
+        if (companyData.origin_country) {
+          locationInfo.push(`Country: ${companyData.origin_country}`);
+        }
+        
+        if (locationInfo.length > 0) {
+          document.getElementById('profileBirth').textContent = locationInfo.join(' • ');
+        } else {
+          document.getElementById('profileBirth').style.display = 'none';
+        }
+        
+        // Update company logo if available
+        if (companyData.logo_path) {
+          const profileImg = document.getElementById('profileImage');
+          profileImg.src = `${TMDB_CONFIG.IMAGE_BASE_URL}${companyData.logo_path}`;
+          profileImg.style.backgroundColor = 'white';
+          profileImg.style.padding = '1rem';
+        }
+      } else {
+        throw new Error('No company data received');
+      }
+      
+    } catch (error) {
+      console.error('Error loading company details:', error);
+      this.showError('Unable to load company data from TMDb');
+    }
+  }
+
+  async loadCompanyFilmography(companyId) {
+    try {
+      console.log(`Loading filmography for company ID: ${companyId}`);
+      
+      // Show filmography loading
+      this.showFilmographyLoading();
+      
+      // Use the existing company movies fetching logic
+      const movies = await this.fetchAllCompanyMovies(companyId);
+      
+      if (movies && movies.length > 0) {
+        console.log(`Loaded ${movies.length} movies for company`);
+        // Store movies and render them
+        this.allMovies = movies;
+        this.renderFilmography(this.filterMovies(movies));
+      } else {
+        console.log('No movies found for company');
+        this.showError('No movies found for this company');
+      }
+      
+    } catch (error) {
+      console.error('Error loading company filmography:', error);
+      this.showError('Failed to load company filmography');
+    }
+  }
   
   async fetchAllCompanyMovies(tmdbId) {
     console.log(`Starting company movies fetch for company ${tmdbId}`);
@@ -553,9 +898,9 @@ setupStudioProfileImage(person) {
     
     // If we got very few results (indicating API bug), try the discover endpoint
     if (standardResults.length <= 20) {
-      console.log(`Standard endpoint returned only ${standardResults.length} movies, trying discover endpoint as fallback`);
+      console.log(`Standard endpoint returned only ${standardResults.length} movies, trying discover endpoint for complete filmography`);
       if (loadingElement) {
-        loadingElement.textContent = `Found ${standardResults.length} movies via standard search, trying enhanced search...`;
+        loadingElement.textContent = `Found ${standardResults.length} movies via standard search, searching for complete filmography...`;
       }
       let discoverResults = await this.tryDiscoverCompanyMovies(tmdbId);
       
@@ -563,7 +908,7 @@ setupStudioProfileImage(person) {
       if (discoverResults.length > standardResults.length) {
         console.log(`Discover endpoint found ${discoverResults.length} movies vs ${standardResults.length} from standard endpoint - using discover results`);
         if (loadingElement) {
-          loadingElement.textContent = `Enhanced search found ${discoverResults.length} movies! Finalizing...`;
+          loadingElement.textContent = `Complete search found ${discoverResults.length} movies! Finalizing...`;
         }
         return discoverResults;
       }
@@ -580,10 +925,10 @@ setupStudioProfileImage(person) {
     const seenMovieIds = new Set();
     let currentPage = 1;
     let consecutiveEmptyPages = 0;
-    const maxPages = 5; // Limit standard endpoint to 5 pages since it's buggy
+    // Remove page limit - let it fetch all pages for complete studio filmography
     
     try {
-      while (currentPage <= maxPages && consecutiveEmptyPages < 3) {
+      while (consecutiveEmptyPages < 3) {
         console.log(`Trying standard endpoint page ${currentPage} for company ${tmdbId}`);
         
         const response = await this.smartFetch({
@@ -675,16 +1020,12 @@ setupStudioProfileImage(person) {
         // Update loading message
         const loadingElement = document.getElementById('loadingFilmography');
         if (loadingElement) {
-          loadingElement.textContent = `Loading filmography from TMDb... (${allMovies.length} movies found via discover, page ${currentPage} of ${totalPages})`;
+          loadingElement.textContent = `Loading complete filmography... (${allMovies.length} movies found so far, page ${currentPage} of ${totalPages})`;
         }
         
         currentPage++;
         
-        // Safety limit for discover endpoint
-        if (currentPage > 100) {
-          console.warn('Reached safety limit for discover endpoint');
-          break;
-        }
+        // Continue until we get all pages - no artificial limits for studios
         
       } while (currentPage <= totalPages && consecutiveErrors < 3);
       
@@ -1235,16 +1576,17 @@ setupStudioProfileImage(person) {
       </div>
     `;
     
-    // Make card clickable to open Letterboxd
+    // Make card clickable to open movie page
     card.addEventListener('click', () => {
-      // Use the search-based URL generation (more reliable)
-      const letterboxdUrl = this.generateLetterboxdFilmUrl(movie.title, movie.release_date);
+      // Navigate to movie page with movie ID and return URL
+      const currentUrl = window.location.href;
+      const moviePageUrl = `movie.html?id=${movie.id}&return=${encodeURIComponent(currentUrl)}`;
       
-      // Open in new tab
-      window.open(letterboxdUrl, '_blank');
+      // Navigate to movie page
+      window.location.href = moviePageUrl;
       
-      // Log the attempt for debugging
-      console.log(`Searching Letterboxd for: ${movie.title} (${year}) -> ${letterboxdUrl}`);
+      // Log the navigation for debugging
+      console.log(`Navigating to movie page for: ${movie.title} (${year}) -> ${moviePageUrl}`);
     });
     
     return card;

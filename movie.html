@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Movie - MyFilmPeople</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=PT+Sans:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/styles.css">
+    <link rel="stylesheet" href="assets/css/movie.css">
+  </head>
+  <body>
+    <div class="container">
+      <div class="movie-header">
+        <button class="back-button" id="backToProfile">← Back to Profile</button>
+        <h1 id="movieTitle">Movie Title</h1>
+      </div>
+      
+      <div class="movie-content">
+        <div class="movie-info">
+          <div class="movie-poster-container">
+            <img id="moviePoster" src="" alt="Movie Poster" class="movie-poster-image">
+          </div>
+          
+          <div class="movie-details">
+            <h2 id="movieFullTitle">Full Movie Title</h2>
+            <p class="movie-year" id="movieYear">Release Year</p>
+            <p class="movie-director" id="movieDirector">Director</p>
+            <div class="movie-ratings" id="movieRatings">
+              <span class="rating-tmdb" id="tmdbRating">--</span>
+            </div>
+            
+            <div class="movie-actions">
+              <button class="letterboxd-button" id="openLetterboxd">
+                Open in Letterboxd
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <div class="movie-synopsis" id="movieSynopsis">
+          <p id="synopsisText">Loading synopsis...</p>
+          <button class="synopsis-toggle-btn hidden" id="synopsisToggleBtn">Read more</button>
+        </div>
+        
+        <div class="credits-section">
+          <div class="credits-tabs">
+            <button class="credits-tab active" data-tab="cast">Cast</button>
+            <button class="credits-tab" data-tab="crew">Crew</button>
+            <button class="credits-tab" data-tab="studios">Studios</button>
+          </div>
+          
+          <div class="credits-content">
+            <div class="cast-section" id="castSection">
+              <div class="loading-message" id="loadingCast">
+                Loading cast...
+              </div>
+              <div class="cast-list" id="castList">
+                <!-- Cast will be populated by JavaScript -->
+              </div>
+            </div>
+            
+            <div class="crew-section hidden" id="crewSection">
+              <div class="loading-message" id="loadingCrew">
+                Loading crew...
+              </div>
+              <div class="crew-list" id="crewList">
+                <!-- Crew will be populated by JavaScript -->
+              </div>
+            </div>
+            
+            <div class="studios-section hidden" id="studiosSection">
+              <div class="loading-message" id="loadingStudios">
+                Loading studios...
+              </div>
+              <div class="studios-list" id="studiosList">
+                <!-- Studios will be populated by JavaScript -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer class="app-footer">
+      <p>© 2025 MyFilmPeople. Film data from TMDb. Made with ❤️ for film lovers and letterboxd users</p>
+    </footer>
+
+    <script src="assets/js/movie.js"></script>
+  </body>
+</html>

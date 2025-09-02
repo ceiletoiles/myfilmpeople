@@ -171,6 +171,55 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
+/* Company/Studio logo styling - maintains natural aspect ratio */
+.profile-large-image.company-logo {
+  width: auto;
+  height: auto;
+  max-width: 300px;
+  max-height: 200px;
+  object-fit: contain;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 20px;
+}
+
+/* Studio profile layout - responsive */
+.profile-info.studio-layout {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 30px;
+}
+
+/* Desktop/wider screens - horizontal layout for studios */
+@media (min-width: 768px) {
+  .profile-info.studio-layout {
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: 40px;
+  }
+  
+  .studio-layout .profile-image-container {
+    flex-shrink: 0;
+  }
+  
+  .studio-layout .profile-details {
+    flex: 1;
+    text-align: left;
+  }
+}
+
+/* Mobile/narrow screens - vertical centered layout for studios */
+@media (max-width: 767px) {
+  .profile-info.studio-layout {
+    text-align: center;
+  }
+  
+  .studio-layout .profile-details {
+    text-align: center;
+  }
+}
+
 /* Profile Details */
 .profile-details h2 {
   color: #ff8000;
