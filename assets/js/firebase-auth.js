@@ -21,7 +21,9 @@ import {
   addDoc,
   getDocs,
   updateDoc,
-  deleteDoc
+  deleteDoc,
+  query,
+  where
 } from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js';
 
 class FirebaseAuthManager {
@@ -67,11 +69,9 @@ class FirebaseAuthManager {
       onAuthStateChanged(this.auth, (user) => {
         this.user = user;
         if (user) {
-          console.log('✅ User signed in:', user.email);
-          // Don't immediately handle sign in - let explicit login handle it
-          if (!this.isHandlingSignIn) {
-            this.handleUserSignedIn(user);
-          }
+          console.log('✅ User authenticated:', user.email);
+          // Always handle sign in for data loading (even on page reload)
+          this.handleUserSignedIn(user);
         } else {
           console.log('📤 User signed out');
           this.handleUserSignedOut();
@@ -308,7 +308,39 @@ class FirebaseAuthManager {
     if (!this.user) return;
     
     try {
+      console.log('☁️ Saving to Firebase:', person.name, 'Type:', person.role, 'TMDB:', person.tmdbId);
+      
       const userPeopleRef = collection(this.db, 'users', this.user.uid, 'people');
+      
+      // Check for existing duplicate before adding (TMDB ID + role check)
+      if (!person.firestoreId && person.tmdbId) {
+        const duplicateQuery = query(
+          userPeopleRef,
+          where('tmdbId', '==', person.tmdbId),
+          where('role', '==', person.role)
+        );
+        
+        const duplicateSnapshot = await getDocs(duplicateQuery);
+        if (!duplicateSnapshot.empty) {
+          console.log('🔄 Existing person found in Firebase, updating:', person.name, 'TMDB:', person.tmdbId, 'Role:', person.role);
+          
+          // Update the existing document instead of skipping
+          const existingDoc = duplicateSnapshot.docs[0];
+          await updateDoc(existingDoc.ref, {
+            ...person,
+            updatedAt: new Date().toISOString(),
+            // Preserve the original creation info
+            originalLocalId: person.id,
+            firestoreId: existingDoc.id
+          });
+          
+          // Update local person with Firestore ID
+          person.firestoreId = existingDoc.id;
+          
+          console.log('✅ Updated existing Firebase document:', person.name);
+          return; // Exit after successful update
+        }
+      }
       
       if (person.firestoreId) {
         // Existing cloud person - update using Firestore ID
@@ -317,37 +349,63 @@ class FirebaseAuthManager {
           ...person,
           updatedAt: new Date().toISOString()
         });
-        console.log('✅ Person updated in cloud:', person.name);
+        console.log('✅ Updated in Firebase:', person.name);
       } else {
         // New person - add to cloud
+        console.log('➕ Adding new person to Firebase:', person.name);
+        
         const docRef = await addDoc(userPeopleRef, {
           ...person,
-          originalLocalId: person.id, // Save the original local ID
-          createdAt: new Date().toISOString()
+          originalLocalId: person.id,
+          createdAt: new Date().toISOString(),
+          // Ensure required fields are present
+          name: person.name,
+          role: person.role,
+          tmdbId: person.tmdbId || null,
+          letterboxdUrl: person.letterboxdUrl || '',
+          profilePicture: person.profilePicture || '',
+          notes: person.notes || ''
         });
+        
+        console.log('✅ Successfully added to Firebase with ID:', docRef.id);
         
         // Update local data with Firestore ID
         person.firestoreId = docRef.id;
         
-        // Find and update the person in both UI and database arrays
-        const personIndex = window.uiManager.people.findIndex(p => p.id === person.id);
-        if (personIndex !== -1) {
-          window.uiManager.people[personIndex] = person;
-          window.uiManager.savePeopleData();
+        // Verify the save by reading it back
+        setTimeout(async () => {
+          try {
+            const verifyDoc = await getDoc(docRef);
+            if (verifyDoc.exists()) {
+              console.log('✅ Firebase save verified:', person.name);
+            } else {
+              console.error('❌ Firebase save verification failed:', person.name);
+            }
+          } catch (verifyError) {
+            console.error('❌ Firebase verification error:', verifyError);
+          }
+        }, 1000);
+        
+        // Update UI and database with Firestore ID
+        if (window.uiManager) {
+          const personIndex = window.uiManager.people.findIndex(p => p.id === person.id);
+          if (personIndex !== -1) {
+            window.uiManager.people[personIndex] = person;
+          }
         }
         
-        // Also update the main database
-        const dbPersonIndex = window.db.people.findIndex(p => p.id === person.id);
-        if (dbPersonIndex !== -1) {
-          window.db.people[dbPersonIndex] = person;
-          window.db.saveToStorage();
+        if (window.db) {
+          const dbPersonIndex = window.db.people.findIndex(p => p.id === person.id);
+          if (dbPersonIndex !== -1) {
+            window.db.people[dbPersonIndex] = person;
+          }
         }
         
-        console.log('✅ Person added to cloud with Firestore ID:', person.name, docRef.id);
+        console.log('✅ Added to Firebase:', person.name, 'ID:', docRef.id);
       }
       
     } catch (error) {
-      console.log('Error saving person to cloud:', error);
+      console.error('❌ Error saving to Firebase:', error);
     }
   }
   
@@ -359,104 +417,59 @@ class FirebaseAuthManager {
     }
     
     try {
-      console.log('🗑️ Starting STRICT cloud deletion by TMDB ID:', {
-        name: personData.name,
-        role: personData.role,
-        tmdbId: personData.tmdbId,
-        localId: personData.id,
-        firestoreId: personData.firestoreId
-      });
-      
-      // Set flag to prevent automatic cloud reloading during deletion
-      this.isDeletingFromCloud = true;
+      console.log('🗑️ Firebase deletion for:', personData.name, 'Type:', personData.role);
       
       const userDoc = doc(this.db, 'users', this.user.uid);
       const peopleCollection = collection(userDoc, 'people');
-      let deletedCount = 0;
       
-      // Strategy 1: If we have a Firestore ID, use it directly
-      if (personData.firestoreId) {
-        console.log('🗑️ Deleting by Firestore ID:', personData.firestoreId);
-        const personDoc = doc(this.db, 'users', this.user.uid, 'people', personData.firestoreId);
-        await deleteDoc(personDoc);
-        deletedCount++;
-        console.log('✅ Person deleted from cloud using Firestore ID');
-      }
-      
-      // Strategy 2: Search and delete by TMDB ID (for companies and people)
+      // Build precise query - TMDB ID + role to distinguish person vs company
+      let deleteQuery;
       if (personData.tmdbId) {
-        console.log('🔍 Searching for ALL matches by TMDB ID:', personData.tmdbId);
-        
-        const tmdbQuery = query(
+        console.log('🔍 Deleting by TMDB ID:', personData.tmdbId, 'Role:', personData.role);
+        deleteQuery = query(
           peopleCollection,
-          where('tmdbId', '==', personData.tmdbId)
-          // Note: Removed role filter to catch companies that might have different role representations
+          where('tmdbId', '==', personData.tmdbId),
+          where('role', '==', personData.role) // CRITICAL: Include role to distinguish person/company
         );
-        
-        const tmdbSnapshot = await getDocs(tmdbQuery);
-        
-        if (!tmdbSnapshot.empty) {
-          console.log(`🔍 Found ${tmdbSnapshot.docs.length} documents with TMDB ID ${personData.tmdbId}`);
-          
-          const deletePromises = tmdbSnapshot.docs.map(async (docSnap) => {
-            const docData = docSnap.data();
-            console.log('🗑️ Deleting TMDB match:', {
-              docId: docSnap.id,
-              name: docData.name,
-              role: docData.role,
-              tmdbId: docData.tmdbId
-            });
-            await deleteDoc(docSnap.ref);
-            return 1;
-          });
-          
-          const results = await Promise.all(deletePromises);
-          deletedCount += results.length;
-          console.log(`✅ Deleted ${results.length} documents by TMDB ID`);
-        }
+      } else {
+        console.log('🔍 Deleting by name + role:', personData.name, personData.role);
+        deleteQuery = query(
+          peopleCollection, 
+          where('name', '==', personData.name),
+          where('role', '==', personData.role)
+        );
       }
       
-      // Strategy 3: Search and delete by name + role (comprehensive cleanup)
-      console.log('🔍 Additional search by name + role for comprehensive cleanup');
-      const nameQuery = query(
-        peopleCollection, 
-        where('name', '==', personData.name),
-        where('role', '==', personData.role)
-      );
+      const snapshot = await getDocs(deleteQuery);
       
-      const nameSnapshot = await getDocs(nameQuery);
-      
-      if (!nameSnapshot.empty) {
-        console.log(`🔍 Found ${nameSnapshot.docs.length} additional documents by name+role`);
+      if (!snapshot.empty) {
+        console.log(`🎯 Found ${snapshot.docs.length} exact matches for deletion`);
         
-        const deletePromises = nameSnapshot.docs.map(async (docSnap) => {
-          const docData = docSnap.data();
-          console.log('🗑️ Deleting name+role match:', {
-            docId: docSnap.id,
-            name: docData.name,
-            role: docData.role,
-            tmdbId: docData.tmdbId
-          });
-          await deleteDoc(docSnap.ref);
+        if (snapshot.docs.length > 1) {
+          console.warn(`⚠️ DUPLICATE DETECTED: Found ${snapshot.docs.length} copies of the same person in Firebase!`);
+          console.warn('⚠️ This explains why multiple profiles disappear. Cleaning up duplicates...');
+        }
+        
+        // Delete matching documents
+        const deletePromises = snapshot.docs.map(async (docSnapshot) => {
+          const data = docSnapshot.data();
+          console.log(`🗑️ Deleting: ${data.name} (${data.role}) TMDB:${data.tmdbId}`);
+          await deleteDoc(docSnapshot.ref);
           return 1;
         });
         
-        const results = await Promise.all(deletePromises);
-        deletedCount += results.length;
-        console.log(`✅ Deleted ${results.length} additional documents by name+role`);
+        await Promise.all(deletePromises);
+        console.log(`✅ Deleted ${snapshot.docs.length} Firebase documents${snapshot.docs.length > 1 ? ' (removed duplicates)' : ''}`);
+        
+        // Wait for Firebase to sync
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+      } else {
+        console.log('⚠️ No exact matches found in Firebase for:', personData.name, personData.role);
       }
       
-      console.log(`🎯 STRICT DELETION COMPLETE: Deleted ${deletedCount} total documents for ${personData.name}`);
-      
-      // Wait a moment to ensure Firestore sync is complete
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
     } catch (error) {
-      console.error('❌ Error in strict cloud deletion:', error);
-      // Don't throw - local deletion should still work
-    } finally {
-      // Always clear the flag
-      this.isDeletingFromCloud = false;
+      console.error('❌ Firebase deletion error:', error);
     }
   }
 
@@ -718,13 +731,16 @@ class FirebaseAuthManager {
         migrationPrompt.remove();
       }
       
-      // Show welcome message
-      this.showMessage('Welcome! Loading your data...', 'success');
+      // For authenticated users, ALWAYS load from Firebase immediately
+      console.log('🔄 Authenticated user detected, loading from Firebase...');
       
-      // CRITICAL: Delay cloud data loading to prevent overwriting fresh local data
+      // Mobile-specific: Give more time for local data to settle before Firebase overwrites
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      const delay = isMobile ? 2000 : 500; // 2 seconds for mobile, 500ms for desktop
+      
       setTimeout(() => {
         this.loadUserDataFromCloud();
-      }, 1000);
+      }, delay);
       
     } catch (error) {
       console.log('Sign-in handler error:', error);
@@ -735,85 +751,104 @@ class FirebaseAuthManager {
   async loadUserDataFromCloud() {
     if (!this.user || !window.uiManager) return;
     
+    // Prevent loading during deletion
+    if (window.db && window.db.isDeletingPerson) {
+      console.log('🚫 Skipping Firebase load - deletion in progress');
+      return;
+    }
+    
+    // Check for sync lock (prevents Firebase overwrites during manual sync)
+    const syncLock = localStorage.getItem('myfilmpeople_sync_lock');
+    if (syncLock && Date.now() - parseInt(syncLock) < 10000) {
+      console.log('🔒 Sync lock active - preventing Firebase overwrite');
+      return;
+    }
+    
+    // Mobile-specific: Check if user just added data locally
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    if (isMobile && window.uiManager.people && window.uiManager.people.length > 0) {
+      const lastSave = localStorage.getItem('myfilmpeople_last_save');
+      const timeSinceLastSave = lastSave ? Date.now() - parseInt(lastSave) : Infinity;
+      
+      // If user saved data within last 60 seconds, don't overwrite immediately
+      if (timeSinceLastSave < 60000) {
+        console.log('📱 Recent local save detected, preserving local data');
+        console.log('📱 Local data to preserve:', window.uiManager.people.map(p => p.name));
+        console.log('📱 Skipping Firebase load to prevent data loss');
+        
+        // Save local data to Firebase instead of overwriting
+        for (const person of window.uiManager.people) {
+          if (person.isFreshLocal || !person.firestoreId) {
+            console.log('📱 Saving fresh local data to Firebase:', person.name);
+            await this.savePersonToCloud(person);
+          }
+        }
+        return;
+      }
+    }
+    
+    // Prevent too frequent loading
+    if (this.lastCloudLoad && Date.now() - this.lastCloudLoad < 3000) {
+      console.log('⏳ Skipping Firebase load - too recent');
+      return;
+    }
+    
+    this.lastCloudLoad = Date.now();
+    
     try {
-      console.log('🔄 Loading user data from cloud...');
-      
-      // IMPORTANT: Get FRESH local data from localStorage (not from UI state)
-      const freshLocalData = JSON.parse(localStorage.getItem('myfilmpeople_data') || '[]');
-      const currentLocalPeople = freshLocalData.filter(person => person && person.name); // Remove invalid entries
-      const localCount = currentLocalPeople.length;
-      
-      console.log('📱 Fresh local data count:', localCount);
-      console.log('📱 Local people:', currentLocalPeople.map(p => `${p.name} (${p.role})`));
+      console.log('☁️ Loading from Firebase for authenticated user...');
+      console.log('📱 Current local data before Firebase:', window.uiManager.people?.map(p => p.name) || []);
       
       const userPeopleRef = collection(this.db, 'users', this.user.uid, 'people');
       const querySnapshot = await getDocs(userPeopleRef);
       
-      // Convert Firestore docs to array format (app uses arrays)
-      const cloudPeople = [];
-      let nextLocalId = window.db ? window.db.getNextId() : 1; // Get next available local ID
-      
-      querySnapshot.forEach((doc) => {
-        const docData = doc.data();
-        const person = { 
-          id: docData.originalLocalId || nextLocalId++, // Use original local ID or assign new one
-          ...docData,
-          firestoreId: doc.id // Keep track of Firestore document ID for future operations
-        };
-        
-        // Skip if this person was recently deleted locally
-        if (window.db && window.db.wasRecentlyDeleted && window.db.wasRecentlyDeleted(person)) {
-          console.log(`⏭️ Skipping recently deleted cloud person: ${person.name} (${person.role})`);
-          return;
-        }
-        
-        cloudPeople.push(person);
-      });
-      
-      const cloudCount = cloudPeople.length;
-      
-      console.log(`📊 Found ${cloudCount} people in cloud, ${localCount} locally`);
-      
-      if (cloudCount > 0) {
-        // Deduplicate cloud data first
-        const deduplicatedCloudPeople = this.deduplicateArray(cloudPeople);
-        console.log(`🧹 Deduplicated cloud data: ${cloudPeople.length} → ${deduplicatedCloudPeople.length}`);
-        
-        // User has cloud data - decide merge strategy
-        if (localCount > 0) {
-          // ALWAYS merge if there's local data (even if we've loaded cloud before)
-          console.log('🔄 Merging local data with cloud data...');
-          console.log(`📊 Before merge: ${deduplicatedCloudPeople.length} cloud + ${localCount} local`);
-          await this.mergeLocalAndCloudData(deduplicatedCloudPeople, currentLocalPeople);
-        } else {
-          // Only cloud data, no local data
-          console.log('☁️ Loading cloud data only (no local data)');
-          window.uiManager.people = deduplicatedCloudPeople;
-          window.uiManager.savePeopleData();
-          
-          // Force immediate UI update with multiple approaches
-          this.forceUIUpdate();
-          
-          this.showMessage(`Loaded ${deduplicatedCloudPeople.length} people from cloud!`, 'success');
-        }
-      } else if (localCount > 0) {
-        // No cloud data but has local data - migrate it
-        console.log('📱 Migrating local data to cloud');
-        this.migrateLocalStorageData();
-      } else {
-        // No data anywhere
-        console.log('🆕 No data found anywhere');
+      if (querySnapshot.empty) {
+        console.log('📝 No Firebase data found - fresh account');
+        // For authenticated users with no data, start with empty array
         window.uiManager.people = [];
-        
-        // Force immediate UI update
+        if (window.db) {
+          window.db.people = [];
+        }
         this.forceUIUpdate();
-        
-        this.showMessage('Account ready! Start adding people.', 'success');
+        return;
       }
       
+      // Get Firebase data
+      const firebasePeople = [];
+      querySnapshot.forEach((doc) => {
+        const docData = doc.data();
+        firebasePeople.push({ 
+          ...docData,
+          id: docData.originalLocalId || Date.now() + Math.random(),
+          firestoreId: doc.id
+        });
+      });
+      
+      console.log(`📊 Found ${firebasePeople.length} profiles in Firebase`);
+      
+      // Remove duplicates (TMDB ID + role based)
+      const deduplicatedPeople = this.deduplicateArray(firebasePeople);
+      console.log(`🧹 After deduplication: ${firebasePeople.length} → ${deduplicatedPeople.length}`);
+      
+      // For authenticated users, Firebase is the source of truth
+      console.log('� Updating local data from Firebase (authenticated user)');
+      window.uiManager.people = deduplicatedPeople;
+      
+      if (window.db) {
+        window.db.people = deduplicatedPeople;
+        // Mobile-specific: Trigger save to update all backup storages with Firebase data
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        if (isMobile) {
+          console.log('📱 Updating mobile backups with Firebase data');
+        }
+        window.db.saveToStorage();
+      }
+      
+      this.forceUIUpdate();
+      console.log(`✅ Loaded ${deduplicatedPeople.length} profiles from Firebase`);
+      
     } catch (error) {
-      console.log('Error loading cloud data:', error);
-      this.showMessage('Using local data only', 'info');
+      console.error('❌ Error loading from Firebase:', error);
     }
   }
   
@@ -832,7 +867,7 @@ class FirebaseAuthManager {
     }
   }
 
-  // Deduplicate array of people by name + role
+  // Deduplicate array of people by TMDB ID + role (person vs company distinction)
   deduplicateArray(people) {
     const seen = new Set();
     const tmdbSeen = new Set();
@@ -841,20 +876,20 @@ class FirebaseAuthManager {
     for (const person of people) {
       let isDuplicate = false;
       
-      // Primary deduplication: TMDB ID + role
+      // Primary deduplication: TMDB ID + role (critical for person vs company)
       if (person.tmdbId) {
-        const tmdbKey = `${person.tmdbId}|${person.role?.toLowerCase().trim()}`;
+        const tmdbKey = `tmdb:${person.tmdbId}|role:${person.role?.toLowerCase().trim()}`;
         if (tmdbSeen.has(tmdbKey)) {
-          console.log(`🗑️ Removing TMDB duplicate: ${person.name} (TMDB: ${person.tmdbId}, ${person.role})`);
+          console.log(`🗑️ Removing TMDB duplicate: ${person.name} (TMDB:${person.tmdbId}, Role:${person.role})`);
           isDuplicate = true;
         } else {
           tmdbSeen.add(tmdbKey);
         }
       }
       
-      // Fallback deduplication: name + role
+      // Fallback deduplication: name + role (for entries without TMDB ID)
       if (!isDuplicate) {
-        const nameKey = `${person.name?.toLowerCase().trim()}|${person.role?.toLowerCase().trim()}`;
+        const nameKey = `name:${person.name?.toLowerCase().trim()}|role:${person.role?.toLowerCase().trim()}`;
         if (seen.has(nameKey)) {
           console.log(`🗑️ Removing name duplicate: ${person.name} (${person.role})`);
           isDuplicate = true;
@@ -868,6 +903,7 @@ class FirebaseAuthManager {
       }
     }
     
+    console.log(`🧹 Deduplication: ${people.length} → ${deduplicated.length} (removed ${people.length - deduplicated.length} duplicates)`);
     return deduplicated;
   }
   

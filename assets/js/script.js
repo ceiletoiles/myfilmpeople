@@ -139,22 +139,27 @@ class PeopleDatabase {
         console.log('📱 Found localStorage data:', parsedData.length, 'people');
         
         // Verify data integrity and filter out recently deleted items
+        console.log('🔍 Checking data integrity for', parsedData.length, 'people:', parsedData.map(p => p.name));
+        
         const validData = parsedData.filter(person => {
           if (!person || !person.name || !person.role) {
+            console.log('❌ Invalid person data:', person);
             return false;
           }
           
           // Check if this person was recently deleted
           if (this.wasRecentlyDeleted && this.wasRecentlyDeleted(person)) {
-            console.log('🚫 Filtering out recently deleted person:', person.name);
+            console.log('🚫 Filtering out recently deleted person:', person.name, 'TMDB:', person.tmdbId, 'Role:', person.role);
             return false;
           }
           
+          console.log('✅ Person passed validation:', person.name);
           return true;
         });
         
         if (validData.length !== parsedData.length) {
           console.log('🔧 Cleaned data:', parsedData.length, '→', validData.length, '(removed invalid/deleted entries)');
+          console.log('🔧 Removed people:', parsedData.filter(p => !validData.includes(p)).map(p => p.name));
           this.people = validData;
           this.saveToStorage(); // Save cleaned data
         } else {
@@ -170,6 +175,40 @@ class PeopleDatabase {
         }
         
         return validData;
+      }
+      
+      // Mobile detection for enhanced recovery
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      console.log('📱 Device type:', isMobile ? 'Mobile' : 'Desktop');
+      
+      // Try mobile-specific backup if on mobile
+      if (isMobile) {
+        const mobileBackup = localStorage.getItem('myfilmpeople_mobile_backup');
+        if (mobileBackup) {
+          try {
+            const backupData = JSON.parse(mobileBackup);
+            if (backupData.data && Array.isArray(backupData.data)) {
+              console.log('📱 Recovered from mobile backup:', backupData.data.length, 'people');
+              localStorage.setItem('myfilmpeople_data', JSON.stringify(backupData.data));
+              return backupData.data;
+            }
+          } catch (parseError) {
+            console.warn('⚠️ Mobile backup corrupted, trying sessionStorage...');
+          }
+        }
+        
+        // Try mobile session backup
+        const mobileSession = sessionStorage.getItem('myfilmpeople_mobile_session');
+        if (mobileSession) {
+          try {
+            const sessionData = JSON.parse(mobileSession);
+            console.log('📱 Recovered from mobile session backup:', sessionData.length, 'people');
+            localStorage.setItem('myfilmpeople_data', mobileSession);
+            return sessionData;
+          } catch (parseError) {
+            console.warn('⚠️ Mobile session backup corrupted');
+          }
+        }
       }
       
       // Try fallback from sessionStorage
@@ -197,22 +236,38 @@ class PeopleDatabase {
   
   // Initialize data after auth check
   initializeData() {
-    // Don't reload if we already have data and no major change occurred
-    if (this.people.length > 0 && !this.needsDataReload) {
-      console.log('📊 Keeping existing data - no reload needed:', this.people.length, 'people');
-      this.nextId = this.getNextId();
-      return;
-    }
+    // ALWAYS try to load existing data first
+    console.log('🔄 Initializing data...');
+    console.log('📱 Device type:', /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ? 'Mobile' : 'Desktop');
+    console.log('🔐 Auth status:', localStorage.getItem('firebase_auth_user') === 'true' ? 'Logged in' : 'Not logged in');
     
-    // Only reload if we have no data or explicitly need to reload
     const loadedData = this.loadFromStorage();
     if (loadedData && loadedData.length > 0) {
       this.people = loadedData;
+      console.log('📊 Loaded', this.people.length, 'people from storage');
+      console.log('👥 People loaded:', this.people.map(p => `${p.name} (${p.role})`));
+    } else {
+      // Only use default data for non-logged-in users with no data
+      const isLoggedIn = localStorage.getItem('firebase_auth_user') === 'true';
+      if (!isLoggedIn) {
+        console.log('📝 No local data found, using default data');
+        this.people = this.getDefaultPeople();
+      } else {
+        console.log('🔒 Logged in user with no local data - waiting for Firebase');
+        this.people = [];
+      }
     }
     
     this.nextId = this.getNextId();
     this.needsDataReload = false; // Reset the flag
-    console.log('📊 Loaded', this.people.length, 'people from localStorage');
+    
+    // Debug: Log current state
+    console.log('✅ Data initialization complete:', {
+      peopleCount: this.people.length,
+      nextId: this.nextId,
+      isLoggedIn: localStorage.getItem('firebase_auth_user') === 'true',
+      peopleNames: this.people.map(p => p.name)
+    });
   }
   
   saveToStorage() {
@@ -225,6 +280,33 @@ class PeopleDatabase {
       
       localStorage.setItem('myfilmpeople_data', JSON.stringify(this.people));
       localStorage.setItem('myfilmpeople_meta', JSON.stringify(dataToSave));
+      
+      // Mobile-specific: Enhanced backup strategies
+      try {
+        // Always save to sessionStorage as backup
+        sessionStorage.setItem('myfilmpeople_backup', JSON.stringify(this.people));
+        
+        // Save timestamp for recovery tracking
+        localStorage.setItem('myfilmpeople_last_save', Date.now().toString());
+        
+        // Mobile detection and additional persistence
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        if (isMobile) {
+          // Additional mobile backup - save as separate key
+          localStorage.setItem('myfilmpeople_mobile_backup', JSON.stringify({
+            data: this.people,
+            timestamp: Date.now(),
+            userAgent: navigator.userAgent
+          }));
+          
+          // Save to multiple sessionStorage keys for redundancy
+          sessionStorage.setItem('myfilmpeople_mobile_session', JSON.stringify(this.people));
+          console.log('📱 Mobile backup strategies applied');
+        }
+        
+      } catch (backupError) {
+        console.warn('⚠️ Backup save failed:', backupError);
+      }
       
       // Verify save was successful
       const saved = localStorage.getItem('myfilmpeople_data');
@@ -412,6 +494,31 @@ class PeopleDatabase {
 
     this.people.push(person);
     
+    // Mobile-specific: Immediate aggressive saves for data persistence
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    if (isMobile) {
+      console.log('📱 Mobile detected - applying aggressive save strategies');
+      
+      // Immediate multiple saves for mobile reliability
+      try {
+        localStorage.setItem('myfilmpeople_data', JSON.stringify(this.people));
+        sessionStorage.setItem('myfilmpeople_backup', JSON.stringify(this.people));
+        sessionStorage.setItem('myfilmpeople_mobile_session', JSON.stringify(this.people));
+        
+        // Mobile backup with metadata
+        localStorage.setItem('myfilmpeople_mobile_backup', JSON.stringify({
+          data: this.people,
+          timestamp: Date.now(),
+          action: 'add_person',
+          person: person.name
+        }));
+        
+        console.log('📱 Mobile aggressive save completed for:', person.name);
+      } catch (saveError) {
+        console.error('❌ Mobile save failed:', saveError);
+      }
+    }
+    
     // Use enhanced storage to ensure persistence
     this.saveToStorageWithTmdbTracking();
     
@@ -422,14 +529,21 @@ class PeopleDatabase {
     
     // Sync to cloud if user is signed in
     if (window.firebaseAuth && window.firebaseAuth.user) {
-      window.firebaseAuth.savePersonToCloud(person);
+      console.log('☁️ User is signed in, saving to Firebase immediately');
+      window.firebaseAuth.savePersonToCloud(person).then(() => {
+        console.log('✅ Person saved to Firebase:', person.name);
+      }).catch(error => {
+        console.error('❌ Failed to save to Firebase:', error);
+      });
+    } else {
+      console.log('📱 User not signed in, keeping local only');
     }
     
     return person;
   }
   
   deletePerson(id) {
-    console.log('🗑️ Starting STRICT deletion process for local ID:', id);
+    console.log('🗑️ Starting deletion process for local ID:', id);
     
     // Find the person before deletion for cloud sync
     const personToDelete = this.people.find(p => p.id === id);
@@ -438,18 +552,18 @@ class PeopleDatabase {
       return;
     }
     
-    console.log('🗑️ Deleting person:', {
+    console.log('🗑️ Found person to delete:', {
       name: personToDelete.name,
       localId: personToDelete.id,
       tmdbId: personToDelete.tmdbId,
       role: personToDelete.role,
-      isCompany: personToDelete.role === 'studio',
-      firestoreId: personToDelete.firestoreId
+      arrayIndex: this.people.findIndex(p => p.id === id)
     });
     
-    // Validate deletion parameters
-    if (!personToDelete.tmdbId) {
-      console.warn('⚠️ Person missing TMDB ID - deletion may be unreliable');
+    // Double-check we have the right person
+    if (personToDelete.id !== id) {
+      console.error('❌ ID mismatch! Expected:', id, 'Found:', personToDelete.id);
+      return;
     }
     
     // Mark the time of local change for echo detection
@@ -458,43 +572,62 @@ class PeopleDatabase {
     // Set deletion flag to prevent interference
     this.isDeletingPerson = true;
     
-    // Store deletion record BEFORE removing from array (to prevent reappearing)
+    // Store deletion record BEFORE removing from array
     this.recordDeletion(personToDelete);
     
-    // Remove from local data immediately using EXACT ID match
+    // Remove ONLY the person with the exact ID match
     const initialCount = this.people.length;
-    this.people = this.people.filter(p => p.id !== id);
-    const finalCount = this.people.length;
+    const beforeDeletion = this.people.map(p => `${p.name}(${p.id})`);
     
-    if (initialCount === finalCount) {
-      console.error('❌ Person was not removed - ID mismatch!', {
-        targetId: id,
-        availableIds: this.people.map(p => ({ id: p.id, name: p.name, tmdbId: p.tmdbId }))
-      });
-      this.isDeletingPerson = false;
-      return;
+    this.people = this.people.filter(p => p.id !== id);
+    
+    const finalCount = this.people.length;
+    const afterDeletion = this.people.map(p => `${p.name}(${p.id})`);
+    
+    console.log('📊 Deletion result:', {
+      initialCount,
+      finalCount,
+      deletedCount: initialCount - finalCount,
+      beforeDeletion,
+      afterDeletion
+    });
+    
+    if (initialCount - finalCount !== 1) {
+      if (window.firebaseAuth && window.firebaseAuth.user) {
+        console.warn('⚠️ Multiple deletions detected - likely Firebase duplicates were cleaned up', {
+          expected: 1,
+          actual: initialCount - finalCount,
+          targetId: id,
+          targetName: personToDelete.name,
+          note: 'Firebase may have removed duplicate entries automatically'
+        });
+      } else {
+        console.error('❌ Wrong number of items deleted!', {
+          expected: 1,
+          actual: initialCount - finalCount,
+          targetId: id,
+          targetName: personToDelete.name
+        });
+      }
     }
     
-    console.log('✅ Person removed from local array:', initialCount, '→', finalCount);
-    
-    // Save to localStorage immediately with TMDB ID tracking
+    // Save to storage immediately
     this.saveToStorageWithTmdbTracking();
     
     // Clear deletion flag
     this.isDeletingPerson = false;
     
-    // Sync deletion to cloud if user is signed in (but don't wait for it)
+    // Sync deletion to cloud if user is signed in
     if (window.firebaseAuth && window.firebaseAuth.user) {
-      console.log('☁️ Starting strict cloud deletion...');
-      // Use longer timeout to ensure local operations are fully complete
+      console.log('☁️ Starting cloud deletion...');
       setTimeout(() => {
         window.firebaseAuth.deletePersonFromCloudByTmdbId(personToDelete).catch(error => {
-          console.error('❌ Cloud deletion failed (but local deletion succeeded):', error);
+          console.error('❌ Cloud deletion failed:', error);
         });
-      }, 200); // Increased delay for strict separation
+      }, 200);
     }
     
-    console.log('✅ STRICT deletion completed locally:', personToDelete.name);
+    console.log('✅ Local deletion completed:', personToDelete.name);
   }
   
   updatePerson(id, updates) {
@@ -544,6 +677,45 @@ document.addEventListener('DOMContentLoaded', () => {
   window.uiManager.initializeData(); // Load local data immediately
   console.log('✅ UI Manager initialized with local data');
   
+  // Mobile-specific: Additional data recovery checks
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  if (isMobile) {
+    console.log('📱 Mobile detected - checking for data recovery needs...');
+    
+    // If we have very little data but backups exist, try recovery
+    if (window.uiManager.people.length === 0) {
+      console.log('📱 No data found on mobile, attempting recovery...');
+      
+      // Try recovery from various backup sources
+      const backupSources = [
+        'myfilmpeople_mobile_backup',
+        'myfilmpeople_pre_firebase_backup',
+        'myfilmpeople_mobile_session'
+      ];
+      
+      for (const source of backupSources) {
+        try {
+          const backupData = localStorage.getItem(source) || sessionStorage.getItem(source);
+          if (backupData) {
+            const parsed = JSON.parse(backupData);
+            const peopleData = parsed.data || parsed;
+            
+            if (Array.isArray(peopleData) && peopleData.length > 0) {
+              console.log(`📱 Recovered ${peopleData.length} people from ${source}`);
+              window.uiManager.people = peopleData;
+              window.db.people = peopleData;
+              window.uiManager.savePeopleData();
+              window.uiManager.renderAllPeople();
+              break;
+            }
+          }
+        } catch (recoveryError) {
+          console.warn(`⚠️ Failed to recover from ${source}:`, recoveryError);
+        }
+      }
+    }
+  }
+  
   // Setup basic auth UI and check for existing auth
   setupBasicAuthUI();
   
@@ -561,6 +733,285 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   
   console.log('✅ App ready!');
+  
+  // Add global debug function for mobile debugging
+  window.debugMyFilmPeople = function() {
+    console.log('🔍 DEBUG INFO:');
+    console.log('Device:', /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ? 'Mobile' : 'Desktop');
+    console.log('Auth status:', localStorage.getItem('firebase_auth_user') === 'true' ? 'Logged in' : 'Not logged in');
+    console.log('Current people count:', window.uiManager?.people?.length || 0);
+    console.log('People names:', window.uiManager?.people?.map(p => p.name) || []);
+    console.log('localStorage data:', localStorage.getItem('myfilmpeople_data') ? JSON.parse(localStorage.getItem('myfilmpeople_data')).length : 0);
+    console.log('sessionStorage backup:', sessionStorage.getItem('myfilmpeople_backup') ? JSON.parse(sessionStorage.getItem('myfilmpeople_backup')).length : 0);
+    console.log('Mobile backup:', localStorage.getItem('myfilmpeople_mobile_backup') ? 'exists' : 'none');
+    console.log('Last save time:', localStorage.getItem('myfilmpeople_last_save'));
+  };
+  
+  // Add global sync function to fix data inconsistencies
+  window.syncMyFilmPeople = function() {
+    console.log('🔄 FORCING DATA SYNC...');
+    
+    // Block Firebase from overwriting during sync
+    localStorage.setItem('myfilmpeople_sync_lock', Date.now().toString());
+    
+    // Get localStorage data
+    const localStorageData = localStorage.getItem('myfilmpeople_data');
+    if (localStorageData) {
+      const parsedData = JSON.parse(localStorageData);
+      console.log('📱 localStorage has:', parsedData.map(p => p.name));
+      
+      // Force update UI to match localStorage
+      window.uiManager.people = parsedData;
+      window.db.people = parsedData;
+      
+      // Mark as recent activity to prevent Firebase overwrites
+      localStorage.setItem('myfilmpeople_last_save', Date.now().toString());
+      
+      // Re-render everything
+      window.uiManager.renderAllPeople();
+      
+      console.log('✅ UI synced with localStorage');
+      console.log('✅ UI now shows:', window.uiManager.people.map(p => p.name));
+      
+      // Remove sync lock after 5 seconds
+      setTimeout(() => {
+        localStorage.removeItem('myfilmpeople_sync_lock');
+      }, 5000);
+    } else {
+      console.log('❌ No localStorage data found');
+    }
+  };
+  
+  // Add global cleanup function for duplicate removal
+  window.cleanupMyFilmPeople = function() {
+    console.log('🧹 CLEANING UP DUPLICATES...');
+    
+    if (window.firebaseAuth && window.firebaseAuth.user) {
+      // For logged-in users, clean Firebase duplicates
+      window.firebaseAuth.cleanupDuplicates();
+    } else {
+      // For local users, clean local duplicates
+      const seen = new Set();
+      const originalCount = window.uiManager.people.length;
+      
+      window.uiManager.people = window.uiManager.people.filter(person => {
+        const key = `${person.name.toLowerCase()}|${person.role}`;
+        if (seen.has(key)) {
+          console.log('🗑️ Removing duplicate:', person.name);
+          return false;
+        }
+        seen.add(key);
+        return true;
+      });
+      
+      const newCount = window.uiManager.people.length;
+      console.log(`🧹 Cleaned ${originalCount - newCount} duplicates`);
+      
+      // Save and render
+      window.uiManager.savePeopleData();
+      window.uiManager.renderAllPeople();
+    }
+  };
+  
+  // Add emergency local mode to stop Firebase interference
+  window.forceLocalMode = function() {
+    console.log('🚨 FORCING LOCAL MODE - STOPPING FIREBASE');
+    
+    // Block all Firebase operations
+    localStorage.setItem('myfilmpeople_force_local', 'true');
+    localStorage.setItem('myfilmpeople_sync_lock', Date.now().toString());
+    
+    // Disconnect Firebase if possible
+    if (window.firebaseAuth) {
+      console.log('🔌 Disconnecting Firebase to prevent data loss');
+      // Temporarily disable Firebase operations
+      window.firebaseAuth.loadUserDataFromCloud = function() {
+        console.log('🚫 Firebase load blocked - in local mode');
+      };
+    }
+    
+    // Restore from localStorage
+    const localData = localStorage.getItem('myfilmpeople_data');
+    if (localData) {
+      const parsedData = JSON.parse(localData);
+      window.uiManager.people = parsedData;
+      window.db.people = parsedData;
+      window.uiManager.renderAllPeople();
+      console.log('✅ Restored local data:', parsedData.map(p => p.name));
+    }
+    
+    console.log('⚠️ Firebase operations disabled. Use restoreFirebase() to re-enable.');
+  };
+  
+  // Function to restore Firebase operations
+  window.restoreFirebase = function() {
+    console.log('🔄 Restoring Firebase operations...');
+    localStorage.removeItem('myfilmpeople_force_local');
+    localStorage.removeItem('myfilmpeople_sync_lock');
+    
+    // Reload the page to restore normal Firebase function
+    location.reload();
+  };
+  
+  // Add Firebase-specific debugging
+  window.debugFirebase = async function() {
+    console.log('🔥 FIREBASE DEBUG INFO:');
+    console.log('User authenticated:', !!window.firebaseAuth?.user);
+    console.log('User ID:', window.firebaseAuth?.user?.uid || 'Not logged in');
+    
+    if (window.firebaseAuth?.user) {
+      try {
+        console.log('🔍 Checking Firebase database...');
+        
+        // Use Firebase functions from the auth manager
+        const auth = window.firebaseAuth;
+        const db = auth.db;
+        const user = auth.user;
+        
+        // Construct collection reference
+        const userPeopleRef = db._delegate 
+          ? await import('https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js').then(module => 
+              module.collection(db, 'users', user.uid, 'people'))
+          : null;
+        
+        if (!userPeopleRef) {
+          console.log('📊 Manually checking Firebase collection...');
+          // Alternative: Ask Firebase auth manager to do the check
+          await auth.loadUserDataFromCloud();
+          return;
+        }
+        
+        const { getDocs } = await import('https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js');
+        const snapshot = await getDocs(userPeopleRef);
+        
+        console.log('📊 Firebase documents found:', snapshot.size);
+        
+        const firebaseData = [];
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          firebaseData.push({
+            id: doc.id,
+            name: data.name,
+            role: data.role,
+            tmdbId: data.tmdbId,
+            createdAt: data.createdAt
+          });
+        });
+        
+        console.log('🔥 Firebase people:', firebaseData);
+        console.log('📱 Local UI people:', window.uiManager?.people?.map(p => ({ name: p.name, role: p.role })) || []);
+        
+        // Check for sync issues
+        if (firebaseData.length !== window.uiManager?.people?.length) {
+          console.warn('⚠️ SYNC ISSUE: Firebase has', firebaseData.length, 'but UI has', window.uiManager?.people?.length);
+        }
+        
+      } catch (error) {
+        console.error('❌ Firebase debug error:', error);
+        console.log('🔄 Trying alternative Firebase check...');
+        
+        // Alternative: trigger Firebase load and see what happens
+        if (window.firebaseAuth.loadUserDataFromCloud) {
+          console.log('🔄 Triggering Firebase data load...');
+          await window.firebaseAuth.loadUserDataFromCloud();
+        }
+      }
+    } else {
+      console.log('❌ Not authenticated with Firebase');
+    }
+  };
+  
+  // Add function to force save current UI data to Firebase
+  window.saveAllToFirebase = async function() {
+    if (!window.firebaseAuth?.user) {
+      console.log('❌ Not authenticated');
+      return;
+    }
+    
+    console.log('💾 Forcing save of all UI data to Firebase...');
+    
+    for (const person of window.uiManager.people) {
+      try {
+        await window.firebaseAuth.savePersonToCloud(person);
+        console.log('✅ Saved:', person.name);
+      } catch (error) {
+        console.error('❌ Failed to save:', person.name, error);
+      }
+    }
+    
+    console.log('✅ Finished saving all data to Firebase');
+  };
+  
+  // Add function to force Firebase data refresh
+  window.refreshFromFirebase = async function() {
+    if (!window.firebaseAuth?.user) {
+      console.log('❌ Not authenticated');
+      return;
+    }
+    
+    console.log('🔄 Force refreshing from Firebase...');
+    
+    // Clear protection locks
+    localStorage.removeItem('myfilmpeople_sync_lock');
+    localStorage.removeItem('myfilmpeople_last_save');
+    
+    // Force load from Firebase
+    try {
+      await window.firebaseAuth.loadUserDataFromCloud();
+      console.log('✅ Firebase refresh completed');
+      console.log('📱 Current UI people:', window.uiManager.people.map(p => p.name));
+    } catch (error) {
+      console.error('❌ Firebase refresh failed:', error);
+    }
+  };
+  
+  // Add function to clear deletion records that cause filtering
+  window.clearDeletionRecords = function() {
+    console.log('🧹 Clearing deletion records...');
+    
+    const deletedRecords = localStorage.getItem('myfilmpeople_deleted');
+    if (deletedRecords) {
+      const parsed = JSON.parse(deletedRecords);
+      console.log('🗑️ Found deletion records:', parsed.map(r => `${r.name} (${r.role})`));
+      
+      localStorage.removeItem('myfilmpeople_deleted');
+      console.log('✅ Deletion records cleared');
+      
+      // Reload data without deletion filtering
+      console.log('🔄 Reloading data...');
+      window.db.initializeData();
+      window.uiManager.people = window.db.people;
+      window.uiManager.renderAllPeople();
+      
+      console.log('✅ Data reloaded without deletion filtering');
+      console.log('📱 Current people:', window.uiManager.people.map(p => p.name));
+    } else {
+      console.log('📭 No deletion records found');
+    }
+  };
+  
+  // Mobile-specific: Enhanced data persistence strategies
+  if (isMobile) {
+    // Save when page becomes hidden (common on mobile browsers)
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && window.uiManager?.people?.length > 0) {
+        console.log('📱 Page hidden - emergency mobile save');
+        window.uiManager.savePeopleData();
+        window.db?.saveToStorage();
+      }
+    });
+    
+    // Save on focus loss (when user switches apps)
+    window.addEventListener('blur', () => {
+      if (window.uiManager?.people?.length > 0) {
+        console.log('📱 Window blur - emergency mobile save');
+        window.uiManager.savePeopleData();
+        window.db?.saveToStorage();
+      }
+    });
+    
+    console.log('📱 Mobile-specific event listeners added');
+  }
   
   // Emergency save on page unload for non-logged-in users
   window.addEventListener('beforeunload', () => {
