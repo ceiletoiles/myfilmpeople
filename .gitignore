@@ -1,16 +1,18 @@
 # API Keys and sensitive data
-API Keys
-test-api.html
+config/
+config/*.txt
+config/*.env*
+config/api-keys.txt
+assets/js/config.local.js
 
-# Node modules
-node_modules/
-
-# Environment variables
+# Environment variables (all locations)
 .env
 .env.local
+.env.example
 .env.development.local
 .env.test.local
 .env.production.local
+.env.template
 
 # IDE files
 .vscode/

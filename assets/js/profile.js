@@ -1,6 +1,6 @@
 // TMDb API Configuration with CORS proxy support
 const TMDB_CONFIG = {
-  API_KEY: '5f1ead96e48e2379102c77c2546331a4',
+  API_KEY: CONFIG?.TMDB?.API_KEY || null, // No hardcoded fallback
   BASE_URL: 'https://api.themoviedb.org/3',
   IMAGE_BASE_URL: 'https://image.tmdb.org/t/p/w185',
   IMAGE_BASE_URL_LARGE: 'https://image.tmdb.org/t/p/w500',
@@ -155,9 +155,22 @@ class ProfilePageManager {
       
       // Check for cinematography roles FIRST (before director check)
       // since "Director of Photography" contains "director"
-      if (lowerRole.includes('cinematography') || lowerRole.includes('director of photography') ||
-          lowerRole.includes('camera operator') || lowerRole.includes('steadicam') ||
-          lowerRole.includes('camera technician') || lowerRole.includes('camera')) {
+      if (lowerRole.includes('director of photography') || lowerRole.includes('cinematographer')) {
+        rolePath = 'cinematography';
+      }
+      else if (lowerRole.includes('camera operator')) {
+        rolePath = 'camera-operator';
+      }
+      else if (lowerRole.includes('steadicam')) {
+        rolePath = 'steadicam-operator';
+      }
+      else if (lowerRole.includes('focus puller') || lowerRole.includes('first assistant camera')) {
+        rolePath = 'focus-puller';
+      }
+      else if (lowerRole.includes('second assistant camera') || lowerRole.includes('clapper loader')) {
+        rolePath = 'second-assistant-camera';
+      }
+      else if (lowerRole.includes('cinematography') || lowerRole.includes('camera technician') || lowerRole.includes('camera')) {
         rolePath = 'cinematography';
       }
       // Director roles (but not Director of Photography)
@@ -170,7 +183,19 @@ class ProfilePageManager {
                lowerRole.includes('book') || lowerRole.includes('characters')) {
         rolePath = 'writer';
       }
-      // Producer roles
+      // Producer roles (detailed breakdown)
+      else if (lowerRole.includes('executive producer')) {
+        rolePath = 'executive-producer';
+      }
+      else if (lowerRole.includes('co-producer')) {
+        rolePath = 'co-producer';
+      }
+      else if (lowerRole.includes('associate producer')) {
+        rolePath = 'associate-producer';
+      }
+      else if (lowerRole.includes('line producer')) {
+        rolePath = 'line-producer';
+      }
       else if (lowerRole.includes('producer')) {
         rolePath = 'producer';
       }
@@ -180,8 +205,17 @@ class ProfilePageManager {
                lowerRole.includes('music producer')) {
         rolePath = 'composer';
       }
-      // Editor roles
-      else if (lowerRole.includes('editor') || lowerRole.includes('film editor')) {
+      // Editor roles (detailed breakdown)
+      else if (lowerRole.includes('film editor') || lowerRole.includes('picture editor')) {
+        rolePath = 'editor';
+      }
+      else if (lowerRole.includes('assistant editor')) {
+        rolePath = 'assistant-editor';
+      }
+      else if (lowerRole.includes('colorist') || lowerRole.includes('color correction')) {
+        rolePath = 'colorist';
+      }
+      else if (lowerRole.includes('editor')) {
         rolePath = 'editor';
       }
       // Casting roles
@@ -193,24 +227,110 @@ class ProfilePageManager {
                lowerRole.includes('vfx') || lowerRole.includes('cgi')) {
         rolePath = 'visual-effects';
       }
-      // Sound roles
+      // Sound roles (detailed breakdown)
+      else if (lowerRole.includes('sound designer')) {
+        rolePath = 'sound-designer';
+      }
+      else if (lowerRole.includes('sound mixer') || lowerRole.includes('production sound')) {
+        rolePath = 'sound';
+      }
+      else if (lowerRole.includes('boom operator')) {
+        rolePath = 'boom-operator';
+      }
+      else if (lowerRole.includes('foley')) {
+        rolePath = 'foley';
+      }
+      else if (lowerRole.includes('sound editor')) {
+        rolePath = 'sound-editor';
+      }
+      else if (lowerRole.includes('re-recording mixer')) {
+        rolePath = 're-recording-mixer';
+      }
+      // General sound roles
       else if (lowerRole.includes('sound') || lowerRole.includes('audio')) {
-        rolePath = 'crew';
+        rolePath = 'sound';
       }
       // Art/Production Design roles
-      else if (lowerRole.includes('production design') || lowerRole.includes('art director') ||
-               lowerRole.includes('set decoration') || lowerRole.includes('costume') ||
-               lowerRole.includes('makeup') || lowerRole.includes('hair')) {
-        rolePath = 'crew';
+      else if (lowerRole.includes('production design')) {
+        rolePath = 'production-design';
+      }
+      else if (lowerRole.includes('art director')) {
+        rolePath = 'art';
+      }
+      else if (lowerRole.includes('set decoration')) {
+        rolePath = 'set-decoration';
+      }
+      else if (lowerRole.includes('costume')) {
+        rolePath = 'costume-design';
+      }
+      else if (lowerRole.includes('makeup')) {
+        rolePath = 'makeup';
+      }
+      else if (lowerRole.includes('hair')) {
+        rolePath = 'hairstyling';
       }
       // Lighting and Grip roles
-      else if (lowerRole.includes('gaffer') || lowerRole.includes('grip') || 
-               lowerRole.includes('lighting') || lowerRole.includes('electric')) {
-        rolePath = 'crew';
+      else if (lowerRole.includes('gaffer') || lowerRole.includes('chief lighting technician')) {
+        rolePath = 'lighting';
+      }
+      else if (lowerRole.includes('key grip')) {
+        rolePath = 'key-grip';
+      }
+      else if (lowerRole.includes('best boy electric')) {
+        rolePath = 'best-boy-electric';
+      }
+      else if (lowerRole.includes('best boy grip')) {
+        rolePath = 'best-boy-grip';
+      }
+      else if (lowerRole.includes('lighting') || lowerRole.includes('electrician')) {
+        rolePath = 'lighting';
+      }
+      else if (lowerRole.includes('grip') || lowerRole.includes('dolly grip')) {
+        rolePath = 'grip';
       }
       // Assistant Director roles
       else if (lowerRole.includes('assistant director')) {
-        rolePath = 'crew';
+        rolePath = 'assistant-director';
+      }
+      // Stunt roles
+      else if (lowerRole.includes('stunt')) {
+        rolePath = 'stunts';
+      }
+      // Animation roles
+      else if (lowerRole.includes('animation') || lowerRole.includes('animator')) {
+        rolePath = 'animation';
+      }
+      // Location roles
+      else if (lowerRole.includes('location')) {
+        rolePath = 'locations';
+      }
+      // Script/Continuity roles
+      else if (lowerRole.includes('script supervisor') || lowerRole.includes('continuity')) {
+        rolePath = 'script-supervisor';
+      }
+      // Transportation roles
+      else if (lowerRole.includes('transportation') || lowerRole.includes('driver')) {
+        rolePath = 'transportation';
+      }
+      // Catering/Craft Services
+      else if (lowerRole.includes('catering') || lowerRole.includes('craft service')) {
+        rolePath = 'catering';
+      }
+      // Security roles
+      else if (lowerRole.includes('security')) {
+        rolePath = 'security';
+      }
+      // Medical roles
+      else if (lowerRole.includes('medic') || lowerRole.includes('nurse')) {
+        rolePath = 'medical';
+      }
+      // Publicist/Marketing roles
+      else if (lowerRole.includes('publicist') || lowerRole.includes('marketing') || lowerRole.includes('unit publicist')) {
+        rolePath = 'publicity';
+      }
+      // Still Photography
+      else if (lowerRole.includes('still photographer') || lowerRole.includes('photography') && !lowerRole.includes('director of photography')) {
+        rolePath = 'still-photographer';
       }
       // Acting roles
       else if (lowerRole.includes('actor') || lowerRole.includes('acting') || 
@@ -219,11 +339,12 @@ class ProfilePageManager {
       }
       // For any other crew roles not specifically handled
       else {
-        // If it's clearly not an acting role, use crew
+        // If it's clearly not an acting role, use the role name as-is (slugified)
         const actingKeywords = ['actor', 'actress', 'acting', 'cast', 'character'];
         const isActingRole = actingKeywords.some(keyword => lowerRole.includes(keyword));
         if (!isActingRole) {
-          rolePath = 'crew';
+          // Create a slug from the role name itself
+          rolePath = this.createLetterboxdSlug(role);
         }
       }
     }
@@ -262,6 +383,12 @@ class ProfilePageManager {
   }
   
   init() {
+    // Check if API key is configured
+    if (!TMDB_CONFIG.API_KEY) {
+      this.showApiKeyError();
+      return;
+    }
+
     this.setupEventListeners();
     // Test TMDb connectivity on startup
     this.testTMDbConnectivity();
@@ -736,6 +863,23 @@ setupStudioProfileImage(person) {
     }
   }
   
+  mapDisplayRoleToMainAppRole(displayRole) {
+    // Convert display role back to main app format for filtering
+    const mapping = {
+      'Director': 'director',
+      'Actor': 'actor',
+      'Writer': 'writer',
+      'Producer': 'producer',
+      'Cinematographer': 'cinematographer',
+      'Composer': 'composer',
+      'Editor': 'editor',
+      'Studio': 'studio'
+      // Note: 'Production Company' is kept as-is for Letterboxd URL generation
+    };
+    
+    return mapping[displayRole] || displayRole.toLowerCase();
+  }
+  
   async findTMDbId(personName) {
     try {
       const response = await this.smartFetch({
@@ -776,7 +920,7 @@ setupStudioProfileImage(person) {
         // Update currentPerson object for Letterboxd button
         if (this.currentPerson) {
           this.currentPerson.name = data.name || 'Unknown Company';
-          this.currentPerson.role = 'Production Company';
+          this.currentPerson.role = this.mapDisplayRoleToMainAppRole('Production Company');
         }
         
         if (data.description) {
@@ -809,7 +953,13 @@ setupStudioProfileImage(person) {
           role = passedRole;
           console.log(`🎬 Using passed role: ${passedRole}`);
         } else if (data.known_for_department) {
-          role = data.known_for_department === 'Acting' ? 'Actor' : data.known_for_department;
+          if (data.known_for_department === 'Acting') {
+            role = 'Actor';
+          } else if (data.known_for_department === 'Directing') {
+            role = 'Director';
+          } else {
+            role = data.known_for_department;
+          }
           console.log(`📽️ Using TMDb known_for_department: ${data.known_for_department} -> ${role}`);
         }
         document.getElementById('profileRole').textContent = role;
@@ -819,7 +969,7 @@ setupStudioProfileImage(person) {
         // Update currentPerson object for Letterboxd button
         if (this.currentPerson) {
           this.currentPerson.name = data.name || 'Unknown Person';
-          this.currentPerson.role = role;
+          this.currentPerson.role = this.mapDisplayRoleToMainAppRole(role);
         }
         
         if (data.biography) {
@@ -887,7 +1037,7 @@ setupStudioProfileImage(person) {
           this.currentPerson = {};
         }
         this.currentPerson.name = companyData.name;
-        this.currentPerson.role = 'Production Company';
+        this.currentPerson.role = this.mapDisplayRoleToMainAppRole('Production Company');
         
         // Update description if available
         if (companyData.description) {
@@ -1765,6 +1915,10 @@ setupStudioProfileImage(person) {
         case 'editor':
           defaultFilter = 'Editing';
           break;
+        case 'studio':
+        case 'Production Company':
+          defaultFilter = 'all'; // Studios don't have specific department filters
+          break;
         default:
           // For other roles, try to find the most common department in their filmography
           if (this.allMovies && this.allMovies.length > 0) {
@@ -2289,6 +2443,45 @@ setupStudioProfileImage(person) {
     `;
   }
   
+  showApiKeyError() {
+    document.getElementById('profileName').textContent = '⚠️ Configuration Required';
+    document.getElementById('profileFullName').textContent = 'TMDb API key not configured';
+    document.getElementById('profileRole').textContent = 'Setup Required';
+    
+    // Hide profile image
+    const profileContainer = document.querySelector('.profile-image-container');
+    if (profileContainer) profileContainer.style.display = 'none';
+    
+    // Show setup instructions in bio area
+    const bioText = document.getElementById('bioText');
+    if (bioText) {
+      bioText.innerHTML = `
+        <div style="text-align: center; padding: 2rem;">
+          <h3>🔧 API Configuration Required</h3>
+          <p>TMDb API key is not configured. Please set up your environment:</p>
+          <div style="text-align: left; background: #1a1a1a; padding: 1rem; border-radius: 8px; margin: 1rem 0;">
+            <p><strong>For Development:</strong></p>
+            <p>Create <code>assets/js/config.local.js</code> with:</p>
+            <pre style="background: #000; padding: 0.5rem; border-radius: 4px; font-size: 0.9em;">window.LOCAL_CONFIG = {
+  TMDB_API_KEY: 'your_api_key_here'
+};</pre>
+            
+            <p style="margin-top: 1rem;"><strong>For Production:</strong></p>
+            <p>Set <code>TMDB_API_KEY</code> environment variable</p>
+          </div>
+          <p>See <code>docs/API_SECURITY.md</code> for detailed setup instructions.</p>
+          <button onclick="window.location.href='index.html'" style="background: #ff8000; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer;">
+            Back to Home
+          </button>
+        </div>
+      `;
+    }
+    
+    // Hide filmography section
+    const filmographySection = document.querySelector('.filmography-section');
+    if (filmographySection) filmographySection.style.display = 'none';
+  }
+
   showError(message) {
     document.getElementById('profileName').textContent = 'Error';
     document.getElementById('profileFullName').textContent = message;

@@ -1,6 +1,6 @@
 // TMDb API Configuration with CORS proxy support
 const TMDB_CONFIG = {
-  API_KEY: '5f1ead96e48e2379102c77c2546331a4',
+  API_KEY: CONFIG?.TMDB?.API_KEY || null, // No hardcoded fallback
   BASE_URL: 'https://api.themoviedb.org/3',
   IMAGE_BASE_URL: 'https://image.tmdb.org/t/p/w185',
   

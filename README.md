@@ -170,6 +170,35 @@ The app works anywhere static files can be served. Perfect for personal hosting 
 - **Performance optimized** for instant loading
 - **Global compatibility** with fallback systems
 
+## Setup & Configuration
+
+### Quick Start for Development
+
+**Option 1: Automated Setup (Recommended)**
+```powershell
+# Run the setup script with your API key
+.\setup-development.ps1 -ApiKey "your_tmdb_api_key_here"
+```
+
+**Option 2: Manual Setup**
+1. **Get a free TMDb API key**: Visit [TMDb API Settings](https://www.themoviedb.org/settings/api)
+2. **Create local config**: Create `assets/js/config.local.js` with:
+```javascript
+window.LOCAL_CONFIG = {
+  TMDB_API_KEY: 'your_api_key_here'
+};
+```
+3. **Test**: Open `index.html` in your browser - it should work with TMDb data!
+
+### Production Setup
+For production deployment, you'll want to use your own TMDb API key:
+
+1. **Security Setup**: See [docs/API_SECURITY.md](docs/API_SECURITY.md) for detailed instructions
+2. **Build for Production**: Use `.\build-production.ps1 -ApiKey "your_key"` 
+3. **Environment Variables**: Set `TMDB_API_KEY` in your hosting platform
+
+The app is designed to work securely without exposing API keys in your codebase.
+
 ## Perfect For
 
 - **Film Enthusiasts**: Who want professional tools for tracking filmmakers

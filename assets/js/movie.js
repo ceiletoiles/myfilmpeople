@@ -1,7 +1,7 @@
 // Movie Page JavaScript
 // Configuration for TMDb API
 const TMDB_CONFIG = {
-  API_KEY: '5f1ead96e48e2379102c77c2546331a4',
+  API_KEY: CONFIG?.TMDB?.API_KEY || null, // No hardcoded fallback
   BASE_URL: 'https://api.themoviedb.org/3',
   IMAGE_BASE_URL: 'https://image.tmdb.org/t/p/w500',
   POSTER_BASE_URL: 'https://image.tmdb.org/t/p/w300',
@@ -45,6 +45,12 @@ class MoviePage {
   }
 
   init() {
+    // Check if API key is configured
+    if (!TMDB_CONFIG.API_KEY) {
+      this.showApiKeyError();
+      return;
+    }
+
     // Get movie ID from URL parameters
     const urlParams = new URLSearchParams(window.location.search);
     this.movieId = urlParams.get('id');
@@ -334,7 +340,9 @@ class MoviePage {
     // Update ratings
     const tmdbRating = document.getElementById('tmdbRating');
     if (tmdbRating && movie.vote_average) {
-      tmdbRating.textContent = `${movie.vote_average.toFixed(1)}/10`;
+      // Convert from 10-point scale to 5-point scale
+      const ratingOutOfFive = (movie.vote_average / 2).toFixed(1);
+      tmdbRating.textContent = `${ratingOutOfFive}/5`;
     }
 
     // Update synopsis
@@ -717,7 +725,9 @@ class MoviePage {
       
       // Vote average
       if (this.movieData.vote_average && this.movieData.vote_average > 0) {
-        techSpecs.push(`TMDb Rating: ${this.movieData.vote_average.toFixed(1)}/10`);
+        // Convert from 10-point scale to 5-point scale
+        const ratingOutOfFive = (this.movieData.vote_average / 2).toFixed(1);
+        techSpecs.push(`TMDb Rating: ${ratingOutOfFive}/5`);
       }
       
       // Vote count
@@ -808,6 +818,26 @@ class MoviePage {
     
     // Use Letterboxd's search URL - this will show results and let user pick the right film
     return `https://letterboxd.com/search/films/${encodedQuery}/`;
+  }
+
+  showApiKeyError() {
+    const container = document.querySelector('.container');
+    if (container) {
+      container.innerHTML = `
+        <div class="error-message">
+          <h2>⚠️ API Configuration Required</h2>
+          <p>TMDb API key is not configured. Please set up your environment:</p>
+          <ul style="text-align: left; margin: 1rem 0;">
+            <li><strong>Development:</strong> Create <code>assets/js/config.local.js</code> with your API key</li>
+            <li><strong>Production:</strong> Set <code>TMDB_API_KEY</code> environment variable</li>
+          </ul>
+          <p>See <code>docs/API_SECURITY.md</code> for detailed setup instructions.</p>
+          <button onclick="window.location.href='index.html'" class="btn btn-primary">
+            Back to Home
+          </button>
+        </div>
+      `;
+    }
   }
 
   showError(message) {
