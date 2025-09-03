@@ -1,0 +1,51 @@
+// Firestore Security Rules for MyFilmPeople
+// Copy these rules to your Firebase Console > Firestore Database > Rules
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Users can only access their own data
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      
+      // User's people collection
+      match /people/{personId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+        
+        // Validate person data structure on create/update
+        allow create, update: if request.auth != null 
+          && request.auth.uid == userId
+          && validatePersonData(request.resource.data);
+      }
+      
+      // User's backup collection (for migration data)
+      match /backups/{backupId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+    
+    // Helper function to validate person data
+    function validatePersonData(data) {
+      return data.keys().hasAll(['name', 'role', 'dateAdded']) &&
+             data.name is string &&
+             data.name.size() > 0 &&
+             data.role in ['director', 'actor', 'writer', 'cinematographer', 'composer', 'producer', 'editor', 'studio', 'other'] &&
+             data.dateAdded is string;
+    }
+  }
+}
+
+/*
+SETUP INSTRUCTIONS:
+
+1. Go to Firebase Console > Firestore Database > Rules
+2. Replace the existing rules with the rules above
+3. Click "Publish" to apply the changes
+
+These rules ensure:
+- Only authenticated users can access data
+- Users can only see their own data
+- Person data follows the correct structure
+- All required fields are present
+*/

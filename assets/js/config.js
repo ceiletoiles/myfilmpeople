@@ -10,11 +10,48 @@ const CONFIG = {
     API_KEY: getApiKeyFromEnvironment(),
   },
   
+  // Firebase configuration
+  FIREBASE: {
+    API_KEY: getFirebaseConfigFromEnvironment('API_KEY'),
+    AUTH_DOMAIN: getFirebaseConfigFromEnvironment('AUTH_DOMAIN'),
+    PROJECT_ID: getFirebaseConfigFromEnvironment('PROJECT_ID'),
+    STORAGE_BUCKET: getFirebaseConfigFromEnvironment('STORAGE_BUCKET'),
+    MESSAGING_SENDER_ID: getFirebaseConfigFromEnvironment('MESSAGING_SENDER_ID'),
+    APP_ID: getFirebaseConfigFromEnvironment('APP_ID')
+  },
+  
   // Other configuration
   LETTERBOXD: {
     BASE_URL: 'https://letterboxd.com'
   }
 };
+
+/**
+ * Get Firebase config from secure sources without exposing it in code
+ */
+function getFirebaseConfigFromEnvironment(configKey) {
+  // For Netlify/Vercel - environment variables injected at build time
+  if (typeof window !== 'undefined' && window[`NETLIFY_ENV_FIREBASE_${configKey}`]) {
+    return window[`NETLIFY_ENV_FIREBASE_${configKey}`];
+  }
+  
+  // For production builds with environment injection
+  if (typeof window !== 'undefined' && window[`ENV_FIREBASE_${configKey}`]) {
+    return window[`ENV_FIREBASE_${configKey}`];
+  }
+  
+  // For Node.js environments
+  if (typeof process !== 'undefined' && process.env && process.env[`FIREBASE_${configKey}`]) {
+    return process.env[`FIREBASE_${configKey}`];
+  }
+  
+  // For local development
+  if (typeof window !== 'undefined' && window.LOCAL_CONFIG && window.LOCAL_CONFIG.FIREBASE && window.LOCAL_CONFIG.FIREBASE[configKey]) {
+    return window.LOCAL_CONFIG.FIREBASE[configKey];
+  }
+  
+  return null;
+}
 
 /**
  * Get API key from secure sources without exposing it in code

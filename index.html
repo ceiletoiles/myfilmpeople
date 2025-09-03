@@ -110,7 +110,11 @@
       <div class="header">
         <h1>MyFilmPeople</h1>
         <p>Letterboxd Movies Cast and Crew Following</p>
-        <button class="add-person-btn" id="addPersonBtn">Add Person</button>
+        
+        <div class="header-actions">
+          <button class="add-person-btn" id="addPersonBtn">Add Person</button>
+          <button class="auth-btn secondary" id="showLoginBtn">Sign In</button>
+        </div>
       </div>
 
       <div class="welcome-message">
@@ -420,6 +424,120 @@
       </div>
     </div>
 
+    <!-- Authentication Modal -->
+    <div id="authModal" class="modal hidden">
+      <div class="modal-content auth-modal">
+        <div class="modal-header">
+          <h2 id="authModalTitle">Sign In to MyFilmPeople</h2>
+          <button id="authModalClose" class="close-btn">&times;</button>
+        </div>
+        
+        <div id="authError" class="auth-message error hidden"></div>
+        
+        <!-- Login Form -->
+        <div id="loginFormContainer" class="auth-form-container">
+          <form id="loginForm" class="auth-form">
+            <div class="form-group">
+              <label for="loginEmail">Email</label>
+              <input type="email" id="loginEmail" required>
+            </div>
+            <div class="form-group">
+              <label for="loginPassword">Password</label>
+              <input type="password" id="loginPassword" required>
+            </div>
+            <button type="submit" id="loginSubmitBtn" class="auth-submit-btn">Sign In</button>
+          </form>
+          
+          <div class="auth-divider">
+            <span>or</span>
+          </div>
+          
+          <button id="googleSignInBtn" class="google-btn">
+            <span class="google-icon">G</span>
+            Continue with Google
+          </button>
+          
+          <p class="auth-switch">
+            Don't have an account? 
+            <a href="#" id="switchToRegister">Sign up free</a>
+          </p>
+        </div>
+        
+        <!-- Register Form -->
+        <div id="registerFormContainer" class="auth-form-container hidden">
+          <form id="registerForm" class="auth-form">
+            <div class="form-group">
+              <label for="registerDisplayName">Name (optional)</label>
+              <input type="text" id="registerDisplayName" placeholder="Your name">
+            </div>
+            <div class="form-group">
+              <label for="registerEmail">Email</label>
+              <input type="email" id="registerEmail" required>
+            </div>
+            <div class="form-group">
+              <label for="registerPassword">Password</label>
+              <input type="password" id="registerPassword" required minlength="6">
+            </div>
+            <div class="form-group">
+              <label for="registerConfirmPassword">Confirm Password</label>
+              <input type="password" id="registerConfirmPassword" required minlength="6">
+            </div>
+            <button type="submit" id="registerSubmitBtn" class="auth-submit-btn">Create Account</button>
+          </form>
+          
+          <div class="auth-divider">
+            <span>or</span>
+          </div>
+          
+          <button id="googleSignInRegisterBtn" class="google-btn">
+            <span class="google-icon">G</span>
+            Continue with Google
+          </button>
+          
+          <p class="auth-switch">
+            Already have an account? 
+            <a href="#" id="switchToLogin">Sign in</a>
+          </p>
+        </div>
+        
+        <div class="auth-benefits">
+          <h4>Why sign up?</h4>
+          <ul>
+            <li>☁️ Sync your data across devices</li>
+            <li>🔒 Never lose your collection</li>
+            <li>📱 Access from anywhere</li>
+            <li>🆓 Always free</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Logout Confirmation Modal -->
+    <div id="logoutModal" class="modal hidden">
+      <div class="modal-content auth-modal">
+        <div class="modal-header">
+          <h2>Sign Out</h2>
+          <button id="logoutModalClose" class="close-btn">&times;</button>
+        </div>
+        
+        <div class="modal-body">
+          <p class="logout-message">
+            Are you sure you want to sign out?<br>
+            <small>Your data is safely stored and will be available when you sign back in.</small>
+          </p>
+        </div>
+        
+        <div class="modal-footer logout-footer">
+          <button id="logoutCancel" class="btn-secondary">
+            Cancel
+          </button>
+          <button id="logoutConfirm" class="btn-danger">
+            Sign Out
+          </button>
+        </div>
+      </div>
+    </div>
+
     <footer class="app-footer">
       <p>
         © 2025 MyFilmPeople. Film data from TMDb. Made with ❤️ for film lovers
@@ -431,6 +549,31 @@
     <script src="assets/js/env.netlify.js"></script>
     <script src="assets/js/config.local.js" onerror="console.log('No local config - using environment or production config')"></script>
     <script src="assets/js/config.js"></script>
+    
+    <!-- Main app script (works independently) -->
     <script src="assets/js/script.js"></script>
+    
+    <!-- Firebase authentication (safe loading) -->
+    <script>
+      // Wait for main app, then load Firebase safely
+      document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(async function() {
+          if (!window.uiManager || !document.getElementById('addPersonBtn')) {
+            console.log('⚠️ Main app not ready, skipping Firebase');
+            return;
+          }
+          
+          console.log('✅ Main app working, loading Firebase...');
+          
+          try {
+            // Load Firebase modules
+            await import('./assets/js/firebase-auth.js');
+            console.log('✅ Firebase authentication loaded');
+          } catch (error) {
+            console.log('📱 Firebase not available:', error.message);
+          }
+        }, 2000);
+      });
+    </script>
   </body>
 </html>

@@ -491,30 +491,63 @@ class ProfilePageManager {
     // Fallback to old query parameter method for backward compatibility
     const urlParams = new URLSearchParams(window.location.search);
     const personName = urlParams.get('name');
-    const personId = urlParams.get('id');
+    const personId = urlParams.get('id'); // Legacy parameter
+    const tmdbId = urlParams.get('tmdbId'); // New TMDB ID parameter
+    const localId = urlParams.get('localId'); // New local ID parameter
     const companyId = urlParams.get('company');
     const isTmdb = urlParams.get('tmdb') === 'true';
     const passedRole = urlParams.get('role'); // Get role from URL parameter
+    const entityType = urlParams.get('type'); // Get entity type (company, etc.)
     this.returnUrl = urlParams.get('return') || 'index.html'; // Store return URL
     
+    console.log('🔍 Profile URL params:', {
+      personName,
+      personId,
+      tmdbId,
+      localId,
+      companyId,
+      isTmdb,
+      passedRole,
+      entityType
+    });
+    
     if (companyId) {
-      // Load company profile
+      // Load company profile using company ID
+      console.log('🏢 Loading company profile with ID:', companyId);
       this.loadCompanyProfile(companyId);
+    } else if (tmdbId) {
+      // New parameter: explicit TMDB ID
+      console.log('📱 Loading profile by TMDB ID:', tmdbId);
+      this.loadTMDbPersonProfile(tmdbId, passedRole);
+    } else if (localId) {
+      // New parameter: explicit local ID
+      if (entityType === 'company') {
+        console.log('🏢 Loading local company profile with ID:', localId);
+        // For local companies, we need to load as person first then detect it's a company
+        this.loadPersonProfile(localId, passedRole);
+      } else {
+        console.log('📱 Loading person profile by local ID:', localId);
+        this.loadPersonProfile(localId, passedRole);
+      }
     } else if (personName) {
+      // Legacy: find by name slug
       const person = this.findPersonByNameSlug(personName);
       if (person) {
-        // Load the person profile directly
+        console.log('📱 Found person by name slug:', person.name);
         this.loadPersonProfile(person.id, passedRole);
       } else if (personId) {
+        console.log('📱 Fallback to legacy ID:', personId);
         this.loadPersonProfile(personId, passedRole);
       } else {
         this.showError('Person not found');
       }
     } else if (personId) {
+      // Legacy parameter handling
       if (isTmdb) {
-        // Force load from TMDb even if not in local database
+        console.log('📱 Legacy TMDB ID:', personId);
         this.loadTMDbPersonProfile(personId, passedRole);
       } else {
+        console.log('📱 Legacy local ID:', personId);
         this.loadPersonProfile(personId, passedRole);
       }
     } else {
@@ -717,6 +750,19 @@ class ProfilePageManager {
       if (data) {
         const people = JSON.parse(data);
         return people.find(p => p.id === parseInt(personId));
+      }
+    } catch (error) {
+      console.error('Error loading from storage:', error);
+    }
+    return null;
+  }
+
+  getPersonByTmdbId(tmdbId) {
+    try {
+      const data = localStorage.getItem('myfilmpeople_data');
+      if (data) {
+        const people = JSON.parse(data);
+        return people.find(p => p.tmdbId === parseInt(tmdbId));
       }
     } catch (error) {
       console.error('Error loading from storage:', error);

@@ -116,32 +116,251 @@ const TMDB_CONFIG = {
 // Data Storage and Management
 class PeopleDatabase {
   constructor() {
-    this.people = this.loadFromStorage();
-    this.nextId = this.getNextId();
+    this.people = []; // Start empty, will load after auth check
+    this.nextId = 1;
+    this.needsDataReload = true; // Flag to control when to reload data
+    this.isDeletingPerson = false; // Flag to prevent interference during deletion
   }
   
   loadFromStorage() {
     try {
+      console.log('🔄 loadFromStorage() called');
+      
+      // Skip loading if we're in the middle of a deletion
+      if (this.isDeletingPerson) {
+        console.log('🚫 Skipping loadFromStorage - deletion in progress');
+        return this.people; // Return current data without reloading
+      }
+      
+      // ALWAYS try to load from localStorage first for data recovery
       const data = localStorage.getItem('myfilmpeople_data');
       if (data) {
-        return JSON.parse(data);
+        const parsedData = JSON.parse(data);
+        console.log('📱 Found localStorage data:', parsedData.length, 'people');
+        
+        // Verify data integrity and filter out recently deleted items
+        const validData = parsedData.filter(person => {
+          if (!person || !person.name || !person.role) {
+            return false;
+          }
+          
+          // Check if this person was recently deleted
+          if (this.wasRecentlyDeleted && this.wasRecentlyDeleted(person)) {
+            console.log('🚫 Filtering out recently deleted person:', person.name);
+            return false;
+          }
+          
+          return true;
+        });
+        
+        if (validData.length !== parsedData.length) {
+          console.log('🔧 Cleaned data:', parsedData.length, '→', validData.length, '(removed invalid/deleted entries)');
+          this.people = validData;
+          this.saveToStorage(); // Save cleaned data
+        } else {
+          this.people = validData;
+        }
+        
+        // Check if this is fresh local data or migrated data
+        const isLoggedIn = localStorage.getItem('firebase_auth_user') === 'true';
+        if (isLoggedIn) {
+          console.log('🔒 User logged in - localStorage data will be used for migration only');
+        } else {
+          console.log('📱 User not logged in - localStorage data is primary source');
+        }
+        
+        return validData;
       }
+      
+      // Try fallback from sessionStorage
+      const backupData = sessionStorage.getItem('myfilmpeople_backup');
+      if (backupData) {
+        const parsedBackup = JSON.parse(backupData);
+        console.log('📝 Loaded from sessionStorage backup:', parsedBackup.length, 'people');
+        // Save to localStorage for next time
+        localStorage.setItem('myfilmpeople_data', backupData);
+        return parsedBackup;
+      }
+      
     } catch (error) {
       console.error('Error loading from storage:', error);
     }
     
-    // Return default data if nothing in storage
+    // Return default data only if user is not logged in and has no data
+    const isLoggedIn = localStorage.getItem('firebase_auth_user') === 'true';
+    if (isLoggedIn) {
+      return []; // No default data for logged in users
+    }
+    
     return this.getDefaultPeople();
+  }
+  
+  // Initialize data after auth check
+  initializeData() {
+    // Don't reload if we already have data and no major change occurred
+    if (this.people.length > 0 && !this.needsDataReload) {
+      console.log('📊 Keeping existing data - no reload needed:', this.people.length, 'people');
+      this.nextId = this.getNextId();
+      return;
+    }
+    
+    // Only reload if we have no data or explicitly need to reload
+    const loadedData = this.loadFromStorage();
+    if (loadedData && loadedData.length > 0) {
+      this.people = loadedData;
+    }
+    
+    this.nextId = this.getNextId();
+    this.needsDataReload = false; // Reset the flag
+    console.log('📊 Loaded', this.people.length, 'people from localStorage');
   }
   
   saveToStorage() {
     try {
+      const dataToSave = {
+        people: this.people,
+        lastSaved: new Date().toISOString(),
+        version: '1.0'
+      };
+      
       localStorage.setItem('myfilmpeople_data', JSON.stringify(this.people));
+      localStorage.setItem('myfilmpeople_meta', JSON.stringify(dataToSave));
+      
+      // Verify save was successful
+      const saved = localStorage.getItem('myfilmpeople_data');
+      if (saved) {
+        console.log('✅ Data saved successfully:', this.people.length, 'people');
+      } else {
+        console.error('❌ Save verification failed');
+      }
     } catch (error) {
       console.error('Error saving to storage:', error);
+      // Try alternative storage method if localStorage fails
+      try {
+        sessionStorage.setItem('myfilmpeople_backup', JSON.stringify(this.people));
+        console.log('📝 Fallback: Saved to sessionStorage');
+      } catch (sessionError) {
+        console.error('❌ Both localStorage and sessionStorage failed');
+      }
     }
   }
   
+  // Enhanced storage with TMDB ID tracking
+  saveToStorageWithTmdbTracking() {
+    try {
+      // Create TMDB ID mapping for faster lookups
+      const tmdbIdMap = {};
+      const peopleWithTmdbIds = [];
+      const peopleWithoutTmdbIds = [];
+      
+      this.people.forEach(person => {
+        if (person.tmdbId) {
+          tmdbIdMap[person.tmdbId] = person;
+          peopleWithTmdbIds.push(person);
+        } else {
+          peopleWithoutTmdbIds.push(person);
+        }
+      });
+      
+      const dataToSave = {
+        people: this.people,
+        tmdbIdMap: tmdbIdMap,
+        stats: {
+          total: this.people.length,
+          withTmdbIds: peopleWithTmdbIds.length,
+          withoutTmdbIds: peopleWithoutTmdbIds.length
+        },
+        lastSaved: new Date().toISOString(),
+        version: '2.0' // Updated version for TMDB tracking
+      };
+      
+      localStorage.setItem('myfilmpeople_data', JSON.stringify(this.people));
+      localStorage.setItem('myfilmpeople_meta', JSON.stringify(dataToSave));
+      localStorage.setItem('myfilmpeople_tmdb_map', JSON.stringify(tmdbIdMap));
+      
+      console.log('✅ Enhanced data saved with TMDB tracking:', {
+        total: this.people.length,
+        withTmdbIds: peopleWithTmdbIds.length,
+        withoutTmdbIds: peopleWithoutTmdbIds.length
+      });
+      
+      // Create a backup in sessionStorage for recovery
+      sessionStorage.setItem('myfilmpeople_backup', JSON.stringify(this.people));
+      
+    } catch (error) {
+      console.error('Error saving enhanced data to storage:', error);
+      // Fallback to standard save
+      this.saveToStorage();
+    }
+  }
+  
+  // Record deletion to prevent reappearing
+  recordDeletion(personData) {
+    try {
+      let deletedRecords = JSON.parse(localStorage.getItem('myfilmpeople_deleted') || '[]');
+      
+      const deletionRecord = {
+        tmdbId: personData.tmdbId,
+        name: personData.name,
+        role: personData.role,
+        localId: personData.id,
+        deletedAt: new Date().toISOString(),
+        deletedTimestamp: Date.now()
+      };
+      
+      // Add to deletion records
+      deletedRecords.push(deletionRecord);
+      
+      // Keep only recent deletions (last 30 days)
+      const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
+      deletedRecords = deletedRecords.filter(record => record.deletedTimestamp > thirtyDaysAgo);
+      
+      localStorage.setItem('myfilmpeople_deleted', JSON.stringify(deletedRecords));
+      
+      console.log('📝 Deletion recorded:', {
+        tmdbId: personData.tmdbId,
+        name: personData.name,
+        totalDeletedRecords: deletedRecords.length
+      });
+      
+    } catch (error) {
+      console.error('Error recording deletion:', error);
+    }
+  }
+  
+  // Check if a person was recently deleted (to prevent reappearing)
+  wasRecentlyDeleted(personData) {
+    try {
+      const deletedRecords = JSON.parse(localStorage.getItem('myfilmpeople_deleted') || '[]');
+      
+      return deletedRecords.some(record => {
+        // Match by TMDB ID + role (most reliable)
+        if (personData.tmdbId && record.tmdbId) {
+          return record.tmdbId === personData.tmdbId && 
+                 record.role === personData.role;
+        }
+        
+        // Fallback match by name + role
+        return record.name === personData.name && 
+               record.role === personData.role;
+      });
+      
+    } catch (error) {
+      console.error('Error checking deletion records:', error);
+      return false;
+    }
+  }
+  
+  // Get person by TMDB ID for reliable lookups
+  getPersonByTmdbId(tmdbId, role = null) {
+    return this.people.find(person => {
+      if (role) {
+        return person.tmdbId === tmdbId && person.role === role;
+      }
+      return person.tmdbId === tmdbId;
+    });
+  }
+
   getNextId() {
     if (this.people.length === 0) return 1;
     return Math.max(...this.people.map(p => p.id || 0)) + 1;
@@ -177,17 +396,105 @@ class PeopleDatabase {
       profilePicture: personData.profilePicture || '',
       notes: personData.notes || '',
       tmdbId: personData.tmdbId || null,
-      dateAdded: new Date().toISOString()
+      dateAdded: new Date().toISOString(),
+      isFreshLocal: true // Mark as fresh local data (not migrated from cloud)
     };
 
+    // Mark the time of local change for echo detection
+    this.lastLocalChangeTime = Date.now();
+
+    console.log('➕ Adding person:', {
+      name: person.name,
+      role: person.role,
+      id: person.id,
+      tmdbId: person.tmdbId
+    });
+
     this.people.push(person);
+    
+    // Use enhanced storage to ensure persistence
+    this.saveToStorageWithTmdbTracking();
+    
+    // Also do a regular save as backup
     this.saveToStorage();
+    
+    console.log('✅ Person added successfully:', person.name, '- Total people:', this.people.length);
+    
+    // Sync to cloud if user is signed in
+    if (window.firebaseAuth && window.firebaseAuth.user) {
+      window.firebaseAuth.savePersonToCloud(person);
+    }
+    
     return person;
   }
   
   deletePerson(id) {
+    console.log('🗑️ Starting STRICT deletion process for local ID:', id);
+    
+    // Find the person before deletion for cloud sync
+    const personToDelete = this.people.find(p => p.id === id);
+    if (!personToDelete) {
+      console.warn('❌ Person not found for deletion:', id);
+      return;
+    }
+    
+    console.log('🗑️ Deleting person:', {
+      name: personToDelete.name,
+      localId: personToDelete.id,
+      tmdbId: personToDelete.tmdbId,
+      role: personToDelete.role,
+      isCompany: personToDelete.role === 'studio',
+      firestoreId: personToDelete.firestoreId
+    });
+    
+    // Validate deletion parameters
+    if (!personToDelete.tmdbId) {
+      console.warn('⚠️ Person missing TMDB ID - deletion may be unreliable');
+    }
+    
+    // Mark the time of local change for echo detection
+    this.lastLocalChangeTime = Date.now();
+    
+    // Set deletion flag to prevent interference
+    this.isDeletingPerson = true;
+    
+    // Store deletion record BEFORE removing from array (to prevent reappearing)
+    this.recordDeletion(personToDelete);
+    
+    // Remove from local data immediately using EXACT ID match
+    const initialCount = this.people.length;
     this.people = this.people.filter(p => p.id !== id);
-    this.saveToStorage();
+    const finalCount = this.people.length;
+    
+    if (initialCount === finalCount) {
+      console.error('❌ Person was not removed - ID mismatch!', {
+        targetId: id,
+        availableIds: this.people.map(p => ({ id: p.id, name: p.name, tmdbId: p.tmdbId }))
+      });
+      this.isDeletingPerson = false;
+      return;
+    }
+    
+    console.log('✅ Person removed from local array:', initialCount, '→', finalCount);
+    
+    // Save to localStorage immediately with TMDB ID tracking
+    this.saveToStorageWithTmdbTracking();
+    
+    // Clear deletion flag
+    this.isDeletingPerson = false;
+    
+    // Sync deletion to cloud if user is signed in (but don't wait for it)
+    if (window.firebaseAuth && window.firebaseAuth.user) {
+      console.log('☁️ Starting strict cloud deletion...');
+      // Use longer timeout to ensure local operations are fully complete
+      setTimeout(() => {
+        window.firebaseAuth.deletePersonFromCloudByTmdbId(personToDelete).catch(error => {
+          console.error('❌ Cloud deletion failed (but local deletion succeeded):', error);
+        });
+      }, 200); // Increased delay for strict separation
+    }
+    
+    console.log('✅ STRICT deletion completed locally:', personToDelete.name);
   }
   
   updatePerson(id, updates) {
@@ -195,6 +502,12 @@ class PeopleDatabase {
     if (index !== -1) {
       this.people[index] = { ...this.people[index], ...updates };
       this.saveToStorage();
+      
+      // Sync update to cloud if user is signed in
+      if (window.firebaseAuth && window.firebaseAuth.user) {
+        window.firebaseAuth.savePersonToCloud(this.people[index]);
+      }
+      
       return this.people[index];
     }
     return null;
@@ -214,16 +527,222 @@ class PeopleDatabase {
   }
 }
 
-// Initialize database
-const db = new PeopleDatabase();
+// Initialize hybrid database (works with localStorage + Firebase)
+// Will automatically sync to cloud when user signs in
+let db;
+
+// Initialize database when page loads
+document.addEventListener('DOMContentLoaded', () => {
+  console.log('🚀 Initializing MyFilmPeople...');
+  
+  // Initialize basic localStorage database 
+  db = new PeopleDatabase();
+  console.log('✅ Basic database initialized');
+  
+  // Initialize UI and ALWAYS load local data first
+  window.uiManager = new UIManager(db);
+  window.uiManager.initializeData(); // Load local data immediately
+  console.log('✅ UI Manager initialized with local data');
+  
+  // Setup basic auth UI and check for existing auth
+  setupBasicAuthUI();
+  
+  // Check if user was logged in (fast check from localStorage/sessionStorage)
+  const wasLoggedIn = localStorage.getItem('firebase_auth_user') === 'true';
+  
+  if (wasLoggedIn) {
+    // User was logged in - keep local data for now, cloud sync will handle migration
+    console.log('👤 User was logged in, keeping local data for now');
+    
+    const signInBtn = document.getElementById('showLoginBtn');
+    if (signInBtn) {
+      signInBtn.textContent = localStorage.getItem('firebase_user_name') || 'User';
+    }
+  }
+  
+  console.log('✅ App ready!');
+  
+  // Emergency save on page unload for non-logged-in users
+  window.addEventListener('beforeunload', () => {
+    if (localStorage.getItem('firebase_auth_user') !== 'true' && window.uiManager?.people?.length > 0) {
+      console.log('🚨 Emergency save on page unload');
+      window.uiManager.savePeopleData();
+      window.db?.saveToStorage();
+    }
+  });
+  
+  // Emergency save on visibility change
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden && localStorage.getItem('firebase_auth_user') !== 'true' && window.uiManager?.people?.length > 0) {
+      console.log('🚨 Emergency save on page hide');
+      window.uiManager.savePeopleData();
+      window.db?.saveToStorage();
+    }
+  });
+});
+
+// Basic auth UI setup (shows modal, handles form display)
+function setupBasicAuthUI() {
+  console.log('🔗 Setting up basic auth UI...');
+  
+  const showLoginBtn = document.getElementById('showLoginBtn');
+  const authModal = document.getElementById('authModal');
+  const authModalClose = document.getElementById('authModalClose');
+  const switchToRegister = document.getElementById('switchToRegister');
+  const switchToLogin = document.getElementById('switchToLogin');
+  const loginFormContainer = document.getElementById('loginFormContainer');
+  const registerFormContainer = document.getElementById('registerFormContainer');
+  
+  console.log('Elements found:', {
+    showLoginBtn: !!showLoginBtn,
+    authModal: !!authModal,
+    authModalClose: !!authModalClose,
+    switchToRegister: !!switchToRegister,
+    switchToLogin: !!switchToLogin
+  });
+  
+  // Show auth modal - force it to work
+  if (showLoginBtn) {
+    // Remove any existing listeners first
+    const newBtn = showLoginBtn.cloneNode(true);
+    showLoginBtn.parentNode.replaceChild(newBtn, showLoginBtn);
+    
+    newBtn.addEventListener('click', () => {
+      console.log('Sign In button clicked - forcing modal open');
+      if (authModal) {
+        authModal.classList.remove('hidden');
+        authModal.style.display = 'block'; // Explicitly show the modal
+        document.getElementById('authModalTitle').textContent = 'Sign In to MyFilmPeople';
+        if (loginFormContainer) loginFormContainer.classList.remove('hidden');
+        if (registerFormContainer) registerFormContainer.classList.add('hidden');
+        console.log('Auth modal opened successfully');
+      } else {
+        console.log('❌ Auth modal not found!');
+      }
+    });
+    console.log('✅ Sign In button event listener added');
+  } else {
+    console.log('❌ Sign In button not found');
+  }
+  
+  // Close auth modal
+  if (authModalClose) {
+    authModalClose.addEventListener('click', () => {
+      console.log('Auth modal close clicked');
+      if (authModal) {
+        authModal.classList.add('hidden');
+        authModal.style.display = 'none'; // Explicitly hide the modal
+      }
+    });
+  }
+  
+  // Switch between login and register
+  if (switchToRegister) {
+    switchToRegister.addEventListener('click', (e) => {
+      e.preventDefault();
+      console.log('Switch to register clicked');
+      document.getElementById('authModalTitle').textContent = 'Create Your Account';
+      if (loginFormContainer) loginFormContainer.classList.add('hidden');
+      if (registerFormContainer) registerFormContainer.classList.remove('hidden');
+    });
+  }
+  
+  if (switchToLogin) {
+    switchToLogin.addEventListener('click', (e) => {
+      e.preventDefault();
+      console.log('Switch to login clicked');
+      document.getElementById('authModalTitle').textContent = 'Sign In to MyFilmPeople';
+      if (registerFormContainer) registerFormContainer.classList.add('hidden');
+      if (loginFormContainer) loginFormContainer.classList.remove('hidden');
+    });
+  }
+  
+  // Show migration benefits if user has data but is NOT logged in
+  const peopleCount = Object.keys(db.people).length;
+  const isLoggedIn = localStorage.getItem('firebase_auth_user') === 'true';
+  
+  if (peopleCount > 0 && !isLoggedIn) {
+    addMigrationPrompt(peopleCount);
+  }
+}
+
+// Add a subtle prompt about saving data to cloud
+function addMigrationPrompt(count) {
+  // Don't add if already exists
+  if (document.querySelector('.migration-prompt')) {
+    return;
+  }
+  
+  const header = document.querySelector('.header');
+  const prompt = document.createElement('div');
+  prompt.className = 'migration-prompt';
+  prompt.innerHTML = `
+    <p>You have ${count} people saved locally. 
+    <a href="#" id="promptSignIn">Sign in to save to cloud</a> and access from any device!</p>
+  `;
+  header.appendChild(prompt);
+  
+  // Handle click on prompt
+  document.getElementById('promptSignIn').addEventListener('click', (e) => {
+    e.preventDefault();
+    document.getElementById('showLoginBtn').click();
+  });
+}
+
+// Make addMigrationPrompt globally available
+window.addMigrationPrompt = addMigrationPrompt;
 
 // UI Management
 class UIManager {
   constructor(peopleDatabase) {
-    this.people = peopleDatabase.people; // Assign people data from PeopleDatabase
+    this.peopleDatabase = peopleDatabase;
+    this.people = []; // Start empty, will be loaded after auth check
     this.activeTab = 'directors';
     this.currentSort = { directors: 'alphabetical', actors: 'alphabetical', others: 'alphabetical', companies: 'alphabetical' };
     this.init();
+  }
+  
+  // Initialize data and render
+  initializeData() {
+    this.peopleDatabase.initializeData();
+    this.people = this.peopleDatabase.people;
+    
+    // Force save to ensure data persistence
+    this.savePeopleData();
+    
+    this.renderAllPeople();
+    console.log('✅ UI loaded with', this.people.length, 'people');
+    
+    // Log localStorage state for debugging
+    const localData = localStorage.getItem('myfilmpeople_data');
+    console.log('📱 localStorage contains:', localData ? JSON.parse(localData).length : 0, 'people');
+    
+    // Set up periodic saves for non-logged-in users (every 30 seconds)
+    if (localStorage.getItem('firebase_auth_user') !== 'true') {
+      this.setupPeriodicSave();
+    }
+  }
+  
+  // Periodic save to prevent data loss
+  setupPeriodicSave() {
+    setInterval(() => {
+      if (localStorage.getItem('firebase_auth_user') !== 'true' && this.people.length > 0) {
+        console.log('🔄 Periodic save: Backing up', this.people.length, 'people');
+        this.savePeopleData();
+        this.peopleDatabase.saveToStorage();
+      }
+    }, 30000); // Every 30 seconds
+  }
+  
+  // Render all people (alias for renderPeople for Firebase compatibility)
+  renderAllPeople() {
+    this.renderPeople();
+  }
+  
+  // Save data to localStorage and sync to cloud if logged in
+  savePeopleData() {
+    this.peopleDatabase.people = this.people;
+    this.peopleDatabase.saveToStorage();
   }
   
   // Fisher-Yates shuffle algorithm for random sorting
@@ -887,10 +1406,42 @@ class UIManager {
       if (editingId) {
         // Update existing person
         db.updatePerson(parseInt(editingId), personData);
+        // Update UIManager's people array immediately
+        this.people = db.people;
+        
+        // Force save to localStorage immediately
+        this.savePeopleData();
+        db.saveToStorage(); // Double save for safety
+        
+        console.log('✅ Person updated and saved:', personData.name, 'Total people:', this.people.length);
         this.showMessage(`${personData.name} updated successfully!`);
       } else {
         // Add new person
-        db.addPerson(personData);
+        const newPerson = db.addPerson(personData);
+        // Update UIManager's people array immediately
+        this.people = db.people;
+        
+        // TRIPLE save to ensure persistence
+        this.savePeopleData();
+        db.saveToStorage();
+        
+        // Verify the save worked
+        setTimeout(() => {
+          const savedData = localStorage.getItem('myfilmpeople_data');
+          if (savedData) {
+            const parsed = JSON.parse(savedData);
+            console.log('🔍 Save verification: localStorage has', parsed.length, 'people');
+          } else {
+            console.error('❌ Save verification failed - localStorage is empty!');
+            // Try emergency save
+            localStorage.setItem('myfilmpeople_data', JSON.stringify(this.people));
+          }
+        }, 100);
+        
+        // Force render to show data
+        this.renderPeople();
+        
+        console.log('✅ Person added and saved:', personData.name, 'Total people:', this.people.length);
         this.showMessage(`${personData.name} added successfully!`);
       }
       
@@ -1245,12 +1796,31 @@ class UIManager {
       cardContent += `<img src="https://s.ltrbxd.com/static/img/avatar220-BlsAxsT2.png" alt="${person.name}" class="person-avatar">`;
     }
     
-    // Create clickable profile link with basic query parameters
+    // Create clickable profile link with proper ID handling
     const profileLink = document.createElement('a');
     const nameSlug = this.createNameSlug(person.name);
     
-    // Use simple query parameter approach that works everywhere
-    profileLink.href = `profile.html?name=${nameSlug}&id=${person.id}`;
+    // Handle companies/studios differently from people
+    if (person.role === 'studio' || 
+        person.role === 'Production Company' || 
+        person.role?.toLowerCase().includes('company') || 
+        person.role?.toLowerCase().includes('studio')) {
+      
+      // For companies: use company parameter with TMDB company ID
+      if (person.tmdbId) {
+        profileLink.href = `profile.html?name=${nameSlug}&company=${person.tmdbId}&tmdb=true`;
+      } else {
+        // Fallback for local-only companies
+        profileLink.href = `profile.html?name=${nameSlug}&localId=${person.id}&tmdb=false&type=company`;
+      }
+    } else {
+      // For people: use person parameters with TMDB person ID or local ID
+      if (person.tmdbId) {
+        profileLink.href = `profile.html?name=${nameSlug}&tmdbId=${person.tmdbId}&tmdb=true`;
+      } else {
+        profileLink.href = `profile.html?name=${nameSlug}&localId=${person.id}&tmdb=false`;
+      }
+    }
     profileLink.className = 'profile-link';
     
     let linkContent = cardContent + `<span class="person-name">${person.name}</span>`;
@@ -1502,16 +2072,25 @@ function attachLongPressMenu(card, person, ui, db) {
         }
         const confirmed = await ui.showConfirm('Delete Person', `Are you sure you want to delete ${person.name}?`);
         if (confirmed) {
-          console.log('Delete confirmed for:', person);
+          console.log('🗑️ Delete confirmed for:', person.name, 'ID:', person.id);
+          
           try {
+            // Delete from database (local + cloud sync)
             db.deletePerson(person.id);
-            ui.renderPeople();
+            
+            // Update UI immediately without full re-render
+            ui.people = db.people; // Sync UI with updated database
+            ui.renderPeople(); // Re-render with updated data
+            
             ui.showMessage(`${person.name} deleted successfully.`);
+            console.log('✅ Delete completed for:', person.name);
+            
           } catch (error) {
-            console.error('Error deleting person:', error);
+            console.error('❌ Error deleting person:', error);
+            ui.showMessage(`Error deleting ${person.name}. Please try again.`, 'error');
           }
         } else {
-          console.log('Delete canceled for:', person);
+          console.log('❌ Delete canceled for:', person.name);
         }
       },
       className: 'menu-item-delete'
@@ -1596,6 +2175,4 @@ function attachLongPressMenu(card, person, ui, db) {
 }
 
 // Initialize the app when DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
-  const ui = new UIManager(db); // Pass PeopleDatabase instance to UIManager
-});
+// Note: Database initialization moved to earlier in the file with hybrid support
