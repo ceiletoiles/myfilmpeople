@@ -80,14 +80,6 @@ class MoviePage {
   }
 
   setupEventListeners() {
-    // Back button
-    const backButton = document.getElementById('backToProfile');
-    if (backButton) {
-      backButton.addEventListener('click', () => {
-        window.location.href = this.returnUrl;
-      });
-    }
-
     // Credits tabs
     const creditsTabs = document.querySelectorAll('.credits-tab');
     creditsTabs.forEach(tab => {
@@ -270,12 +262,6 @@ class MoviePage {
 
     // Set page title
     document.title = `${movie.title} - MyFilmPeople`;
-
-    // Update header
-    const movieTitle = document.getElementById('movieTitle');
-    if (movieTitle) {
-      movieTitle.textContent = movie.title;
-    }
 
     // Update movie poster
     const moviePoster = document.getElementById('moviePoster');
@@ -1187,11 +1173,9 @@ class MoviePage {
   }
 
   showLoadingState() {
-    const movieTitle = document.getElementById('movieTitle');
     const movieFullTitle = document.getElementById('movieFullTitle');
     const synopsisText = document.getElementById('synopsisText');
     
-    if (movieTitle) movieTitle.textContent = 'Loading...';
     if (movieFullTitle) movieFullTitle.textContent = 'Loading movie details...';
     if (synopsisText) synopsisText.textContent = 'Loading synopsis...';
   }

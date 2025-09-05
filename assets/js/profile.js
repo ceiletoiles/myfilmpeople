@@ -415,14 +415,6 @@ class ProfilePageManager {
   }
   
   setupEventListeners() {
-    // Back button
-    const backButton = document.getElementById('backToMain');
-    if (backButton) {
-      backButton.addEventListener('click', () => {
-        window.location.href = this.returnUrl || 'index.html';
-      });
-    }
-    
     // Letterboxd button
     const letterboxdButton = document.getElementById('openLetterboxd');
     if (letterboxdButton) {
@@ -747,7 +739,6 @@ class ProfilePageManager {
   }
   
   updateBasicInfo(person) {
-    document.getElementById('profileName').textContent = person.name;
     document.getElementById('profileFullName').textContent = person.name;
 
     // Format role display nicely
@@ -913,7 +904,6 @@ setupStudioProfileImage(person) {
       if (isStudio) {
         // Handle company details
         // Update basic company info
-        document.getElementById('profileName').textContent = data.name || 'Unknown Company';
         document.getElementById('profileFullName').textContent = data.name || 'Unknown Company';
         document.getElementById('profileRole').textContent = 'Production Company';
         
@@ -943,7 +933,6 @@ setupStudioProfileImage(person) {
       } else {
         // Handle person details
         // Update basic person info
-        document.getElementById('profileName').textContent = data.name || 'Unknown Person';
         document.getElementById('profileFullName').textContent = data.name || 'Unknown Person';
         
         // Set role based on passed parameter or known_for_department or default
@@ -1028,7 +1017,6 @@ setupStudioProfileImage(person) {
       
       if (companyData && companyData.name) {
         // Update profile info for company
-        document.getElementById('profileName').textContent = companyData.name;
         document.getElementById('profileFullName').textContent = companyData.name;
         document.getElementById('profileRole').textContent = 'Production Company';
         
@@ -2444,7 +2432,6 @@ setupStudioProfileImage(person) {
   }
   
   showApiKeyError() {
-    document.getElementById('profileName').textContent = '⚠️ Configuration Required';
     document.getElementById('profileFullName').textContent = 'TMDb API key not configured';
     document.getElementById('profileRole').textContent = 'Setup Required';
     
@@ -2483,7 +2470,6 @@ setupStudioProfileImage(person) {
   }
 
   showError(message) {
-    document.getElementById('profileName').textContent = 'Error';
     document.getElementById('profileFullName').textContent = message;
     this.showTMDbError();
   }
