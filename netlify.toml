@@ -27,11 +27,27 @@
   to = "/movie.html"
   status = 200
 
-# Cache static assets
+# Cache static assets with version busting support
 [[headers]]
-  for = "/assets/*"
+  for = "/assets/css/*"
   [headers.values]
-    Cache-Control = "public, max-age=31536000"
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/assets/js/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# HTML files should have short cache to allow for updates
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "public, max-age=300, must-revalidate"
+
+[[headers]]
+  for = "/"
+  [headers.values]
+    Cache-Control = "public, max-age=300, must-revalidate"
 
 # Security headers
 [[headers]]

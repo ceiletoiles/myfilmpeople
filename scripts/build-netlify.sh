@@ -43,4 +43,30 @@ update_html_file "movie.html"
 update_html_file "profile.html"
 
 echo "✅ Build complete!"
-echo "📱 Site ready for deployment with API key configured"
+
+# Add cache busting
+echo "Updating cache busting parameters..."
+
+# Generate timestamp for cache busting
+TIMESTAMP=$(date +%s)
+
+# Function to update cache busting in HTML files
+update_cache_busting() {
+    local file=$1
+    echo "Adding cache busting to $file..."
+    
+    # Update CSS files
+    sed -i "s|href=\"assets/css/\([^\"]*\.css\)\(\?v=[^\"]*\)\?\"|href=\"assets/css/\1?v=$TIMESTAMP\"|g" "$file"
+    
+    # Update JS files (except env files which are already timestamped)
+    sed -i "s|src=\"assets/js/\([^\"]*\.js\)\(\?v=[^\"]*\)\?\"|src=\"assets/js/\1?v=$TIMESTAMP\"|g" "$file"
+    
+    echo "✅ Cache busting updated in $file"
+}
+
+# Update cache busting in all HTML files
+update_cache_busting "index.html"
+update_cache_busting "movie.html"
+update_cache_busting "profile.html"
+
+echo "📱 Site ready for deployment with API key configured and cache busting enabled"
