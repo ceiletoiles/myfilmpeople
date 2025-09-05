@@ -324,38 +324,33 @@ class MoviePage {
       }
     }
 
-    // Display tagline and synopsis together
+    // Display tagline and synopsis separately
     const movieTagline = document.getElementById('movieTagline');
     const movieSynopsis = document.getElementById('movieSynopsis');
     
-    if (movieTagline && movieSynopsis) {
+    // Handle tagline
+    if (movieTagline) {
       if (movie.tagline && movie.tagline.trim()) {
-        // Create combined content with tagline and synopsis
-        const taglineElement = document.createElement('p');
-        taglineElement.className = 'movie-tagline';
-        taglineElement.textContent = movie.tagline.toUpperCase();
-        
-        // Clear synopsis container and add tagline first
-        movieSynopsis.innerHTML = '';
-        movieSynopsis.appendChild(taglineElement);
-        
-        // Add synopsis content
-        const synopsisText = document.createElement('p');
-        synopsisText.id = 'synopsisText';
-        synopsisText.textContent = movie.overview || 'No synopsis available.';
-        movieSynopsis.appendChild(synopsisText);
-        
-        // Hide the separate tagline section
+        movieTagline.textContent = movie.tagline.toUpperCase();
+        // Show the tagline section
         const taglineSection = document.querySelector('.movie-tagline-section');
         if (taglineSection) {
-          taglineSection.style.display = 'none';
+          taglineSection.style.display = 'block';
         }
       } else {
-        // No tagline, just hide the tagline section
+        // Hide the tagline section if no tagline
         const taglineSection = document.querySelector('.movie-tagline-section');
         if (taglineSection) {
           taglineSection.style.display = 'none';
         }
+      }
+    }
+    
+    // Handle synopsis separately
+    if (movieSynopsis) {
+      const synopsisText = document.getElementById('synopsisText');
+      if (synopsisText) {
+        synopsisText.textContent = movie.overview || 'No synopsis available.';
       }
     }
 
@@ -367,7 +362,7 @@ class MoviePage {
       tmdbRating.textContent = `${ratingOutOfFive}/5`;
     }
 
-    // Synopsis is now handled in the tagline section above
+    // Synopsis is now handled separately above
 
     // Render cast and crew
     this.renderCredits(movie.credits);

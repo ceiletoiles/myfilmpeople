@@ -439,7 +439,7 @@ class MovieSearch {
           <span class="movie-title">${this.escapeHtml(movie.title)}</span>
           <span class="movie-year">(${releaseYear})</span>
         </div>
-        <p class="movie-director">Directed by: Loading...</p>
+        <p class="movie-director">Directed by: </p>
       </div>
     `;
 
@@ -489,7 +489,7 @@ class MovieSearch {
       console.error('Error fetching director info for movie', movieId, ':', error);
       const directorElement = itemElement.querySelector('.movie-director');
       if (directorElement) {
-        directorElement.textContent = 'Directed by: Error loading';
+        directorElement.textContent = 'Directed by: ';
       }
     }
   }
