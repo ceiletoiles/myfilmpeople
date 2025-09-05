@@ -41,6 +41,7 @@ class MoviePage {
     this.movieData = null;
     this.returnUrl = null;
     this.detailsLoaded = false;
+    this.releasesLoaded = false;
     this.init();
   }
 
@@ -107,11 +108,13 @@ class MoviePage {
     const castSection = document.getElementById('castSection');
     const crewSection = document.getElementById('crewSection');
     const detailsSection = document.getElementById('detailsSection');
+    const releasesSection = document.getElementById('releasesSection');
 
     // Hide all sections first
     castSection.classList.add('hidden');
     crewSection.classList.add('hidden');
     detailsSection.classList.add('hidden');
+    releasesSection.classList.add('hidden');
 
     // Show selected section
     if (tabName === 'cast') {
@@ -123,6 +126,12 @@ class MoviePage {
       // Load details data if not already loaded
       if (!this.detailsLoaded) {
         this.loadDetailsData();
+      }
+    } else if (tabName === 'releases') {
+      releasesSection.classList.remove('hidden');
+      // Load releases data if not already loaded
+      if (!this.releasesLoaded) {
+        this.loadReleasesData();
       }
     }
   }
@@ -329,12 +338,39 @@ class MoviePage {
       }
     }
 
-    // Display tagline
+    // Display tagline and synopsis together
     const movieTagline = document.getElementById('movieTagline');
-    if (movieTagline && movie.tagline && movie.tagline.trim()) {
-      movieTagline.textContent = movie.tagline.toUpperCase();
-    } else if (movieTagline) {
-      movieTagline.style.display = 'none';
+    const movieSynopsis = document.getElementById('movieSynopsis');
+    
+    if (movieTagline && movieSynopsis) {
+      if (movie.tagline && movie.tagline.trim()) {
+        // Create combined content with tagline and synopsis
+        const taglineElement = document.createElement('p');
+        taglineElement.className = 'movie-tagline';
+        taglineElement.textContent = movie.tagline.toUpperCase();
+        
+        // Clear synopsis container and add tagline first
+        movieSynopsis.innerHTML = '';
+        movieSynopsis.appendChild(taglineElement);
+        
+        // Add synopsis content
+        const synopsisText = document.createElement('p');
+        synopsisText.id = 'synopsisText';
+        synopsisText.textContent = movie.overview || 'No synopsis available.';
+        movieSynopsis.appendChild(synopsisText);
+        
+        // Hide the separate tagline section
+        const taglineSection = document.querySelector('.movie-tagline-section');
+        if (taglineSection) {
+          taglineSection.style.display = 'none';
+        }
+      } else {
+        // No tagline, just hide the tagline section
+        const taglineSection = document.querySelector('.movie-tagline-section');
+        if (taglineSection) {
+          taglineSection.style.display = 'none';
+        }
+      }
     }
 
     // Update ratings
@@ -345,8 +381,7 @@ class MoviePage {
       tmdbRating.textContent = `${ratingOutOfFive}/5`;
     }
 
-    // Update synopsis
-    this.renderSynopsis(movie.overview);
+    // Synopsis is now handled in the tagline section above
 
     // Render cast and crew
     this.renderCredits(movie.credits);
@@ -665,7 +700,8 @@ class MoviePage {
         this.movieData.spoken_languages.forEach(language => {
           const languageElement = document.createElement('div');
           languageElement.className = 'language-item';
-          languageElement.textContent = language.name;
+          // Use English name if available, fallback to original name
+          languageElement.textContent = language.english_name || language.name;
           languagesGrid.appendChild(languageElement);
         });
         
@@ -675,43 +711,6 @@ class MoviePage {
       
       // Technical Specifications
       const techSpecs = [];
-      
-      // Aspect Ratio (estimated from poster if available)
-      if (this.movieData.poster_path) {
-        // Most theatrical releases are either 2.39:1 (Cinemascope), 1.85:1, or 1.78:1 (16:9)
-        // We can make educated guesses based on genre and year, but let's use common ratios
-        const year = this.movieData.release_date ? new Date(this.movieData.release_date).getFullYear() : null;
-        
-        // Default to common theatrical aspect ratio
-        let aspectRatio = '2.39:1'; // Default Cinemascope
-        
-        // Older films often used 1.85:1 or 4:3
-        if (year && year < 1960) {
-          aspectRatio = '1.37:1'; // Academy ratio
-        } else if (year && year < 1990) {
-          aspectRatio = '1.85:1'; // Standard widescreen
-        }
-        
-        // Check genres for common ratios
-        if (this.movieData.genres) {
-          const genreNames = this.movieData.genres.map(g => g.name.toLowerCase());
-          
-          // IMAX or action films often use 1.90:1 or 2.39:1
-          if (genreNames.includes('action') || genreNames.includes('adventure')) {
-            aspectRatio = '2.39:1';
-          }
-          // Dramas sometimes use 1.85:1
-          else if (genreNames.includes('drama')) {
-            aspectRatio = '1.85:1';
-          }
-          // Comedies often use 1.85:1
-          else if (genreNames.includes('comedy')) {
-            aspectRatio = '1.85:1';
-          }
-        }
-        
-        techSpecs.push(`Aspect Ratio: ${aspectRatio}`);
-      }
       
       // Budget (if available)
       if (this.movieData.budget && this.movieData.budget > 0) {
@@ -723,27 +722,9 @@ class MoviePage {
         techSpecs.push(`Box Office: $${this.movieData.revenue.toLocaleString()}`);
       }
       
-      // Vote average
-      if (this.movieData.vote_average && this.movieData.vote_average > 0) {
-        // Convert from 10-point scale to 5-point scale
-        const ratingOutOfFive = (this.movieData.vote_average / 2).toFixed(1);
-        techSpecs.push(`TMDb Rating: ${ratingOutOfFive}/5`);
-      }
-      
-      // Vote count
-      if (this.movieData.vote_count && this.movieData.vote_count > 0) {
-        techSpecs.push(`${this.movieData.vote_count.toLocaleString()} votes`);
-      }
-      
       // Status
       if (this.movieData.status) {
         techSpecs.push(`Status: ${this.movieData.status}`);
-      }
-      
-      // Original Language
-      if (this.movieData.original_language) {
-        const langCode = this.movieData.original_language.toUpperCase();
-        techSpecs.push(`Original Language: ${langCode}`);
       }
       
       if (techSpecs.length > 0) {
@@ -781,6 +762,356 @@ class MoviePage {
         loadingDetails.textContent = 'Failed to load details';
       }
     }
+  }
+
+  async loadReleasesData() {
+    if (!this.movieData) return;
+    
+    // Ensure we're only loading releases in the releases tab
+    const releasesSection = document.getElementById('releasesSection');
+    if (!releasesSection || releasesSection.classList.contains('hidden')) {
+      return;
+    }
+    
+    try {
+      this.releasesLoaded = true;
+      const releasesList = document.getElementById('releasesList');
+      const loadingReleases = document.getElementById('loadingReleases');
+      
+      if (loadingReleases) {
+        loadingReleases.style.display = 'none';
+      }
+      
+      if (!releasesList) return;
+      
+      // Clear existing content only if we're in the releases tab
+      const currentActiveTab = document.querySelector('.credits-tab.active');
+      if (!currentActiveTab || currentActiveTab.dataset.tab !== 'releases') {
+        return; // Don't proceed if releases tab is not active
+      }
+      
+      releasesList.innerHTML = '';
+      
+      // We need to fetch release dates data
+      const fetchResult = await this.fetchReleaseDatesData();
+      
+      if (fetchResult && fetchResult.releaseDates && fetchResult.releaseDates.results && fetchResult.releaseDates.results.length > 0) {
+        // Collect all releases and sort them
+        const allReleases = [];
+        const { releaseDates, countryMap } = fetchResult;
+        
+        releaseDates.results.forEach(countryRelease => {
+          if (countryRelease.release_dates) {
+            countryRelease.release_dates.forEach(release => {
+              // Use fetched country name if available, otherwise fall back to manual mapping
+              const countryName = countryMap[countryRelease.iso_3166_1] || this.getCountryName(countryRelease.iso_3166_1);
+              
+              allReleases.push({
+                country: countryRelease.iso_3166_1,
+                countryName: countryName,
+                date: release.release_date,
+                type: release.type,
+                typeDescription: this.getReleaseTypeDescription(release.type),
+                certification: release.certification,
+                note: release.note
+              });
+            });
+          }
+        });
+        
+        // Sort releases: Premieres first, then by date
+        allReleases.sort((a, b) => {
+          // Premieres (type 1) first
+          if (a.type === 1 && b.type !== 1) return -1;
+          if (b.type === 1 && a.type !== 1) return 1;
+          
+          // Then by date
+          return new Date(a.date) - new Date(b.date);
+        });
+        
+        // Group releases by type for better organization
+        const releasesByType = {};
+        allReleases.forEach(release => {
+          if (!releasesByType[release.type]) {
+            releasesByType[release.type] = [];
+          }
+          releasesByType[release.type].push(release);
+        });
+        
+        // Create releases section with type separators
+        let isFirst = true;
+        Object.keys(releasesByType).forEach(typeKey => {
+          const releases = releasesByType[typeKey];
+          const typeDescription = this.getReleaseTypeDescription(parseInt(typeKey));
+          
+          // Add separator for each type
+          const separator = document.createElement('div');
+          separator.className = 'release-type-separator';
+          if (isFirst) {
+            separator.classList.add('first-type');
+          }
+          separator.textContent = typeDescription;
+          releasesList.appendChild(separator);
+          isFirst = false;
+          
+          releases.forEach(release => {
+            const releaseElement = document.createElement('div');
+            releaseElement.className = 'release-item';
+            
+            const releaseDate = new Date(release.date);
+            const formattedDate = releaseDate.toLocaleDateString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric'
+            });
+            
+            // Add special styling for premieres
+            if (release.type === 1) {
+              releaseElement.classList.add('premiere-release');
+            }
+            
+            releaseElement.innerHTML = `
+              <div class="release-content">
+                <div class="release-left">
+                  <div class="release-top">
+                    <div class="release-date">${formattedDate}</div>
+                    <div class="release-country">
+                      ${release.countryName}
+                      ${release.certification ? `<span class="release-certification">${release.certification}</span>` : ''}
+                    </div>
+                  </div>
+                  ${release.note ? `<div class="release-note" title="${release.note}">${release.note}</div>` : ''}
+                </div>
+              </div>
+            `;
+            
+            releasesList.appendChild(releaseElement);
+          });
+        });
+        
+      } else {
+        releasesList.innerHTML = '<p style="color: #9ab; text-align: center; padding: 2rem;">No release information available</p>';
+      }
+      
+    } catch (error) {
+      console.error('Error loading releases data:', error);
+      const loadingReleases = document.getElementById('loadingReleases');
+      if (loadingReleases) {
+        loadingReleases.textContent = 'Failed to load releases';
+      }
+    }
+  }
+
+  async fetchReleaseDatesData() {
+    try {
+      // First, try to fetch countries configuration for full country names
+      let countryMap = {};
+      
+      if (!localStorage.getItem('tmdb_blocked')) {
+        try {
+          const countriesUrl = `${TMDB_CONFIG.BASE_URL}/configuration/countries?api_key=${TMDB_CONFIG.API_KEY}`;
+          console.log('Fetching countries from TMDB:', countriesUrl);
+          
+          const countriesResponse = await this.fetchWithTimeout(countriesUrl, 8000);
+          if (countriesResponse.ok) {
+            const countriesData = await countriesResponse.json();
+            countriesData.forEach(country => {
+              countryMap[country.iso_3166_1] = country.english_name;
+            });
+            console.log('TMDB countries received:', Object.keys(countryMap).length, 'countries');
+          }
+        } catch (error) {
+          console.log('Direct TMDB countries failed:', error.message);
+        }
+      }
+
+      // If direct countries fetch failed, try with proxies
+      if (Object.keys(countryMap).length === 0) {
+        for (let i = 0; i < TMDB_CONFIG.CORS_PROXIES.length; i++) {
+          try {
+            const baseUrl = `${TMDB_CONFIG.BASE_URL}/configuration/countries?api_key=${TMDB_CONFIG.API_KEY}`;
+            const proxy = TMDB_CONFIG.CORS_PROXIES[i];
+            
+            let proxyUrl;
+            if (proxy.includes('allorigins.win')) {
+              proxyUrl = `${proxy}${encodeURIComponent(baseUrl)}`;
+            } else {
+              proxyUrl = `${proxy}${baseUrl}`;
+            }
+            
+            console.log(`Trying proxy ${i} for countries:`, proxyUrl);
+            
+            const response = await this.fetchWithTimeout(proxyUrl, 8000);
+            if (response.ok) {
+              const data = await response.json();
+              data.forEach(country => {
+                countryMap[country.iso_3166_1] = country.english_name;
+              });
+              console.log(`Proxy ${i} successful for countries`);
+              break;
+            }
+          } catch (error) {
+            console.log(`Proxy ${i} failed for countries:`, error.message);
+            continue;
+          }
+        }
+      }
+
+      // Now fetch release dates
+      // First try direct TMDB API call
+      if (!localStorage.getItem('tmdb_blocked')) {
+        try {
+          const url = `${TMDB_CONFIG.BASE_URL}/movie/${this.movieId}/release_dates?api_key=${TMDB_CONFIG.API_KEY}`;
+          console.log('Fetching release dates from TMDB:', url);
+          
+          const response = await this.fetchWithTimeout(url, 8000);
+          if (response.ok) {
+            const data = await response.json();
+            console.log('TMDB release dates received:', data);
+            return { releaseDates: data, countryMap };
+          }
+        } catch (error) {
+          console.log('Direct TMDB release dates failed:', error.message);
+          localStorage.setItem('tmdb_blocked', 'true');
+        }
+      }
+
+      // Try with CORS proxies
+      for (let i = 0; i < TMDB_CONFIG.CORS_PROXIES.length; i++) {
+        try {
+          const baseUrl = `${TMDB_CONFIG.BASE_URL}/movie/${this.movieId}/release_dates?api_key=${TMDB_CONFIG.API_KEY}`;
+          const proxy = TMDB_CONFIG.CORS_PROXIES[i];
+          
+          let proxyUrl;
+          if (proxy.includes('allorigins.win')) {
+            proxyUrl = `${proxy}${encodeURIComponent(baseUrl)}`;
+          } else {
+            proxyUrl = `${proxy}${baseUrl}`;
+          }
+          
+          console.log(`Trying proxy ${i} for release dates:`, proxyUrl);
+          
+          const response = await this.fetchWithTimeout(proxyUrl, 8000);
+          if (response.ok) {
+            const data = await response.json();
+            console.log(`Proxy ${i} successful for release dates`);
+            return { releaseDates: data, countryMap };
+          }
+        } catch (error) {
+          console.log(`Proxy ${i} failed for release dates:`, error.message);
+          continue;
+        }
+      }
+      
+      throw new Error('All attempts to fetch release dates failed');
+
+    } catch (error) {
+      console.error('Error fetching release dates:', error);
+      return null;
+    }
+  }
+
+  getReleaseTypeDescription(type) {
+    const types = {
+      1: 'Premiere',
+      2: 'Theatrical (limited)',
+      3: 'Theatrical',
+      4: 'Digital',
+      5: 'Physical',
+      6: 'TV/Festival'
+    };
+    return types[type] || 'Unknown';
+  }
+
+  getCountryName(countryCode) {
+    const countries = {
+      'US': 'United States',
+      'GB': 'United Kingdom',
+      'FR': 'France',
+      'DE': 'Germany',
+      'IT': 'Italy',
+      'ES': 'Spain',
+      'JP': 'Japan',
+      'KR': 'South Korea',
+      'CN': 'China',
+      'IN': 'India',
+      'CA': 'Canada',
+      'AU': 'Australia',
+      'BR': 'Brazil',
+      'MX': 'Mexico',
+      'RU': 'Russia',
+      'NL': 'Netherlands',
+      'BE': 'Belgium',
+      'CH': 'Switzerland',
+      'AT': 'Austria',
+      'SE': 'Sweden',
+      'NO': 'Norway',
+      'DK': 'Denmark',
+      'FI': 'Finland',
+      'PL': 'Poland',
+      'CZ': 'Czech Republic',
+      'HU': 'Hungary',
+      'GR': 'Greece',
+      'PT': 'Portugal',
+      'IE': 'Ireland',
+      'NZ': 'New Zealand',
+      'ZA': 'South Africa',
+      'AR': 'Argentina',
+      'CL': 'Chile',
+      'CO': 'Colombia',
+      'PE': 'Peru',
+      'VE': 'Venezuela',
+      'TH': 'Thailand',
+      'ID': 'Indonesia',
+      'MY': 'Malaysia',
+      'SG': 'Singapore',
+      'PH': 'Philippines',
+      'VN': 'Vietnam',
+      'TW': 'Taiwan',
+      'HK': 'Hong Kong',
+      'TR': 'Turkey',
+      'IL': 'Israel',
+      'SA': 'Saudi Arabia',
+      'AE': 'United Arab Emirates',
+      'EG': 'Egypt',
+      'NG': 'Nigeria',
+      'KE': 'Kenya',
+      'ET': 'Ethiopia',
+      'GH': 'Ghana',
+      'PR': 'Puerto Rico',
+      'AM': 'Armenia',
+      'HR': 'Croatia',
+      'RO': 'Romania',
+      'BG': 'Bulgaria',
+      'RS': 'Serbia',
+      'SI': 'Slovenia',
+      'SK': 'Slovakia',
+      'LT': 'Lithuania',
+      'LV': 'Latvia',
+      'EE': 'Estonia',
+      'UA': 'Ukraine',
+      'BY': 'Belarus',
+      'MD': 'Moldova',
+      'BA': 'Bosnia and Herzegovina',
+      'MK': 'North Macedonia',
+      'AL': 'Albania',
+      'MT': 'Malta',
+      'CY': 'Cyprus',
+      'IS': 'Iceland',
+      'LU': 'Luxembourg',
+      'MC': 'Monaco',
+      'AD': 'Andorra',
+      'LI': 'Liechtenstein',
+      'SM': 'San Marino',
+      'VA': 'Vatican City',
+      'GI': 'Gibraltar',
+      'IM': 'Isle of Man',
+      'JE': 'Jersey',
+      'GG': 'Guernsey',
+      'FO': 'Faroe Islands',
+      'GL': 'Greenland'
+    };
+    return countries[countryCode] || countryCode;
   }
 
   showCreditsError() {

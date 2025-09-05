@@ -28,7 +28,7 @@
             <p class="movie-year-runtime" id="movieYearRuntime">Release Year • Runtime</p>
             <p class="movie-director" id="movieDirector">Director</p>
             <div class="movie-ratings" id="movieRatings">
-              <span class="rating-tmdb" id="tmdbRating">--/10</span>
+              <span class="rating-tmdb" id="tmdbRating">--/5</span>
             </div>
             
             <div class="movie-actions">
@@ -53,6 +53,7 @@
             <button class="credits-tab active" data-tab="cast">Cast</button>
             <button class="credits-tab" data-tab="crew">Crew</button>
             <button class="credits-tab" data-tab="details">Details</button>
+            <button class="credits-tab" data-tab="releases">Releases</button>
           </div>
           
           <div class="credits-content">
@@ -80,6 +81,15 @@
               </div>
               <div class="details-list" id="detailsList">
                 <!-- Details will be populated by JavaScript -->
+              </div>
+            </div>
+            
+            <div class="releases-section hidden" id="releasesSection">
+              <div class="loading-message" id="loadingReleases">
+                Loading releases...
+              </div>
+              <div class="releases-list" id="releasesList">
+                <!-- Releases will be populated by JavaScript -->
               </div>
             </div>
           </div>
