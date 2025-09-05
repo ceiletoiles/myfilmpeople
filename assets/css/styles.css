@@ -50,6 +50,95 @@ body {
   padding: 20px 15px;
 }
 
+.header-content {
+  position: relative;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.header-main {
+  position: relative;
+  z-index: 1;
+}
+
+.header-search {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 2;
+}
+
+.movie-search-icon {
+  background: var(--bg-secondary);
+  color: var(--text-accent);
+  border: 1px solid #485362;
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.movie-search-icon:hover {
+  background: var(--bg-secondary);
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px var();
+}
+
+.movie-search-container {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: var(--bg-secondary);
+  border: 2px solid var(--letterboxd-orange);
+  border-radius: 25px;
+  padding: 8px 15px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  min-width: 300px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease-out;
+}
+
+.movie-search-container.expanded {
+  display: flex;
+  animation: expandSearch 0.3s ease-out;
+}
+
+@keyframes expandSearch {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+    width: 45px;
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+    width: auto;
+  }
+}
+
+.movie-search-input {
+  background: transparent;
+  border: none;
+  color: var(--text-accent);
+  font-size: 1rem;
+  font-family: 'PT Sans', sans-serif;
+  outline: none;
+  padding: 0;
+  width: 100%;
+  text-align: center;
+}
+
+.movie-search-input::placeholder {
+  color: var(--text-primary);
+}
+
 h1 {
   font-size: 2.2rem;
   font-weight: 400;
@@ -243,8 +332,8 @@ input[type="text"] {
 select:focus,
 input[type="text"]:focus {
   outline: none;
-  border-color: #ff8000;
-  box-shadow: 0 0 0 2px rgba(255, 128, 0, 0.2);
+  border-color: #485362;
+  box-shadow: 0 0 0 2px #485362;
   background: #445566;
 }
 
@@ -667,6 +756,42 @@ select option {
 
   h1 {
     font-size: 1.8rem;
+  }
+
+  .header {
+    padding: 15px 10px;
+  }
+
+  .movie-search-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    border-radius: 0;
+    min-width: auto;
+    width: 100%;
+    padding: 15px 20px;
+    z-index: 1000;
+    border: none;
+    justify-content: center;
+  }
+
+  .movie-search-container.expanded {
+    animation: expandSearchMobile 0.3s ease-out;
+  }
+
+  @keyframes expandSearchMobile {
+    from {
+      transform: translateY(-100%);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+
+  .movie-search-input {
+    font-size: 1.1rem;
+    text-align: center;
   }
 
   .directors-grid {

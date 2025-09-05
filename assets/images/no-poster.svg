@@ -1,0 +1,7 @@
+<!-- This is a placeholder for the no-poster image -->
+<!-- You can replace this with an actual image file -->
+<svg width="200" height="300" xmlns="http://www.w3.org/2000/svg">
+  <rect width="200" height="300" fill="#2c3440"/>
+  <text x="100" y="140" font-family="Arial, sans-serif" font-size="14" fill="#9ab" text-anchor="middle">No Poster</text>
+  <text x="100" y="160" font-family="Arial, sans-serif" font-size="14" fill="#9ab" text-anchor="middle">Available</text>
+</svg>

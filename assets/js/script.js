@@ -85,6 +85,36 @@ const TMDB_CONFIG = {
       return `${proxy}${url}`;
     }
   },
+
+  // Helper to get movie search URL with optional proxy
+  getMovieSearchUrl: (query, useProxy = false, proxyIndex = 0) => {
+    const url = `${TMDB_CONFIG.BASE_URL}/search/movie?api_key=${TMDB_CONFIG.API_KEY}&query=${encodeURIComponent(query)}&include_adult=false`;
+    if (!useProxy) return url;
+    
+    // Handle different proxy formats
+    const proxy = TMDB_CONFIG.CORS_PROXIES[proxyIndex];
+    if (proxy.includes('allorigins.win')) {
+      return `${proxy}${encodeURIComponent(url)}`;
+    } else {
+      // For corsproxy.io and cors-anywhere, don't double-encode
+      return `${proxy}${url}`;
+    }
+  },
+
+  // Helper to get movie details URL with optional proxy
+  getMovieDetailsUrl: (movieId, useProxy = false, proxyIndex = 0) => {
+    const url = `${TMDB_CONFIG.BASE_URL}/movie/${movieId}?api_key=${TMDB_CONFIG.API_KEY}&append_to_response=credits`;
+    if (!useProxy) return url;
+    
+    // Handle different proxy formats
+    const proxy = TMDB_CONFIG.CORS_PROXIES[proxyIndex];
+    if (proxy.includes('allorigins.win')) {
+      return `${proxy}${encodeURIComponent(url)}`;
+    } else {
+      // For corsproxy.io and cors-anywhere, don't double-encode
+      return `${proxy}${url}`;
+    }
+  },
     
   // Helper to generate Letterboxd URL
   generateLetterboxdUrl: (name, knownForDepartment) => {
@@ -1598,4 +1628,75 @@ function attachLongPressMenu(card, person, ui, db) {
 // Initialize the app when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
   const ui = new UIManager(db); // Pass PeopleDatabase instance to UIManager
+  
+  // Initialize movie search functionality
+  initializeMovieSearch();
 });
+
+// Movie Search Functionality for Main Page
+function initializeMovieSearch() {
+  const movieSearchIcon = document.getElementById('movieSearchIcon');
+  const movieSearchContainer = document.getElementById('movieSearchContainer');
+  const movieSearchInput = document.getElementById('movieSearchInput');
+  
+  if (!movieSearchIcon || !movieSearchContainer || !movieSearchInput) {
+    return; // Elements not found, might be on a different page
+  }
+  
+  // Show search container when icon is clicked
+  movieSearchIcon.addEventListener('click', (e) => {
+    e.stopPropagation();
+    showMovieSearchContainer();
+  });
+  
+  // Handle search input
+  movieSearchInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      const query = e.target.value.trim();
+      if (query) {
+        performMovieSearch(query);
+      }
+    }
+  });
+  
+  // Hide search container when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!movieSearchContainer.contains(e.target) && !movieSearchIcon.contains(e.target)) {
+      hideMovieSearchContainer();
+    }
+  });
+  
+  // Handle escape key to close search
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && movieSearchContainer.classList.contains('expanded')) {
+      hideMovieSearchContainer();
+    }
+  });
+}
+
+function showMovieSearchContainer() {
+  const movieSearchContainer = document.getElementById('movieSearchContainer');
+  const movieSearchInput = document.getElementById('movieSearchInput');
+  const movieSearchIcon = document.getElementById('movieSearchIcon');
+  
+  movieSearchContainer.classList.add('expanded');
+  movieSearchIcon.style.display = 'none';
+  
+  // Focus the input immediately
+  movieSearchInput.focus();
+}
+
+function hideMovieSearchContainer() {
+  const movieSearchContainer = document.getElementById('movieSearchContainer');
+  const movieSearchInput = document.getElementById('movieSearchInput');
+  const movieSearchIcon = document.getElementById('movieSearchIcon');
+  
+  movieSearchContainer.classList.remove('expanded');
+  movieSearchIcon.style.display = 'flex';
+  movieSearchInput.value = '';
+}
+
+function performMovieSearch(query) {
+  // Navigate to movie search page with query
+  window.location.href = `movie-search.html?q=${encodeURIComponent(query)}`;
+}
