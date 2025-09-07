@@ -7,8 +7,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=PT+Sans:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="assets/css/styles.css?v=58813b8f">
-    <link rel="stylesheet" href="assets/css/movie-search.css?v=3da30955">
+    <link rel="stylesheet" href="assets/css/styles.css?v=087b1f25">
+    <link rel="stylesheet" href="assets/css/movie-search.css?v=4c40c39d">
   </head>
   <body>
     <div class="container">
@@ -30,6 +30,11 @@
           <span class="tab-icon">👥</span>
           <span class="tab-text">Filmmakers</span>
           <span class="tab-count" id="filmmakersCount">0</span>
+        </button>
+        <button class="search-tab" data-tab="collection">
+          <span class="tab-icon">⭐</span>
+          <span class="tab-text">My Collection</span>
+          <span class="tab-count" id="collectionCount">0</span>
         </button>
       </div>
 
@@ -56,6 +61,11 @@
         <div class="search-results-list hidden" id="filmmakersResults">
           <!-- People and company results will be populated by JavaScript -->
         </div>
+
+        <!-- My Collection Tab Content -->
+        <div class="search-results-list hidden" id="collectionResults">
+          <!-- Collection search results will be populated by JavaScript -->
+        </div>
       </div>
 
       <!-- No Results -->
@@ -74,6 +84,6 @@
     <script src="assets/js/env.netlify.js?v=8ecdee91"></script>
     <script src="assets/js/config.local.js?v=f118aefb"></script>
     <script src="assets/js/config.js?v=7baebae7"></script>
-    <script src="assets/js/movie-search.js?v=8aecb8e0"></script>
+    <script src="assets/js/movie-search.js?v=9e45cb13"></script>
   </body>
 </html>

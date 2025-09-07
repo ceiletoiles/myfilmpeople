@@ -36,7 +36,8 @@ class MovieSearch {
     this.lastResults = {
       movies: [],
       people: [],
-      companies: []
+      companies: [],
+      collection: []
     };
     this.init();
   }
@@ -79,17 +80,24 @@ class MovieSearch {
   updateTabContent() {
     const moviesResults = document.getElementById('moviesResults');
     const filmmakersResults = document.getElementById('filmmakersResults');
+    const collectionResults = document.getElementById('collectionResults');
     
+    // Hide all tabs first
+    [moviesResults, filmmakersResults, collectionResults].forEach(element => {
+      element?.classList.add('hidden');
+      element?.classList.remove('active');
+    });
+    
+    // Show active tab
     if (this.activeTab === 'movies') {
       moviesResults?.classList.add('active');
       moviesResults?.classList.remove('hidden');
-      filmmakersResults?.classList.add('hidden');
-      filmmakersResults?.classList.remove('active');
-    } else {
+    } else if (this.activeTab === 'filmmakers') {
       filmmakersResults?.classList.add('active');
       filmmakersResults?.classList.remove('hidden');
-      moviesResults?.classList.add('hidden');
-      moviesResults?.classList.remove('active');
+    } else if (this.activeTab === 'collection') {
+      collectionResults?.classList.add('active');
+      collectionResults?.classList.remove('hidden');
     }
   }
 
@@ -375,7 +383,8 @@ class MovieSearch {
     const results = {
       movies: [],
       people: [],
-      companies: []
+      companies: [],
+      collection: []
     };
 
     try {
@@ -387,6 +396,9 @@ class MovieSearch {
       
       // Search companies
       results.companies = await this.searchCompanies(query);
+      
+      // Search in user's collection
+      results.collection = await this.searchCollection(query);
       
       // Store results for tab switching
       this.lastResults = results;
@@ -438,6 +450,54 @@ class MovieSearch {
       return [];
     } catch (error) {
       console.error('Search companies error:', error);
+      return [];
+    }
+  }
+
+  async searchCollection(query) {
+    // Search in user's saved collection
+    try {
+      const data = localStorage.getItem('myfilmpeople_data');
+      if (!data) return [];
+      
+      const people = JSON.parse(data);
+      const cleanQuery = query.trim().toLowerCase();
+      
+      if (cleanQuery.length < 2) return [];
+      
+      // Search through all saved people and companies
+      const matchingResults = people.filter(person => {
+        // Search in name
+        if (person.name && person.name.toLowerCase().includes(cleanQuery)) {
+          return true;
+        }
+        
+        // Search in notes
+        if (person.notes && person.notes.toLowerCase().includes(cleanQuery)) {
+          return true;
+        }
+        
+        // Search in role
+        if (person.role && person.role.toLowerCase().includes(cleanQuery)) {
+          return true;
+        }
+        
+        return false;
+      });
+      
+      // Sort by relevance (exact name matches first)
+      return matchingResults.sort((a, b) => {
+        const aNameMatch = a.name && a.name.toLowerCase().includes(cleanQuery);
+        const bNameMatch = b.name && b.name.toLowerCase().includes(cleanQuery);
+        
+        if (aNameMatch && !bNameMatch) return -1;
+        if (!aNameMatch && bNameMatch) return 1;
+        
+        // Then sort alphabetically
+        return (a.name || '').localeCompare(b.name || '');
+      });
+    } catch (error) {
+      console.error('Search collection error:', error);
       return [];
     }
   }
@@ -599,17 +659,18 @@ class MovieSearch {
   displayAllResults(searchResults, query) {
     this.hideLoading();
     
-    const { movies, people, companies } = searchResults;
+    const { movies, people, companies, collection } = searchResults;
     
     // Update tab counts
-    this.updateTabCounts(movies.length, people.length + companies.length);
+    this.updateTabCounts(movies.length, people.length + companies.length, collection.length);
     
     // Display results in respective containers
     this.displayMoviesTab(movies);
     this.displayFilmmakersTab(people, companies);
+    this.displayCollectionTab(collection);
     
     // Show no results if everything is empty
-    const totalResults = movies.length + people.length + companies.length;
+    const totalResults = movies.length + people.length + companies.length + collection.length;
     if (totalResults === 0) {
       this.showNoResults();
     } else {
@@ -620,12 +681,14 @@ class MovieSearch {
     this.updateSearchInfo(query, totalResults);
   }
 
-  updateTabCounts(moviesCount, filmmakersCount) {
+  updateTabCounts(moviesCount, filmmakersCount, collectionCount) {
     const moviesCountEl = document.getElementById('moviesCount');
     const filmmakersCountEl = document.getElementById('filmmakersCount');
+    const collectionCountEl = document.getElementById('collectionCount');
     
     if (moviesCountEl) moviesCountEl.textContent = moviesCount;
     if (filmmakersCountEl) filmmakersCountEl.textContent = filmmakersCount;
+    if (collectionCountEl) collectionCountEl.textContent = collectionCount;
   }
 
   displayMoviesTab(movies) {
@@ -657,6 +720,70 @@ class MovieSearch {
       const companyItem = this.createCompanyListItem(company);
       filmmakersContainer.appendChild(companyItem);
     });
+  }
+
+  displayCollectionTab(collection) {
+    const collectionContainer = document.getElementById('collectionResults');
+    if (!collectionContainer) return;
+    
+    collectionContainer.innerHTML = '';
+    
+    if (collection.length === 0) {
+      collectionContainer.innerHTML = `
+        <div class="no-collection-results">
+          <p>No matches found in your collection.</p>
+        </div>
+      `;
+      return;
+    }
+    
+    // Add collection results
+    collection.forEach(person => {
+      const personItem = this.createCollectionListItem(person);
+      collectionContainer.appendChild(personItem);
+    });
+  }
+
+  createCollectionListItem(person) {
+    const item = document.createElement('div');
+    item.className = 'collection-result-item';
+    
+    // For collection items, we navigate based on the item type
+    item.addEventListener('click', () => {
+      if (person.tmdbId) {
+        // Check if it's a company or person based on role
+        if (person.role === 'studio' || person.type === 'company') {
+          this.openCompanyProfile(person.tmdbId);
+        } else {
+          this.openPersonProfile(person.tmdbId);
+        }
+      }
+    });
+
+    const profileUrl = person.profilePictureUrl || null;
+    const role = person.role || 'Unknown';
+    const notes = person.notes ? person.notes.substring(0, 100) + (person.notes.length > 100 ? '...' : '') : '';
+
+    // Use different icon for companies
+    const isCompany = person.role === 'studio' || person.type === 'company';
+    const defaultIcon = isCompany ? '🏢' : '👤';
+
+    item.innerHTML = `
+      ${profileUrl 
+        ? `<img class="person-profile-small" src="${profileUrl}" alt="${person.name} Profile" loading="lazy">`
+        : `<div class="person-profile-small">${defaultIcon}</div>`
+      }
+      <div class="person-details">
+        <h3 class="person-name">${this.escapeHtml(person.name)}</h3>
+        <p class="person-role">${isCompany ? 'Company' : 'Role'}: ${this.escapeHtml(role)}</p>
+        ${notes ? `<p class="person-notes">${this.escapeHtml(notes)}</p>` : ''}
+        <div class="person-info-row">
+          <span class="person-source">From your collection</span>
+        </div>
+      </div>
+    `;
+
+    return item;
   }
 
   createPersonListItem(person) {

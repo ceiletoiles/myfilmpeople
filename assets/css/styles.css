@@ -89,6 +89,22 @@ body {
   box-shadow: 0 4px 12px var();
 }
 
+.icon-img {
+  width: 20px;
+  height: 20px;
+  filter: brightness(0) saturate(100%) invert(62%) sepia(5%) saturate(2169%) hue-rotate(169deg) brightness(95%) contrast(85%);
+  transition: filter 0.2s ease;
+}
+
+.movie-search-icon:hover .icon-img,
+.control-button:hover .icon-img {
+  filter: brightness(0) saturate(100%) invert(55%) sepia(84%) saturate(2275%) hue-rotate(13deg) brightness(101%) contrast(101%);
+}
+
+.control-button.active .icon-img {
+  filter: brightness(0) saturate(100%) invert(55%) sepia(84%) saturate(2275%) hue-rotate(13deg) brightness(101%) contrast(101%);
+}
+
 .movie-search-container {
   position: fixed;
   top: 0;
@@ -198,11 +214,38 @@ input, textarea, .bio-content, .notes-content, .person-notes,
 
 .tabs {
   display: flex;
-  justify-content: center;
+  align-items: center;
+  justify-content: space-between;
   margin-bottom: 20px;
   border-bottom: 1px solid var(--bg-tertiary);
   background: var(--bg-secondary);
   border-radius: 3px;
+  padding: 0 15px;
+}
+
+.tab-controls-left {
+  position: relative;
+  flex-shrink: 0;
+  order: 1;
+  border-right: 1px solid var(--bg-tertiary);
+  padding-right: 15px;
+  margin-right: 15px;
+}
+
+.tab-controls-right {
+  position: relative;
+  flex-shrink: 0;
+  order: 3;
+  border-left: 1px solid var(--bg-tertiary);
+  padding-left: 15px;
+  margin-left: 15px;
+}
+
+.tab-buttons {
+  display: flex;
+  justify-content: center;
+  flex: 1;
+  order: 2;
 }
 
 .tab-button {
@@ -252,6 +295,13 @@ input, textarea, .bio-content, .notes-content, .person-notes,
   color: var(--text-accent);
   border-bottom-color: var(--text-accent);
   background: rgba(255, 255, 255, 0.1);
+}
+
+.tab-button[data-tab="collection"]:hover,
+.tab-button[data-tab="collection"].active {
+  color: var(--letterboxd-green);
+  border-bottom-color: var(--letterboxd-green);
+  background: rgba(0, 224, 84, 0.1);
 }
 
 .tab-content {
@@ -1420,4 +1470,127 @@ form {
 
 .input-with-dropdown select:hover {
   background-color: var(--bg-tertiary);
+}
+
+/* View Toggle Styles */
+.tab-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* Detailed View Styles */
+.directors-grid.detailed-view,
+.actors-grid.detailed-view,
+.others-grid.detailed-view,
+.companies-grid.detailed-view {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  padding: 20px 0;
+}
+
+.director-card.detailed-card {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  transition: none;
+  overflow: visible;
+  position: relative;
+  border-bottom: 1px solid var(--bg-tertiary);
+  padding-bottom: 25px;
+}
+
+.director-card.detailed-card:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.director-card.detailed-card:hover {
+  background: transparent;
+  transform: none;
+  box-shadow: none;
+}
+
+.detailed-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 25px;
+  padding: 0;
+}
+
+.detailed-avatar {
+  width: 70px !important;
+  height: 70px !important;
+  aspect-ratio: 2/3 !important;
+  border-radius: 8px !important;
+  object-fit: cover;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.detailed-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.detailed-card .person-name {
+  text-align: left !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  font-size: 24px;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.detailed-role {
+  font-size: 16px !important;
+  text-align: left !important;
+  margin: 0 !important;
+  color: var(--text-secondary) !important;
+  line-height: 1.4;
+}
+
+/* Different hover colors for detailed view */
+.directors-grid.detailed-view .director-card:hover {
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.actors-grid.detailed-view .director-card:hover {
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.others-grid.detailed-view .director-card:hover {
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.companies-grid.detailed-view .director-card:hover {
+  border-color: transparent;
+  box-shadow: none;
+}
+
+/* Mobile responsive for detailed view */
+@media (max-width: 768px) {
+  .detailed-content {
+    gap: 12px;
+    padding: 10px;
+  }
+  
+  .detailed-avatar {
+    width: 65px !important;
+    height: 65px !important;
+  }
+  
+  .detailed-card .person-name {
+    font-size: 0.9rem;
+  }
+  
+  .detailed-role {
+    font-size: 0.75rem !important;
+  }
 }

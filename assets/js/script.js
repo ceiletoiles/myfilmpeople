@@ -253,6 +253,7 @@ class UIManager {
     this.people = peopleDatabase.people; // Assign people data from PeopleDatabase
     this.activeTab = 'directors';
     this.currentSort = { directors: 'alphabetical', actors: 'alphabetical', others: 'alphabetical', companies: 'alphabetical' };
+    this.viewMode = 'compact'; // 'compact' or 'detailed'
     this.init();
   }
   
@@ -278,6 +279,7 @@ class UIManager {
   
   init() {
     this.setupEventListeners();
+    this.updateViewLayout(); // Initialize view layout
     this.renderPeople();
     this.updateTabButtons();
   }
@@ -442,30 +444,11 @@ class UIManager {
       }
     });
     
-    // Sort functionality
-    ['directors', 'actors', 'others', 'companies'].forEach(role => {
-      const sortBtnId = `${role}SortButton`;
-      const dropdownId = `${role}SortDropdown`;
-      const sortBtn = document.getElementById(sortBtnId);
-      const dropdown = document.getElementById(dropdownId);
-      
-      if (sortBtn) {
-        sortBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          this.toggleDropdown(dropdown, sortBtn);
-        });
-      }
-      
-      if (dropdown) {
-        dropdown.addEventListener('click', (e) => {
-          if (e.target.classList.contains('sort-option')) {
-            const sortType = e.target.getAttribute('data-sort');
-            this.handleSort(sortType, role);
-            this.closeDropdowns();
-          }
-        });
-      }
-    });
+    // Sort functionality - Updated for single sort button
+    this.bindSortEvents();
+    
+    // View toggle functionality
+    this.bindViewToggleEvents();
     
     // Close dropdowns/search on outside click
     document.addEventListener('click', (e) => {
@@ -567,6 +550,78 @@ class UIManager {
     
     // All attempts failed
     throw new Error('All TMDb search attempts failed');
+  }
+
+  bindSortEvents() {
+    // Single sort button functionality
+    const sortBtn = document.getElementById('directorsSortButton');
+    const dropdown = document.getElementById('directorsSortDropdown');
+    
+    if (sortBtn) {
+      sortBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.toggleDropdown(dropdown, sortBtn);
+      });
+    }
+    
+    if (dropdown) {
+      dropdown.addEventListener('click', (e) => {
+        if (e.target.classList.contains('sort-option')) {
+          const sortType = e.target.getAttribute('data-sort');
+          // Get current active tab to determine which collection to sort
+          const activeTab = this.activeTab;
+          const role = activeTab === 'directors' ? 'director' : 
+                      activeTab === 'actors' ? 'actor' : 
+                      activeTab === 'others' ? 'other' : 'company';
+          this.handleSort(sortType, role);
+          this.closeDropdowns();
+        }
+      });
+    }
+  }
+
+  bindViewToggleEvents() {
+    const viewToggleBtn = document.getElementById('viewToggleButton');
+    
+    if (viewToggleBtn) {
+      viewToggleBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.toggleView();
+      });
+    }
+  }
+
+  toggleView() {
+    this.viewMode = this.viewMode === 'compact' ? 'detailed' : 'compact';
+    
+    // Update button icon
+    const viewToggleBtn = document.getElementById('viewToggleButton');
+    const iconImg = viewToggleBtn.querySelector('.icon-img');
+    
+    if (this.viewMode === 'compact') {
+      iconImg.src = 'assets/images/menu.png';
+      iconImg.alt = 'Compact View';
+    } else {
+      iconImg.src = 'assets/images/content.png';
+      iconImg.alt = 'Detailed View';
+    }
+    
+    // Update the UI layout
+    this.updateViewLayout();
+    this.renderPeople();
+  }
+
+  updateViewLayout() {
+    const grids = document.querySelectorAll('.directors-grid');
+    grids.forEach(grid => {
+      if (this.viewMode === 'detailed') {
+        grid.classList.add('detailed-view');
+        grid.classList.remove('compact-view');
+      } else {
+        grid.classList.add('compact-view');
+        grid.classList.remove('detailed-view');
+      }
+    });
   }
 
   async searchTMDbPeople(query) {
@@ -1262,17 +1317,19 @@ class UIManager {
     });
   }  createPersonCard(person) {
     const card = document.createElement('div');
-    card.className = 'director-card';
+    card.className = this.viewMode === 'detailed' ? 'director-card detailed-card' : 'director-card';
     card.setAttribute('data-name', person.name);
     card.setAttribute('data-id', person.id);
     
     // Add profile picture with fallback to default avatar
     let cardContent = '';
+    const avatarClass = this.viewMode === 'detailed' ? 'person-avatar detailed-avatar' : 'person-avatar';
+    
     if (person.profilePicture) {
-      cardContent += `<img src="${person.profilePicture}" alt="${person.name}" class="person-avatar">`;
+      cardContent += `<img src="${person.profilePicture}" alt="${person.name}" class="${avatarClass}">`;
     } else {
       // Default Letterboxd avatar
-      cardContent += `<img src="https://s.ltrbxd.com/static/img/avatar220-BlsAxsT2.png" alt="${person.name}" class="person-avatar">`;
+      cardContent += `<img src="https://s.ltrbxd.com/static/img/avatar220-BlsAxsT2.png" alt="${person.name}" class="${avatarClass}">`;
     }
     
     // Create clickable profile link with basic query parameters
@@ -1283,15 +1340,33 @@ class UIManager {
     profileLink.href = `profile.html?name=${nameSlug}&id=${person.id}`;
     profileLink.className = 'profile-link';
     
-    let linkContent = cardContent + `<span class="person-name">${person.name}</span>`;
-    
-    // Add role badge for non-director/actor roles
-    if (person.role !== 'director' && person.role !== 'actor') {
-      const roleBadge = `<span class="role-badge">${person.role}</span>`;
-      linkContent += roleBadge;
+    if (this.viewMode === 'detailed') {
+      // Detailed view: horizontal layout with name beside image
+      let linkContent = `<div class="detailed-content">`;
+      linkContent += cardContent;
+      linkContent += `<div class="detailed-info">`;
+      linkContent += `<span class="person-name">${person.name}</span>`;
+      
+      // Add role badge for non-director/actor roles
+      if (person.role !== 'director' && person.role !== 'actor') {
+        linkContent += `<span class="role-badge detailed-role">${person.role}</span>`;
+      }
+      
+      linkContent += `</div></div>`;
+      profileLink.innerHTML = linkContent;
+    } else {
+      // Compact view: original layout
+      let linkContent = cardContent + `<span class="person-name">${person.name}</span>`;
+      
+      // Add role badge for non-director/actor roles
+      if (person.role !== 'director' && person.role !== 'actor') {
+        const roleBadge = `<span class="role-badge">${person.role}</span>`;
+        linkContent += roleBadge;
+      }
+      
+      profileLink.innerHTML = linkContent;
     }
     
-    profileLink.innerHTML = linkContent;
     card.appendChild(profileLink);
     
     // Add long-press menu for all cards (both default and user-added)
@@ -1443,19 +1518,18 @@ class UIManager {
   
   handleSort(sortType, role) {
     // Fix the key assignment logic
-    if (role === 'others') {
+    if (role === 'other') {
       this.currentSort.others = sortType;
-    } else if (role === 'directors') {
+    } else if (role === 'director') {
       this.currentSort.directors = sortType;
-    } else if (role === 'actors') {
+    } else if (role === 'actor') {
       this.currentSort.actors = sortType;
-    } else if (role === 'companies') {
+    } else if (role === 'company') {
       this.currentSort.companies = sortType;
     }
     
-    // Update active state in dropdown - fix the ID construction
-    const dropdownId = role + 'SortDropdown';
-    const dropdown = document.getElementById(dropdownId);
+    // Update active state in the single dropdown
+    const dropdown = document.getElementById('directorsSortDropdown');
     
     if (dropdown) {
       dropdown.querySelectorAll('.sort-option').forEach(opt => {

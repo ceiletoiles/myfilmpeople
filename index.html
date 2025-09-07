@@ -43,7 +43,7 @@
       href="https://fonts.googleapis.com/css2?family=PT+Sans:ital,wght@0,400;0,700;1,400;1,700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="assets/css/styles.css?v=58813b8f" />
+    <link rel="stylesheet" href="assets/css/styles.css?v=087b1f25" />
     <link rel="icon" href="assets/images/favicon.ico" type="image/x-icon" />
 
     <script type="application/ld+json">
@@ -115,9 +115,11 @@
             <button class="add-person-btn" id="addPersonBtn">Add Person</button>
           </div>
           <div class="header-search">
-            <button class="movie-search-icon" id="movieSearchIcon">🔍</button>
+            <button class="movie-search-icon" id="movieSearchIcon">
+              <img src="assets/images/search.png" alt="Search" class="icon-img">
+            </button>
             <div class="movie-search-container" id="movieSearchContainer">
-              <input type="text" class="movie-search-input" id="movieSearchInput" placeholder="Search">
+              <input type="text" class="movie-search-input" id="movieSearchInput" placeholder="Search movies & filmmakers">
             </div>
           </div>
         </div>
@@ -130,143 +132,48 @@
 
       <div class="content">
         <div class="tabs">
-          <button class="tab-button active" data-tab="directors">
-            Directors
-          </button>
-          <button class="tab-button" data-tab="actors">Actors</button>
-          <button class="tab-button" data-tab="others">Others</button>
-          <button class="tab-button" data-tab="companies">Companies</button>
+          <div class="tab-controls-left">
+            <button class="control-button" id="directorsSortButton">
+              <img src="assets/images/sort.png" alt="Sort" class="icon-img">
+            </button>
+            <div class="sort-dropdown" id="directorsSortDropdown">
+              <div class="sort-option active" data-sort="alphabetical">A-Z</div>
+              <div class="sort-option" data-sort="reverse">Z-A</div>
+              <div class="sort-option" data-sort="random">Random Mix</div>
+            </div>
+          </div>
+          <div class="tab-buttons">
+            <button class="tab-button active" data-tab="directors">Directors</button>
+            <button class="tab-button" data-tab="actors">Actors</button>
+            <button class="tab-button" data-tab="others">Others</button>
+            <button class="tab-button" data-tab="companies">Companies</button>
+          </div>
+          <div class="tab-controls-right">
+            <button class="control-button" id="viewToggleButton" title="Toggle View">
+              <img src="assets/images/menu.png" alt="View Toggle" class="icon-img">
+            </button>
+          </div>
         </div>
 
         <div id="directors-tab" class="tab-content active">
-          <div class="header-with-controls">
-            <div class="header-controls left">
-              <div class="control-group">
-                <button class="control-button" id="directorsSortButton">
-                  ↕
-                </button>
-                <div class="sort-dropdown" id="directorsSortDropdown">
-                  <div class="sort-option active" data-sort="alphabetical">
-                    A-Z
-                  </div>
-                  <div class="sort-option" data-sort="reverse">Z-A</div>
-                  <div class="sort-option" data-sort="random">Random Mix</div>
-                </div>
-              </div>
-            </div>
-            <h3>Directors</h3>
-            <div class="header-controls right">
-              <div class="control-group search-group">
-                <button class="control-button" id="directorsSearchButton">
-                  ⌕
-                </button>
-                <input
-                  type="text"
-                  class="search-input"
-                  id="directorsSearch"
-                  placeholder="Search directors..."
-                />
-              </div>
-            </div>
-          </div>
           <div class="directors-grid" id="directorsGrid">
             <!-- Directors will be populated by JavaScript -->
           </div>
         </div>
 
         <div id="actors-tab" class="tab-content">
-          <div class="header-with-controls">
-            <div class="header-controls left">
-              <div class="control-group">
-                <button class="control-button" id="actorsSortButton">↕</button>
-                <div class="sort-dropdown" id="actorsSortDropdown">
-                  <div class="sort-option active" data-sort="alphabetical">
-                    A-Z
-                  </div>
-                  <div class="sort-option" data-sort="reverse">Z-A</div>
-                  <div class="sort-option" data-sort="random">Random Mix</div>
-                </div>
-              </div>
-            </div>
-            <h3>Actors</h3>
-            <div class="header-controls right">
-              <div class="control-group search-group">
-                <button class="control-button" id="actorsSearchButton">
-                  ⌕
-                </button>
-                <input
-                  type="text"
-                  class="search-input"
-                  id="actorsSearch"
-                  placeholder="Search actors..."
-                />
-              </div>
-            </div>
-          </div>
           <div class="directors-grid" id="actorsGrid">
             <!-- Actors will be populated by JavaScript -->
           </div>
         </div>
 
         <div id="others-tab" class="tab-content">
-          <div class="header-with-controls">
-            <div class="header-controls left">
-              <div class="control-group">
-                <button class="control-button" id="othersSortButton">↕</button>
-                <div class="sort-dropdown" id="othersSortDropdown">
-                  <div class="sort-option active" data-sort="alphabetical">
-                    A-Z
-                  </div>
-                  <div class="sort-option" data-sort="reverse">Z-A</div>
-                  <div class="sort-option" data-sort="random">Random Mix</div>
-                </div>
-              </div>
-            </div>
-            <h3>Others</h3>
-            <div class="header-controls right">
-              <div class="control-group search-group">
-                <button class="control-button" id="othersSearchButton">
-                  ⌕
-                </button>
-                <input
-                  type="text"
-                  class="search-input"
-                  id="othersSearch"
-                  placeholder="Search others..."
-                />
-              </div>
-            </div>
-          </div>
           <div class="directors-grid" id="othersGrid">
             <!-- Others will be populated by JavaScript -->
           </div>
         </div>
 
         <div id="companies-tab" class="tab-content">
-          <div class="header-with-controls">
-            <div class="header-controls left">
-              <div class="control-group">
-                <button class="control-button" id="companiesSortButton">↕</button>
-                <div class="sort-dropdown" id="companiesSortDropdown">
-                  <div class="sort-option active" data-sort="alphabetical">A-Z</div>
-                  <div class="sort-option" data-sort="reverse">Z-A</div>
-                  <div class="sort-option" data-sort="random">Random Mix</div>
-                </div>
-              </div>
-            </div>
-            <h3>Companies</h3>
-            <div class="header-controls right">
-              <div class="control-group search-group">
-                <button class="control-button" id="companiesSearchButton">⌕</button>
-                <input
-                  type="text"
-                  class="search-input"
-                  id="companiesSearch"
-                  placeholder="Search companies..."
-                />
-              </div>
-            </div>
-          </div>
           <div class="directors-grid" id="companiesGrid">
             <!-- Companies will be populated by JavaScript -->
           </div>
@@ -441,6 +348,6 @@
     <script src="assets/js/env.netlify.js?v=8ecdee91"></script>
     <script src="assets/js/config.local.js?v=f118aefb" onerror="console.log('No local config - using environment or production config')"></script>
     <script src="assets/js/config.js?v=7baebae7"></script>
-    <script src="assets/js/script.js?v=4382c472"></script>
+    <script src="assets/js/script.js?v=f833eff5"></script>
   </body>
 </html>
