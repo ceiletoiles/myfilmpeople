@@ -221,6 +221,7 @@ input, textarea, .bio-content, .notes-content, .person-notes,
   background: var(--bg-secondary);
   border-radius: 3px;
   padding: 0 15px;
+  height: 50px;
 }
 
 .tab-controls-left {
@@ -230,6 +231,9 @@ input, textarea, .bio-content, .notes-content, .person-notes,
   border-right: 1px solid var(--bg-tertiary);
   padding-right: 15px;
   margin-right: 15px;
+  height: 100%;
+  display: flex;
+  align-items: center;
 }
 
 .tab-controls-right {
@@ -239,6 +243,9 @@ input, textarea, .bio-content, .notes-content, .person-notes,
   border-left: 1px solid var(--bg-tertiary);
   padding-left: 15px;
   margin-left: 15px;
+  height: 100%;
+  display: flex;
+  align-items: center;
 }
 
 .tab-buttons {
@@ -246,12 +253,15 @@ input, textarea, .bio-content, .notes-content, .person-notes,
   justify-content: center;
   flex: 1;
   order: 2;
+  height: 100%;
+  align-items: center;
 }
 
 .tab-button {
   background: none;
   border: none;
-  padding: 12px 24px;
+  padding: 0 24px;
+  height: 100%;
   font-size: 0.875rem;
   font-weight: 600;
   color: var(--text-primary);
@@ -261,6 +271,8 @@ input, textarea, .bio-content, .notes-content, .person-notes,
   text-transform: uppercase;
   letter-spacing: 1px;
   font-family: 'PT Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  display: flex;
+  align-items: center;
 }
 
 .tab-button:hover {
@@ -410,8 +422,8 @@ select option {
 
 .control-button {
   width: 40px;
-  height: 40px;
-  border: 1px solid #456;
+  height: 100%;
+  border: 1px solid #2c3440;
   border-radius: 3px;
   background: #2c3440;
   color: #9ab;
@@ -426,14 +438,14 @@ select option {
 }
 
 .control-button:hover {
-  background: #445566;
-  border-color: #ff8000;
+  background: #2c3440;
+  border-color: #2c3440;
   color: #ff8000;
 }
 
 .control-button.active {
-  background: #445566;
-  border-color: #ff8000;
+  background: #2c3440;
+  border-color: #2c3440;
   color: #ff8000;
 }
 
