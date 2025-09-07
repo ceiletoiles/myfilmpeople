@@ -485,11 +485,21 @@ class ProfilePageManager {
     const personName = urlParams.get('name');
     const personId = urlParams.get('id');
     const companyId = urlParams.get('company');
+    const type = urlParams.get('type'); // New type parameter for search results
     const isTmdb = urlParams.get('tmdb') === 'true';
     const passedRole = urlParams.get('role'); // Get role from URL parameter
     this.returnUrl = urlParams.get('return') || 'index.html'; // Store return URL
     
-    if (companyId) {
+    // Handle new type-based URLs from search results
+    if (type === 'company' && personId) {
+      // Load company profile using the id parameter
+      this.loadCompanyProfile(personId);
+    } else if (type === 'person' && personId) {
+      // Load person profile using the id parameter, always from TMDb
+      this.loadTMDbPersonProfile(personId, passedRole);
+    }
+    // Legacy URL handling for backward compatibility
+    else if (companyId) {
       // Load company profile
       this.loadCompanyProfile(companyId);
     } else if (personName) {

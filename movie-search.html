@@ -15,32 +15,54 @@
       <!-- Search Header -->
       <div class="search-header">
         <div class="search-header-content">
-          <input type="text" class="search-bar-input" id="searchInput" placeholder="Search movies...">
+          <input type="text" class="search-bar-input" id="searchInput" placeholder="Search movies, people, and companies...">
         </div>
+      </div>
+
+      <!-- Search Tabs -->
+      <div class="search-tabs" id="searchTabs">
+        <button class="search-tab active" data-tab="movies">
+          <span class="tab-icon">🎬</span>
+          <span class="tab-text">Movies</span>
+          <span class="tab-count" id="moviesCount">0</span>
+        </button>
+        <button class="search-tab" data-tab="filmmakers">
+          <span class="tab-icon">👥</span>
+          <span class="tab-text">Filmmakers</span>
+          <span class="tab-count" id="filmmakersCount">0</span>
+        </button>
       </div>
 
       <!-- Search Info -->
       <div class="search-info" id="searchInfo">
         <h2 id="searchTitle">Search Results</h2>
-        <p id="searchSubtitle">Enter a movie title to search</p>
+        <p id="searchSubtitle">Enter a movie title, person name, or company to search</p>
       </div>
 
       <!-- Loading -->
       <div class="loading-container hidden" id="loadingContainer">
         <div class="loading-spinner"></div>
-        <p>Searching movies...</p>
+        <p id="loadingText">Searching...</p>
       </div>
 
       <!-- Results List -->
-      <div class="search-results-list" id="searchResults">
-        <!-- Results will be populated by JavaScript -->
+      <div class="search-results-container">
+        <!-- Movies Tab Content -->
+        <div class="search-results-list active" id="moviesResults">
+          <!-- Movie results will be populated by JavaScript -->
+        </div>
+
+        <!-- Filmmakers Tab Content -->
+        <div class="search-results-list hidden" id="filmmakersResults">
+          <!-- People and company results will be populated by JavaScript -->
+        </div>
       </div>
 
       <!-- No Results -->
       <div class="no-results hidden" id="noResults">
-        <div class="no-results-icon">🎬</div>
-        <h3>No movies found</h3>
-        <p>Try searching with a different title or check your spelling.</p>
+        <div class="no-results-icon">🔍</div>
+        <h3 id="noResultsTitle">No results found</h3>
+        <p id="noResultsText">Try searching with different keywords or check your spelling.</p>
       </div>
     </div>
     <!-- Footer -->

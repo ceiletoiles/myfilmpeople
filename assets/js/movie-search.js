@@ -32,12 +32,65 @@ class MovieSearch {
   constructor() {
     this.currentQuery = '';
     this.searchTimeout = null;
+    this.activeTab = 'movies';
+    this.lastResults = {
+      movies: [],
+      people: [],
+      companies: []
+    };
     this.init();
   }
 
   init() {
     this.bindEvents();
+    this.bindTabEvents();
     this.loadQueryFromURL();
+  }
+
+  bindTabEvents() {
+    const tabButtons = document.querySelectorAll('.search-tab');
+    tabButtons.forEach(button => {
+      button.addEventListener('click', (e) => {
+        const tab = e.currentTarget.getAttribute('data-tab');
+        this.switchTab(tab);
+      });
+    });
+  }
+
+  switchTab(tab) {
+    if (this.activeTab === tab) return;
+    
+    this.activeTab = tab;
+    
+    // Update tab buttons
+    const tabButtons = document.querySelectorAll('.search-tab');
+    tabButtons.forEach(button => {
+      if (button.getAttribute('data-tab') === tab) {
+        button.classList.add('active');
+      } else {
+        button.classList.remove('active');
+      }
+    });
+    
+    // Update tab content
+    this.updateTabContent();
+  }
+
+  updateTabContent() {
+    const moviesResults = document.getElementById('moviesResults');
+    const filmmakersResults = document.getElementById('filmmakersResults');
+    
+    if (this.activeTab === 'movies') {
+      moviesResults?.classList.add('active');
+      moviesResults?.classList.remove('hidden');
+      filmmakersResults?.classList.add('hidden');
+      filmmakersResults?.classList.remove('active');
+    } else {
+      filmmakersResults?.classList.add('active');
+      filmmakersResults?.classList.remove('hidden');
+      moviesResults?.classList.add('hidden');
+      moviesResults?.classList.remove('active');
+    }
   }
 
   bindEvents() {
@@ -133,12 +186,12 @@ class MovieSearch {
     this.updateSearchInfo(query);
 
     try {
-      const movies = await this.searchMovies(query);
-      console.log('Search results:', movies);
-      this.displayResults(movies, query);
+      const searchResults = await this.searchAll(query);
+      console.log('Search results:', searchResults);
+      this.displayAllResults(searchResults, query);
     } catch (error) {
       console.error('Search error:', error);
-      this.showError('Failed to search movies. Please try again.');
+      this.showError('Failed to search. Please try again.');
     }
   }
 
@@ -318,6 +371,364 @@ class MovieSearch {
     return sortedMovies;
   }
 
+  async searchAll(query) {
+    const results = {
+      movies: [],
+      people: [],
+      companies: []
+    };
+
+    try {
+      // Search movies (keep existing functionality)
+      results.movies = await this.searchMovies(query);
+      
+      // Search people (cast and crew)
+      results.people = await this.searchPeople(query);
+      
+      // Search companies
+      results.companies = await this.searchCompanies(query);
+      
+      // Store results for tab switching
+      this.lastResults = results;
+      
+      return results;
+    } catch (error) {
+      console.error('Error in searchAll:', error);
+      throw error;
+    }
+  }
+
+  async searchPeople(query) {
+    if (!TMDB_CONFIG?.API_KEY) {
+      throw new Error('TMDb API key not configured');
+    }
+
+    const cleanQuery = query.trim();
+    if (cleanQuery.length < 2) {
+      return [];
+    }
+
+    try {
+      const response = await this.fetchPeople(cleanQuery);
+      if (response.results && response.results.length > 0) {
+        return this.rankPeopleResults(response.results, cleanQuery);
+      }
+      return [];
+    } catch (error) {
+      console.error('Search people error:', error);
+      return [];
+    }
+  }
+
+  async searchCompanies(query) {
+    if (!TMDB_CONFIG?.API_KEY) {
+      throw new Error('TMDb API key not configured');
+    }
+
+    const cleanQuery = query.trim();
+    if (cleanQuery.length < 2) {
+      return [];
+    }
+
+    try {
+      const response = await this.fetchCompanies(cleanQuery);
+      if (response.results && response.results.length > 0) {
+        return this.rankCompanyResults(response.results, cleanQuery);
+      }
+      return [];
+    } catch (error) {
+      console.error('Search companies error:', error);
+      return [];
+    }
+  }
+
+  async fetchPeople(query, useProxy = false, proxyIndex = 0) {
+    const url = this.getPeopleSearchUrl(query, useProxy, proxyIndex);
+    return this.makeApiRequest(url, useProxy, proxyIndex);
+  }
+
+  async fetchCompanies(query, useProxy = false, proxyIndex = 0) {
+    const url = this.getCompanySearchUrl(query, useProxy, proxyIndex);
+    return this.makeApiRequest(url, useProxy, proxyIndex);
+  }
+
+  getPeopleSearchUrl(query, useProxy = false, proxyIndex = 0) {
+    const params = new URLSearchParams({
+      api_key: TMDB_CONFIG.API_KEY,
+      query: query,
+      include_adult: 'false',
+      language: 'en-US',
+      page: '1'
+    });
+    
+    const url = `${TMDB_CONFIG.BASE_URL}/search/person?${params.toString()}`;
+    
+    if (!useProxy) return url;
+    
+    const proxy = TMDB_CONFIG.CORS_PROXIES[proxyIndex];
+    if (proxy.includes('allorigins.win')) {
+      return `${proxy}${encodeURIComponent(url)}`;
+    } else {
+      return `${proxy}${url}`;
+    }
+  }
+
+  getCompanySearchUrl(query, useProxy = false, proxyIndex = 0) {
+    const params = new URLSearchParams({
+      api_key: TMDB_CONFIG.API_KEY,
+      query: query,
+      page: '1'
+    });
+    
+    const url = `${TMDB_CONFIG.BASE_URL}/search/company?${params.toString()}`;
+    
+    if (!useProxy) return url;
+    
+    const proxy = TMDB_CONFIG.CORS_PROXIES[proxyIndex];
+    if (proxy.includes('allorigins.win')) {
+      return `${proxy}${encodeURIComponent(url)}`;
+    } else {
+      return `${proxy}${url}`;
+    }
+  }
+
+  async makeApiRequest(url, useProxy = false, proxyIndex = 0) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    
+    try {
+      const response = await fetch(url, { 
+        signal: controller.signal,
+        headers: {
+          'Accept': 'application/json',
+        }
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
+      }
+      
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') {
+        throw new Error('Request timeout - API took too long to respond');
+      }
+      throw error;
+    }
+  }
+
+  rankPeopleResults(people, originalQuery) {
+    const query = originalQuery.toLowerCase();
+    const queryWords = query.split(/\s+/).filter(w => w.length > 0);
+    
+    const rankedPeople = people.map(person => {
+      const name = person.name.toLowerCase();
+      let score = 0;
+      
+      // Exact name match
+      if (name === query) {
+        score += 1000;
+      }
+      // Name starts with query
+      else if (name.startsWith(query)) {
+        score += 500;
+      }
+      // All query words in name
+      else if (queryWords.every(word => name.includes(word))) {
+        score += 300;
+      }
+      // Some query words in name
+      else {
+        const matchingWords = queryWords.filter(word => name.includes(word));
+        score += matchingWords.length * 100;
+      }
+      
+      // Popularity bonus
+      if (person.popularity) {
+        score += Math.min(person.popularity / 10, 50);
+      }
+      
+      return { ...person, searchScore: score };
+    });
+
+    return rankedPeople.sort((a, b) => {
+      if (b.searchScore !== a.searchScore) {
+        return b.searchScore - a.searchScore;
+      }
+      return (b.popularity || 0) - (a.popularity || 0);
+    });
+  }
+
+  rankCompanyResults(companies, originalQuery) {
+    const query = originalQuery.toLowerCase();
+    const queryWords = query.split(/\s+/).filter(w => w.length > 0);
+    
+    const rankedCompanies = companies.map(company => {
+      const name = company.name.toLowerCase();
+      let score = 0;
+      
+      // Exact name match
+      if (name === query) {
+        score += 1000;
+      }
+      // Name starts with query
+      else if (name.startsWith(query)) {
+        score += 500;
+      }
+      // All query words in name
+      else if (queryWords.every(word => name.includes(word))) {
+        score += 300;
+      }
+      // Some query words in name
+      else {
+        const matchingWords = queryWords.filter(word => name.includes(word));
+        score += matchingWords.length * 100;
+      }
+      
+      return { ...company, searchScore: score };
+    });
+
+    return rankedCompanies.sort((a, b) => b.searchScore - a.searchScore);
+  }
+
+  displayAllResults(searchResults, query) {
+    this.hideLoading();
+    
+    const { movies, people, companies } = searchResults;
+    
+    // Update tab counts
+    this.updateTabCounts(movies.length, people.length + companies.length);
+    
+    // Display results in respective containers
+    this.displayMoviesTab(movies);
+    this.displayFilmmakersTab(people, companies);
+    
+    // Show no results if everything is empty
+    const totalResults = movies.length + people.length + companies.length;
+    if (totalResults === 0) {
+      this.showNoResults();
+    } else {
+      this.hideNoResults();
+    }
+    
+    // Update search info
+    this.updateSearchInfo(query, totalResults);
+  }
+
+  updateTabCounts(moviesCount, filmmakersCount) {
+    const moviesCountEl = document.getElementById('moviesCount');
+    const filmmakersCountEl = document.getElementById('filmmakersCount');
+    
+    if (moviesCountEl) moviesCountEl.textContent = moviesCount;
+    if (filmmakersCountEl) filmmakersCountEl.textContent = filmmakersCount;
+  }
+
+  displayMoviesTab(movies) {
+    const moviesContainer = document.getElementById('moviesResults');
+    if (!moviesContainer) return;
+    
+    moviesContainer.innerHTML = '';
+    
+    movies.forEach(movie => {
+      const movieItem = this.createMovieListItem(movie);
+      moviesContainer.appendChild(movieItem);
+    });
+  }
+
+  displayFilmmakersTab(people, companies) {
+    const filmmakersContainer = document.getElementById('filmmakersResults');
+    if (!filmmakersContainer) return;
+    
+    filmmakersContainer.innerHTML = '';
+    
+    // Add people results
+    people.forEach(person => {
+      const personItem = this.createPersonListItem(person);
+      filmmakersContainer.appendChild(personItem);
+    });
+    
+    // Add company results
+    companies.forEach(company => {
+      const companyItem = this.createCompanyListItem(company);
+      filmmakersContainer.appendChild(companyItem);
+    });
+  }
+
+  createPersonListItem(person) {
+    const item = document.createElement('div');
+    item.className = 'person-result-item';
+    item.addEventListener('click', () => this.openPersonProfile(person.id));
+
+    const profileUrl = person.profile_path 
+      ? `${TMDB_CONFIG.IMAGE_BASE_URL}${person.profile_path}`
+      : null;
+
+    const knownFor = person.known_for 
+      ? person.known_for.slice(0, 3).map(item => item.title || item.name).join(', ')
+      : 'No known works';
+
+    const department = person.known_for_department || 'Acting';
+
+    item.innerHTML = `
+      ${profileUrl 
+        ? `<img class="person-profile-small" src="${profileUrl}" alt="${person.name} Profile" loading="lazy">`
+        : `<div class="person-profile-small">👤</div>`
+      }
+      <div class="person-details">
+        <h3 class="person-name">${this.escapeHtml(person.name)}</h3>
+        <p class="person-known-for">Known for: ${this.escapeHtml(knownFor)}</p>
+        <div class="person-info-row">
+          <span class="person-department">${this.escapeHtml(department)}</span>
+        </div>
+      </div>
+    `;
+
+    return item;
+  }
+
+  createCompanyListItem(company) {
+    const item = document.createElement('div');
+    item.className = 'company-result-item';
+    item.addEventListener('click', () => this.openCompanyProfile(company.id));
+
+    const logoUrl = company.logo_path 
+      ? `${TMDB_CONFIG.IMAGE_BASE_URL}${company.logo_path}`
+      : null;
+
+    const originCountry = company.origin_country || 'Unknown';
+
+    item.innerHTML = `
+      ${logoUrl 
+        ? `<img class="company-logo-small" src="${logoUrl}" alt="${company.name} Logo" loading="lazy">`
+        : `<div class="company-logo-small">🏢</div>`
+      }
+      <div class="company-details">
+        <h3 class="company-name">${this.escapeHtml(company.name)}</h3>
+        <p class="company-description">Production Company</p>
+        <div class="company-info-row">
+          <span class="company-type">${this.escapeHtml(originCountry)}</span>
+        </div>
+      </div>
+    `;
+
+    return item;
+  }
+
+  openPersonProfile(personId) {
+    // Navigate to profile page with person ID
+    window.location.href = `profile.html?type=person&id=${personId}`;
+  }
+
+  openCompanyProfile(companyId) {
+    // Navigate to profile page with company ID
+    window.location.href = `profile.html?type=company&id=${companyId}`;
+  }
+
   async fetchMovies(query, useProxy = false, proxyIndex = 0) {
     const url = this.getMovieSearchUrl(query, useProxy, proxyIndex);
     
@@ -386,11 +797,11 @@ class MovieSearch {
   displayResults(movies, query) {
     this.hideLoading();
     
-    const resultsContainer = document.getElementById('searchResults');
+    const moviesContainer = document.getElementById('moviesResults');
     const noResultsContainer = document.getElementById('noResults');
     
-    if (!resultsContainer) {
-      console.error('searchResults container not found!');
+    if (!moviesContainer) {
+      console.error('moviesResults container not found!');
       return;
     }
 
@@ -405,12 +816,12 @@ class MovieSearch {
     }
 
     // Clear previous results
-    resultsContainer.innerHTML = '';
+    moviesContainer.innerHTML = '';
 
     // Create movie list items
     movies.forEach(movie => {
       const movieItem = this.createMovieListItem(movie);
-      resultsContainer.appendChild(movieItem);
+      moviesContainer.appendChild(movieItem);
     });
 
     // Update search info
@@ -501,15 +912,25 @@ class MovieSearch {
 
   showLoading() {
     const loadingContainer = document.getElementById('loadingContainer');
-    const resultsContainer = document.getElementById('searchResults');
+    const loadingText = document.getElementById('loadingText');
+    const moviesContainer = document.getElementById('moviesResults');
+    const filmmakersContainer = document.getElementById('filmmakersResults');
     const noResultsContainer = document.getElementById('noResults');
 
     if (loadingContainer) {
       loadingContainer.classList.remove('hidden');
     }
     
-    if (resultsContainer) {
-      resultsContainer.innerHTML = '';
+    if (loadingText) {
+      loadingText.textContent = 'Searching movies, people, and companies...';
+    }
+    
+    if (moviesContainer) {
+      moviesContainer.innerHTML = '';
+    }
+    
+    if (filmmakersContainer) {
+      filmmakersContainer.innerHTML = '';
     }
     
     if (noResultsContainer) {
@@ -526,28 +947,44 @@ class MovieSearch {
 
   showNoResults() {
     const noResultsContainer = document.getElementById('noResults');
-    const resultsContainer = document.getElementById('searchResults');
+    const moviesContainer = document.getElementById('moviesResults');
+    const filmmakersContainer = document.getElementById('filmmakersResults');
 
-    if (resultsContainer) {
-      resultsContainer.innerHTML = '';
+    if (moviesContainer) {
+      moviesContainer.innerHTML = '';
+    }
+    
+    if (filmmakersContainer) {
+      filmmakersContainer.innerHTML = '';
     }
 
     if (noResultsContainer) {
-      noResultsContainer.innerHTML = `
-        <div class="no-results-icon">🎬</div>
-        <h3>No movies found</h3>
-        <p>Try searching with a different title or check your spelling.</p>
-      `;
+      const titleEl = document.getElementById('noResultsTitle');
+      const textEl = document.getElementById('noResultsText');
+      
+      if (titleEl) titleEl.textContent = 'No results found';
+      if (textEl) textEl.textContent = 'Try searching with different keywords or check your spelling.';
+      
       noResultsContainer.classList.remove('hidden');
+    }
+  }
+
+  hideNoResults() {
+    const noResultsContainer = document.getElementById('noResults');
+    if (noResultsContainer) {
+      noResultsContainer.classList.add('hidden');
     }
   }
 
   showError(message) {
     this.hideLoading();
     
-    const resultsContainer = document.getElementById('searchResults');
-    if (resultsContainer) {
-      resultsContainer.innerHTML = `
+    const activeContainer = this.activeTab === 'movies' 
+      ? document.getElementById('moviesResults')
+      : document.getElementById('filmmakersResults');
+      
+    if (activeContainer) {
+      activeContainer.innerHTML = `
         <div style="text-align: center; padding: 40px; color: var(--text-primary);">
           <h3 style="color: #ff6b6b; margin-bottom: 10px;">Search Error</h3>
           <p>${this.escapeHtml(message)}</p>
@@ -557,16 +994,24 @@ class MovieSearch {
   }
 
   clearResults() {
-    const resultsContainer = document.getElementById('searchResults');
+    const moviesContainer = document.getElementById('moviesResults');
+    const filmmakersContainer = document.getElementById('filmmakersResults');
     const noResultsContainer = document.getElementById('noResults');
     
-    if (resultsContainer) {
-      resultsContainer.innerHTML = '';
+    if (moviesContainer) {
+      moviesContainer.innerHTML = '';
+    }
+    
+    if (filmmakersContainer) {
+      filmmakersContainer.innerHTML = '';
     }
     
     if (noResultsContainer) {
       noResultsContainer.classList.add('hidden');
     }
+    
+    // Reset tab counts
+    this.updateTabCounts(0, 0);
     
     this.updateSearchInfo('');
   }
@@ -579,13 +1024,14 @@ class MovieSearch {
 
     if (!query) {
       titleElement.textContent = 'Search Results';
-      subtitleElement.textContent = 'Enter a movie title to search';
+      subtitleElement.textContent = 'Enter a movie title, person name, or company to search';
     } else if (isSearching) {
       titleElement.textContent = `Searching for "${query}"`;
       subtitleElement.textContent = 'Please wait...';
     } else if (resultCount !== null) {
       titleElement.textContent = `Search Results for "${query}"`;
-      subtitleElement.textContent = `Found ${resultCount} ${resultCount === 1 ? 'movie' : 'movies'}`;
+      const resultText = resultCount === 1 ? 'result' : 'results';
+      subtitleElement.textContent = `Found ${resultCount} ${resultText}`;
     } else {
       titleElement.textContent = `Searching for "${query}"`;
       subtitleElement.textContent = 'Please wait...';
