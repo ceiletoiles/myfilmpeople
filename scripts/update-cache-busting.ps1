@@ -55,7 +55,7 @@ foreach ($file in ($cssFiles + $jsFiles)) {
 }
 
 # Update all HTML files
-$htmlFiles = @("index.html", "movie.html", "profile.html")
+$htmlFiles = @("index.html", "movie.html", "profile.html", "movie-search.html")
 
 foreach ($htmlFile in $htmlFiles) {
     if (Test-Path $htmlFile) {
