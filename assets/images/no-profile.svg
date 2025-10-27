@@ -1,0 +1,6 @@
+<svg width="200" height="300" viewBox="0 0 200 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="200" height="300" fill="#394249"/>
+  <circle cx="100" cy="100" r="40" fill="#678" opacity="0.5"/>
+  <path d="M100 150 C80 150, 60 160, 50 180 L150 180 C140 160, 120 150, 100 150 Z" fill="#678" opacity="0.5"/>
+  <text x="100" y="220" fill="#678" text-anchor="middle" font-family="PT Sans, Arial, sans-serif" font-size="14">No Profile Picture</text>
+</svg>

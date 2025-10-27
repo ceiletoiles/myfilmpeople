@@ -5,6 +5,7 @@ const TMDB_CONFIG = {
   BASE_URL: 'https://api.themoviedb.org/3',
   IMAGE_BASE_URL: 'https://image.tmdb.org/t/p/w500',
   POSTER_BASE_URL: 'https://image.tmdb.org/t/p/w300',
+  BACKDROP_BASE_URL: 'https://image.tmdb.org/t/p/original',
 
   // TMDb API rate limiting and proxy handling
   RATE_LIMIT_DELAY: 50, // 50ms between requests
@@ -131,6 +132,9 @@ class MoviePage {
   async loadMovieData() {
     try {
       console.log(`Loading movie data for ID: ${this.movieId}`);
+      
+      // Set initial page title
+      document.title = 'Loading Movie - MyFilmPeople';
       
       // Show loading state
       this.showLoadingState();
@@ -263,13 +267,31 @@ class MoviePage {
     // Set page title
     document.title = `${movie.title} - MyFilmPeople`;
 
+    // Update movie backdrop
+    const movieBackdrop = document.getElementById('movieBackdrop');
+    if (movieBackdrop && movie.backdrop_path) {
+      movieBackdrop.style.backgroundImage = `url('${TMDB_CONFIG.BACKDROP_BASE_URL}${movie.backdrop_path}')`;
+      movieBackdrop.style.display = 'block';
+    } else if (movieBackdrop) {
+      movieBackdrop.style.display = 'none';
+    }
+
     // Update movie poster
     const moviePoster = document.getElementById('moviePoster');
+    const noPosterSvg = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjMwMCIgdmlld0JveD0iMCAwIDIwMCAzMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMzAwIiBmaWxsPSIjMzk0MjQ5Ii8+Cjx0ZXh0IHg9IjEwMCIgeT0iMTUwIiBmaWxsPSIjNjc4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiPk5vIFBvc3RlcjwvdGV4dD4KPC9zdmc+';
+    
     if (moviePoster && movie.poster_path) {
       moviePoster.src = TMDB_CONFIG.POSTER_BASE_URL + movie.poster_path;
       moviePoster.alt = `${movie.title} poster`;
+      
+      // Fallback if image fails to load
+      moviePoster.onerror = () => {
+        moviePoster.src = noPosterSvg;
+        moviePoster.alt = 'No poster available';
+        moviePoster.onerror = null; // Prevent infinite loop
+      };
     } else if (moviePoster) {
-      moviePoster.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjMwMCIgdmlld0JveD0iMCAwIDIwMCAzMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMzAwIiBmaWxsPSIjMzk0MjQ5Ii8+Cjx0ZXh0IHg9IjEwMCIgeT0iMTUwIiBmaWxsPSIjNjc4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiPk5vIFBvc3RlcjwvdGV4dD4KPC9zdmc+';
+      moviePoster.src = noPosterSvg;
       moviePoster.alt = 'No poster available';
     }
 

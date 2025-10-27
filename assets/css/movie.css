@@ -1,5 +1,29 @@
 /* Movie Page Specific Styles */
 
+.movie-backdrop {
+    width: 100%;
+    max-width: 1200px;
+    height: 500px;
+    margin: 0 auto;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    position: relative;
+    display: none;
+}
+
+.movie-backdrop::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: 
+        linear-gradient(to right, rgba(20, 24, 28, 1) 0%, rgba(20, 24, 28, 0) 10%, rgba(20, 24, 28, 0) 90%, rgba(20, 24, 28, 1) 100%),
+        linear-gradient(to bottom, rgba(20, 24, 28, 0) 0%, rgba(20, 24, 28, 0) 60%, rgba(20, 24, 28, 1) 100%);
+}
+
 .back-button {
     background: #456;
     color: #9ab;
@@ -69,6 +93,10 @@
     max-width: 1200px;
     margin: 0 auto;
     padding: 0 1.5rem;
+    position: relative;
+    z-index: 1;
+    background: var(--bg-primary);
+    min-height: 100vh;
 }
 
 .movie-header {
@@ -488,6 +516,10 @@
 
 /* Mobile Responsive */
 @media (max-width: 768px) {
+    .movie-backdrop {
+        height: 300px;
+    }
+
     .container {
         padding: 0 1rem;
     }
@@ -604,6 +636,10 @@
 }
 
 @media (max-width: 480px) {
+    .movie-backdrop {
+        height: 250px;
+    }
+
     .movie-info {
         gap: 1rem;
     }

@@ -43,7 +43,7 @@
       href="https://fonts.googleapis.com/css2?family=PT+Sans:ital,wght@0,400;0,700;1,400;1,700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="assets/css/styles.css?v=1757273840" />
+    <link rel="stylesheet" href="assets/css/styles.css?v=1761599880" />
     <link rel="icon" href="assets/images/favicon.ico" type="image/x-icon" />
 
     <script type="application/ld+json">
@@ -106,9 +106,32 @@
     </script>
   </head>
   <body>
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <h3>Menu</h3>
+        <button class="sidebar-close" id="sidebarClose">&times;</button>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="index.html" class="sidebar-link active">
+          <span class="sidebar-text">Home</span>
+        </a>
+        <a href="collaboration.html" class="sidebar-link">
+          <span class="sidebar-text">Collaboration Finder</span>
+        </a>
+        <!-- Future features will be added here -->
+      </nav>
+    </div>
+
+    <!-- Sidebar Overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
     <div class="container">
       <div class="header">
         <div class="header-content">
+          <button class="hamburger-menu" id="hamburgerMenu" title="Menu" aria-label="Open menu">
+            <img src="assets/images/menu.svg?v=1761599880" alt="Menu" class="icon-img">
+          </button>
           <div class="header-main">
             <h1>MyFilmPeople</h1>
             <p>Letterboxd Movies Cast and Crew Following</p>
@@ -345,9 +368,9 @@
     </footer>
 
     <!-- Configuration scripts -->
-    <script src="assets/js/env.netlify.js?v=1757273840"></script>
-    <script src="assets/js/config.local.js?v=1757273840" onerror="console.log('No local config - using environment or production config')"></script>
-    <script src="assets/js/config.js?v=1757273840"></script>
-    <script src="assets/js/script.js?v=1757273840"></script>
+    <script src="assets/js/env.netlify.js?v=1761599880"></script>
+    <script src="assets/js/config.local.js?v=1761599880" onerror="console.log('No local config - using environment or production config')"></script>
+    <script src="assets/js/config.js?v=1761599880"></script>
+    <script src="assets/js/script.js?v=1761599880"></script>
   </body>
 </html>

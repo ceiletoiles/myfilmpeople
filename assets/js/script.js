@@ -1705,6 +1705,9 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Initialize movie search functionality
   initializeMovieSearch();
+  
+  // Initialize sidebar functionality
+  initializeSidebar();
 });
 
 // Movie Search Functionality for Main Page
@@ -1773,4 +1776,45 @@ function hideMovieSearchContainer() {
 function performMovieSearch(query) {
   // Navigate to movie search page with query
   window.location.href = `movie-search.html?q=${encodeURIComponent(query)}`;
+}
+
+// Sidebar Functionality
+function initializeSidebar() {
+  const hamburger = document.getElementById('hamburgerMenu');
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebarOverlay');
+  const closeBtn = document.getElementById('sidebarClose');
+
+  if (!hamburger || !sidebar || !overlay) {
+    return; // Elements not found
+  }
+
+  // Open sidebar
+  hamburger.addEventListener('click', () => {
+    sidebar.classList.add('active');
+    overlay.classList.add('active');
+    document.body.style.overflow = 'hidden';
+  });
+
+  // Close sidebar function
+  const closeSidebar = () => {
+    sidebar.classList.remove('active');
+    overlay.classList.remove('active');
+    document.body.style.overflow = '';
+  };
+
+  // Close button click
+  if (closeBtn) {
+    closeBtn.addEventListener('click', closeSidebar);
+  }
+
+  // Overlay click
+  overlay.addEventListener('click', closeSidebar);
+
+  // Close on escape key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && sidebar.classList.contains('active')) {
+      closeSidebar();
+    }
+  });
 }

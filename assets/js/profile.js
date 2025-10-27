@@ -611,6 +611,9 @@ class ProfilePageManager {
       // Show loading state
       this.showLoadingState();
       
+      // Set initial page title
+      document.title = 'Loading Profile - MyFilmPeople';
+      
       // Create a temporary person object for display
       const tempPerson = {
         id: personId,
@@ -785,10 +788,12 @@ setupStudioProfileImage(person) {
 
     if (person.logoPath) {
         profileImg.src = `${TMDB_CONFIG.IMAGE_BASE_URL}${person.logoPath}`;
-        profileImg.alt = `${person.name} Logo`;
+        profileImg.alt = person.name;
         profileImg.style.display = 'block';
     } else {
-        profileContainer.style.display = 'none'; // Hide the container if no logo
+        profileImg.src = 'assets/images/no-profile.svg';
+        profileImg.alt = person.name;
+        profileImg.style.display = 'block';
     }
 }
 
@@ -798,8 +803,15 @@ setupStudioProfileImage(person) {
     if (person.profilePicture) {
       profileImg.src = person.profilePicture;
       profileImg.alt = person.name;
+      
+      // Fallback if image fails to load
+      profileImg.onerror = () => {
+        profileImg.src = 'assets/images/no-profile.svg';
+        profileImg.alt = person.name;
+        profileImg.onerror = null; // Prevent infinite loop
+      };
     } else {
-      profileImg.src = `https://letterboxd.com/static/img/avatar500.png`;
+      profileImg.src = 'assets/images/no-profile.svg';
       profileImg.alt = person.name;
     }
   }
@@ -818,6 +830,17 @@ setupStudioProfileImage(person) {
     // Remove loading class
     const profileContent = document.querySelector('.profile-content');
     profileContent.classList.remove('profile-loading');
+    
+    // Clear loading text if still showing
+    const bioText = document.getElementById('bioText');
+    const birthText = document.getElementById('profileBirth');
+    
+    if (bioText && bioText.textContent.includes('Loading')) {
+      bioText.textContent = '';
+    }
+    if (birthText && birthText.textContent.includes('Loading')) {
+      birthText.textContent = '';
+    }
   }
 
   showFilmographyLoading() {
@@ -939,7 +962,23 @@ setupStudioProfileImage(person) {
         if (data.logo_path) {
           const profileImg = document.getElementById('profileImage');
           profileImg.src = `${TMDB_CONFIG.IMAGE_BASE_URL_LARGE}${data.logo_path}`;
+          profileImg.alt = data.name;
+          
+          // Fallback if image fails to load
+          profileImg.onerror = () => {
+            profileImg.src = 'assets/images/no-profile.svg';
+            profileImg.alt = data.name;
+            profileImg.onerror = null;
+          };
+        } else {
+          // No logo available, use default
+          const profileImg = document.getElementById('profileImage');
+          profileImg.src = 'assets/images/no-profile.svg';
+          profileImg.alt = data.name;
         }
+        
+        // Update page title
+        document.title = `${data.name || 'Studio'} - MyFilmPeople`;
       } else {
         // Handle person details
         // Update basic person info
@@ -971,6 +1010,9 @@ setupStudioProfileImage(person) {
           this.currentPerson.role = this.mapDisplayRoleToMainAppRole(role);
         }
         
+        // Update page title
+        document.title = `${data.name || 'Unknown Person'} - MyFilmPeople`;
+        
         if (data.biography) {
           this.setupBio(data.biography);
         } else {
@@ -1000,6 +1042,19 @@ setupStudioProfileImage(person) {
         if (data.profile_path) {
           const profileImg = document.getElementById('profileImage');
           profileImg.src = `${TMDB_CONFIG.IMAGE_BASE_URL_LARGE}${data.profile_path}`;
+          profileImg.alt = data.name || 'Profile Picture';
+          
+          // Fallback if image fails to load
+          profileImg.onerror = () => {
+            profileImg.src = 'assets/images/no-profile.svg';
+            profileImg.alt = data.name || 'Profile Picture';
+            profileImg.onerror = null;
+          };
+        } else {
+          // No profile picture available, use default
+          const profileImg = document.getElementById('profileImage');
+          profileImg.src = 'assets/images/no-profile.svg';
+          profileImg.alt = data.name || 'Profile Picture';
         }
       }
       
@@ -1037,6 +1092,9 @@ setupStudioProfileImage(person) {
         this.currentPerson.name = companyData.name;
         this.currentPerson.role = this.mapDisplayRoleToMainAppRole('Production Company');
         
+        // Update page title
+        document.title = `${companyData.name} - MyFilmPeople`;
+        
         // Update description if available
         if (companyData.description) {
           document.getElementById('bioText').textContent = companyData.description;
@@ -1063,8 +1121,23 @@ setupStudioProfileImage(person) {
         if (companyData.logo_path) {
           const profileImg = document.getElementById('profileImage');
           profileImg.src = `${TMDB_CONFIG.IMAGE_BASE_URL}${companyData.logo_path}`;
+          profileImg.alt = companyData.name;
           profileImg.style.backgroundColor = 'white';
           profileImg.style.padding = '1rem';
+          
+          // Fallback if image fails to load
+          profileImg.onerror = () => {
+            profileImg.src = 'assets/images/no-profile.svg';
+            profileImg.alt = companyData.name;
+            profileImg.style.backgroundColor = '';
+            profileImg.style.padding = '';
+            profileImg.onerror = null;
+          };
+        } else {
+          // No logo available, use default
+          const profileImg = document.getElementById('profileImage');
+          profileImg.src = 'assets/images/no-profile.svg';
+          profileImg.alt = companyData.name;
         }
       } else {
         throw new Error('No company data received');
@@ -1699,6 +1772,9 @@ setupStudioProfileImage(person) {
     
     const year = movie.release_date ? new Date(movie.release_date).getFullYear() : 'TBA';
     
+    // Calculate countdown for unreleased movies
+    const countdown = this.calculateCountdown(movie.release_date);
+    
     // Group and format roles
     const rolesByDept = this.groupRolesByDepartment(movie.roles);
     
@@ -1790,6 +1866,7 @@ setupStudioProfileImage(person) {
       <div class="film-info">
         <div class="film-title">${movie.title}</div>
         <div class="film-year">${year}</div>
+        ${countdown ? `<div class="film-countdown">${countdown}</div>` : ''}
         <div class="film-roles">${roleDisplay}</div>
       </div>
     `;
@@ -1855,6 +1932,52 @@ setupStudioProfileImage(person) {
     });
     
     return result;
+  }
+  
+  calculateCountdown(releaseDate) {
+    if (!releaseDate) return null;
+    
+    const release = new Date(releaseDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    release.setHours(0, 0, 0, 0);
+    
+    // Only show countdown for future releases
+    if (release <= today) return null;
+    
+    const diffTime = release - today;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    // Format the countdown
+    if (diffDays === 1) {
+      return '[Tomorrow]';
+    } else if (diffDays < 30) {
+      return `[${diffDays} days]`;
+    } else if (diffDays < 365) {
+      const months = Math.floor(diffDays / 30);
+      const days = diffDays % 30;
+      if (days === 0) {
+        return months === 1 ? '[1 month]' : `[${months} months]`;
+      } else {
+        return months === 1 
+          ? `[1 month, ${days}d]` 
+          : `[${months} months, ${days}d]`;
+      }
+    } else {
+      const years = Math.floor(diffDays / 365);
+      const remainingDays = diffDays % 365;
+      const months = Math.floor(remainingDays / 30);
+      
+      if (years === 1 && months === 0) {
+        return '[1 year]';
+      } else if (years === 1) {
+        return `[1 year, ${months}m]`;
+      } else if (months === 0) {
+        return `[${years} years]`;
+      } else {
+        return `[${years} years, ${months}m]`;
+      }
+    }
   }
   
   formatDepartmentDisplay(department, roles) {

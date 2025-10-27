@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Collaboration Finder - MyFilmPeople</title>
+    <meta
+      name="description"
+      content="Find out which movies your favorite cast and crew members worked on together."
+    />
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=PT+Sans:ital,wght@0,400;0,700;1,400;1,700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="assets/css/styles.css?v=1761599880" />
+    <link rel="stylesheet" href="assets/css/collaboration.css?v=1761599880" />
+    <link rel="icon" href="assets/images/favicon.ico" type="image/x-icon" />
+  </head>
+  <body>
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <h3>Menu</h3>
+        <button class="sidebar-close" id="sidebarClose" aria-label="Close menu">&times;</button>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="index.html" class="sidebar-link">
+          <span class="sidebar-icon">🏠</span>
+          <span class="sidebar-text">Home</span>
+        </a>
+        <a href="collaboration.html" class="sidebar-link active">
+          <span class="sidebar-icon">🎬</span>
+          <span class="sidebar-text">Collaboration Finder</span>
+        </a>
+        <!-- Future features will be added here -->
+      </nav>
+    </div>
+
+    <!-- Sidebar Overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <div class="container">
+      <div class="header">
+        <div class="header-content">
+          <button class="hamburger-menu" id="hamburgerMenu" title="Menu" aria-label="Open menu">
+            <span></span>
+            <span></span>
+            <span></span>
+          </button>
+          <div class="header-main">
+            <h1>Collaboration Finder</h1>
+            <p>Discover movies where cast and crew worked together</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="content">
+        <div class="collaboration-container">
+          <div class="collaboration-intro">
+            <p>Find out which movies your favorite filmmakers collaborated on together.</p>
+            <p>Add 2 or more people to see their shared projects.</p>
+          </div>
+
+          <div class="person-search-section">
+            <h2>Add People</h2>
+            <div class="search-wrapper">
+              <input
+                type="text"
+                id="personSearchInput"
+                placeholder="Search for a person (actor, director, crew...)"
+                autocomplete="off"
+                class="person-search-input"
+              />
+              <div id="personSearchResults" class="person-search-results"></div>
+            </div>
+          </div>
+
+          <div class="selected-people-section" id="selectedPeopleSection">
+            <h2>Selected People (<span id="selectedCount">0</span>)</h2>
+            <div class="selected-people-list" id="selectedPeopleList">
+              <!-- Selected people will appear here -->
+            </div>
+            <button
+              id="findCollaborationsBtn"
+              class="find-collaborations-btn"
+              disabled
+            >
+              Find Collaborations
+            </button>
+          </div>
+
+          <div class="results-section" id="resultsSection">
+            <h2>Collaboration Results</h2>
+            <div id="resultsContent" class="results-content">
+              <!-- Results will appear here -->
+            </div>
+          </div>
+
+          <div class="loading-spinner" id="loadingSpinner">
+            <div class="spinner"></div>
+            <p>Searching for collaborations...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer class="app-footer">
+      <p>
+        © 2025 MyFilmPeople. Film data from TMDb. Made with ❤️ for film lovers
+        and letterboxd users
+      </p>
+    </footer>
+
+    <!-- Configuration scripts -->
+    <script src="assets/js/env.netlify.js?v=1761599880"></script>
+    <script src="assets/js/config.local.js?v=1761599880" onerror="console.log('No local config - using environment or production config')"></script>
+    <script src="assets/js/config.js?v=1761599880"></script>
+    <script src="assets/js/collaboration.js?v=1761599880"></script>
+  </body>
+</html>

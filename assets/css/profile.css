@@ -443,6 +443,12 @@
   margin: 0;
 }
 
+.film-countdown {
+  color: #99aabb;
+  font-size: 0.75rem;
+  margin: 2px 0 0 0;
+}
+
 .film-roles {
   display: block;
   line-height: 1.3;

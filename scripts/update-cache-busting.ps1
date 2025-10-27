@@ -73,7 +73,7 @@ if (-not (Test-Path $configLocalPath)) {
 }
 
 # Update all HTML files
-$htmlFiles = @("index.html", "movie.html", "profile.html", "movie-search.html")
+$htmlFiles = @("index.html", "movie.html", "profile.html", "movie-search.html", "collaboration.html")
 
 foreach ($htmlFile in $htmlFiles) {
     if (Test-Path $htmlFile) {
