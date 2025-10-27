@@ -1743,7 +1743,7 @@ form {
 .header-content {
   position: relative;
   padding-left: 55px;
-  padding-right: 0;
+  padding-right: 55px;
 }
 
 @media (max-width: 768px) {
@@ -1754,6 +1754,7 @@ form {
 
   .header-content {
     padding-left: 50px;
+    padding-right: 50px;
   }
 }
 
