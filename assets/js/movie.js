@@ -114,6 +114,12 @@ class MoviePage {
       castSection.classList.remove('hidden');
     } else if (tabName === 'crew') {
       crewSection.classList.remove('hidden');
+      // Show crew skeleton if data not loaded yet
+      const crewList = document.getElementById('crewList');
+      const crewSkeleton = document.getElementById('crewSkeleton');
+      if (crewList && crewList.innerHTML.trim() === '' && crewSkeleton) {
+        crewSkeleton.style.display = 'block';
+      }
     } else if (tabName === 'details') {
       detailsSection.classList.remove('hidden');
       // Load details data if not already loaded
@@ -267,38 +273,52 @@ class MoviePage {
     // Set page title
     document.title = `${movie.title} - MyFilmPeople`;
 
-    // Update movie backdrop
+    // Update movie backdrop with fade-in
     const movieBackdrop = document.getElementById('movieBackdrop');
     if (movieBackdrop && movie.backdrop_path) {
       movieBackdrop.style.backgroundImage = `url('${TMDB_CONFIG.BACKDROP_BASE_URL}${movie.backdrop_path}')`;
       movieBackdrop.style.display = 'block';
+      movieBackdrop.classList.add('fade-in');
     } else if (movieBackdrop) {
       movieBackdrop.style.display = 'none';
     }
 
-    // Update movie poster
+    // Update movie poster - hide skeleton, show image
     const moviePoster = document.getElementById('moviePoster');
+    const posterSkeleton = document.getElementById('posterSkeleton');
     const noPosterSvg = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjMwMCIgdmlld0JveD0iMCAwIDIwMCAzMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMzAwIiBmaWxsPSIjMzk0MjQ5Ii8+Cjx0ZXh0IHg9IjEwMCIgeT0iMTUwIiBmaWxsPSIjNjc4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiPk5vIFBvc3RlcjwvdGV4dD4KPC9zdmc+';
     
     if (moviePoster && movie.poster_path) {
       moviePoster.src = TMDB_CONFIG.POSTER_BASE_URL + movie.poster_path;
       moviePoster.alt = `${movie.title} poster`;
       
+      // Show poster when loaded
+      moviePoster.onload = () => {
+        if (posterSkeleton) posterSkeleton.style.display = 'none';
+        moviePoster.style.display = 'block';
+        moviePoster.classList.add('fade-in');
+      };
+      
       // Fallback if image fails to load
       moviePoster.onerror = () => {
         moviePoster.src = noPosterSvg;
         moviePoster.alt = 'No poster available';
+        if (posterSkeleton) posterSkeleton.style.display = 'none';
+        moviePoster.style.display = 'block';
         moviePoster.onerror = null; // Prevent infinite loop
       };
     } else if (moviePoster) {
       moviePoster.src = noPosterSvg;
       moviePoster.alt = 'No poster available';
+      if (posterSkeleton) posterSkeleton.style.display = 'none';
+      moviePoster.style.display = 'block';
     }
 
-    // Update movie details
+    // Update movie details - remove skeleton spans and add actual content
     const movieFullTitle = document.getElementById('movieFullTitle');
     if (movieFullTitle) {
-      movieFullTitle.textContent = movie.title;
+      movieFullTitle.innerHTML = movie.title;
+      movieFullTitle.classList.add('fade-in');
     }
 
     // Display year and runtime together
@@ -331,7 +351,8 @@ class MoviePage {
         }
       }
       
-      movieYearRuntime.textContent = yearRuntimeText || 'Release info not available';
+      movieYearRuntime.innerHTML = yearRuntimeText || 'Release info not available';
+      movieYearRuntime.classList.add('fade-in');
     }
 
     // Find and display director
@@ -340,10 +361,11 @@ class MoviePage {
       const directors = movie.credits.crew.filter(person => person.job === 'Director');
       if (directors.length > 0) {
         const directorNames = directors.map(d => d.name).join(', ');
-        movieDirector.textContent = directorNames;
+        movieDirector.innerHTML = directorNames;
       } else {
-        movieDirector.textContent = 'Director information not available';
+        movieDirector.innerHTML = 'Director information not available';
       }
+      movieDirector.classList.add('fade-in');
     }
 
     // Display tagline and synopsis separately
@@ -358,6 +380,7 @@ class MoviePage {
         const taglineSection = document.querySelector('.movie-tagline-section');
         if (taglineSection) {
           taglineSection.style.display = 'block';
+          taglineSection.classList.add('fade-in');
         }
       } else {
         // Hide the tagline section if no tagline
@@ -368,12 +391,14 @@ class MoviePage {
       }
     }
     
-    // Handle synopsis separately
-    if (movieSynopsis) {
-      const synopsisText = document.getElementById('synopsisText');
-      if (synopsisText) {
-        synopsisText.textContent = movie.overview || 'No synopsis available.';
-      }
+    // Hide synopsis skeleton, show text
+    const synopsisSkeleton = document.getElementById('synopsisSkeleton');
+    const synopsisText = document.getElementById('synopsisText');
+    if (synopsisSkeleton) synopsisSkeleton.style.display = 'none';
+    if (synopsisText) {
+      synopsisText.textContent = movie.overview || 'No synopsis available.';
+      synopsisText.style.display = 'block';
+      synopsisText.classList.add('fade-in');
     }
 
     // Update ratings
@@ -383,8 +408,6 @@ class MoviePage {
       const ratingOutOfFive = (movie.vote_average / 2).toFixed(1);
       tmdbRating.textContent = `${ratingOutOfFive}/5`;
     }
-
-    // Synopsis is now handled separately above
 
     // Render cast and crew
     this.renderCredits(movie.credits);
@@ -418,16 +441,17 @@ class MoviePage {
 
   renderCrew(crew) {
     const crewList = document.getElementById('crewList');
-    const loadingCrew = document.getElementById('loadingCrew');
+    const crewSkeleton = document.getElementById('crewSkeleton');
     
     if (!crewList) return;
 
-    if (loadingCrew) {
-      loadingCrew.style.display = 'none';
-    }
+    // Hide skeleton
+    if (crewSkeleton) crewSkeleton.style.display = 'none';
 
     if (!crew || crew.length === 0) {
       crewList.innerHTML = '<p class="no-data">Crew information not available</p>';
+      crewList.style.display = 'block';
+      crewList.classList.add('fade-in');
       return;
     }
 
@@ -497,43 +521,90 @@ class MoviePage {
     });
 
     crewList.innerHTML = crewHTML;
+    crewList.style.display = 'block';
+    crewList.classList.add('fade-in');
     
     // Add click handlers for crew members
     this.addCrewClickHandlers();
   }
 
   createCrewPersonHTML(person) {
-    return `
-      <div class="crew-person" data-person-id="${person.id}" data-person-name="${person.name}" data-person-job="${person.job}">
-        <span class="crew-name">${person.name}</span>
-      </div>
-    `;
+    const profilePicUrl = person.profile_path 
+      ? `${TMDB_CONFIG.IMAGE_BASE_URL}${person.profile_path}`
+      : null;
+    
+    if (profilePicUrl) {
+      // Has profile picture - use img tag with fallback
+      const placeholderSvg = this.generateProfilePlaceholder(person.name);
+      const escapedSvg = placeholderSvg.replace(/"/g, '&quot;');
+      
+      return `
+        <div class="crew-person" data-person-id="${person.id}" data-person-name="${person.name}" data-person-job="${person.job}">
+          <img src="${profilePicUrl}" alt="${person.name}" class="crew-profile-pic" loading="lazy" onerror="this.outerHTML='${escapedSvg}'">
+          <span class="crew-name">${person.name}</span>
+        </div>
+      `;
+    } else {
+      // No profile picture - use SVG placeholder
+      return `
+        <div class="crew-person" data-person-id="${person.id}" data-person-name="${person.name}" data-person-job="${person.job}">
+          ${this.generateProfilePlaceholder(person.name)}
+          <span class="crew-name">${person.name}</span>
+        </div>
+      `;
+    }
   }
 
   renderCast(cast) {
     const castList = document.getElementById('castList');
-    const loadingCast = document.getElementById('loadingCast');
+    const castSkeleton = document.getElementById('castSkeleton');
     
     if (!castList) return;
 
-    if (loadingCast) {
-      loadingCast.style.display = 'none';
-    }
+    // Hide skeleton
+    if (castSkeleton) castSkeleton.style.display = 'none';
 
     if (!cast || cast.length === 0) {
       castList.innerHTML = '<p class="no-data">Cast information not available</p>';
+      castList.style.display = 'block';
+      castList.classList.add('fade-in');
       return;
     }
 
     // Show all cast members (no limit)
     const castToShow = cast;
 
-    castList.innerHTML = castToShow.map(person => `
-      <div class="cast-person" data-person-id="${person.id}" data-person-name="${person.name}">
-        <div class="cast-name">${person.name}</div>
-        <div class="cast-character">${person.character || 'Character not specified'}</div>
-      </div>
-    `).join('');
+    castList.innerHTML = castToShow.map(person => {
+      const profilePicUrl = person.profile_path 
+        ? `${TMDB_CONFIG.IMAGE_BASE_URL}${person.profile_path}`
+        : null;
+      
+      if (profilePicUrl) {
+        // Has profile picture - use img tag with fallback
+        const placeholderSvg = this.generateProfilePlaceholder(person.name);
+        const escapedSvg = placeholderSvg.replace(/"/g, '&quot;');
+        
+        return `
+          <div class="cast-person" data-person-id="${person.id}" data-person-name="${person.name}">
+            <img src="${profilePicUrl}" alt="${person.name}" class="cast-profile-pic" loading="lazy" onerror="this.outerHTML='${escapedSvg}'">
+            <div class="cast-name">${person.name}</div>
+            <div class="cast-character">${person.character || 'Character not specified'}</div>
+          </div>
+        `;
+      } else {
+        // No profile picture - use SVG placeholder
+        return `
+          <div class="cast-person" data-person-id="${person.id}" data-person-name="${person.name}">
+            ${this.generateProfilePlaceholder(person.name)}
+            <div class="cast-name">${person.name}</div>
+            <div class="cast-character">${person.character || 'Character not specified'}</div>
+          </div>
+        `;
+      }
+    }).join('');
+    
+    castList.style.display = 'flex';
+    castList.classList.add('fade-in');
     
     // Add click handlers for cast members
     this.addCastClickHandlers();
@@ -593,6 +664,19 @@ class MoviePage {
     const profileUrl = `profile.html?company=${companyId}&return=${encodeURIComponent(currentUrl)}`;
     
     window.location.href = profileUrl;
+  }
+
+  generateProfilePlaceholder(name) {
+    // Create a clean SVG silhouette for missing profile pictures
+    return `<svg class="cast-profile-pic crew-profile-pic" viewBox="0 0 110 110" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="55" cy="55" r="55" fill="#394249"/>
+      <g fill="#556677">
+        <!-- Head -->
+        <circle cx="55" cy="38" r="18"/>
+        <!-- Body/Shoulders -->
+        <ellipse cx="55" cy="85" rx="35" ry="30"/>
+      </g>
+    </svg>`;
   }
 
   async loadDetailsData() {
@@ -1190,11 +1274,8 @@ class MoviePage {
   }
 
   showLoadingState() {
-    const movieFullTitle = document.getElementById('movieFullTitle');
-    const synopsisText = document.getElementById('synopsisText');
-    
-    if (movieFullTitle) movieFullTitle.textContent = 'Loading movie details...';
-    if (synopsisText) synopsisText.textContent = 'Loading synopsis...';
+    // Skeleton loaders are already in place in HTML
+    // No need to set any loading text
   }
 }
 

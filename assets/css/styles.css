@@ -1526,17 +1526,18 @@ form {
 
 .detailed-content {
   display: flex;
-  align-items: flex-start;
-  gap: 25px;
+  align-items: center;
+  gap: 20px;
   padding: 0;
 }
 
 .detailed-avatar {
-  width: 70px !important;
-  height: 70px !important;
-  aspect-ratio: 2/3 !important;
-  border-radius: 8px !important;
+  width: 120px !important;
+  height: 120px !important;
+  aspect-ratio: 1 !important;
+  border-radius: 50% !important;
   object-fit: cover;
+  object-position: center 20%;
   flex-shrink: 0;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
@@ -1545,20 +1546,22 @@ form {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
+  justify-content: center;
 }
 
 .detailed-card .person-name {
   text-align: left !important;
   padding: 0 !important;
   margin: 0 !important;
-  font-size: 24px;
-  color: var(--text-primary);
+  font-size: 1.1rem;
+  color: var(--text-accent);
   font-weight: 600;
+  text-shadow: none;
 }
 
 .detailed-role {
-  font-size: 16px !important;
+  font-size: 0.85rem !important;
   text-align: left !important;
   margin: 0 !important;
   color: var(--text-secondary) !important;
@@ -1589,21 +1592,21 @@ form {
 /* Mobile responsive for detailed view */
 @media (max-width: 768px) {
   .detailed-content {
-    gap: 12px;
+    gap: 15px;
     padding: 10px;
   }
   
   .detailed-avatar {
-    width: 65px !important;
-    height: 65px !important;
+    width: 100px !important;
+    height: 100px !important;
   }
   
   .detailed-card .person-name {
-    font-size: 0.9rem;
+    font-size: 1rem;
   }
   
   .detailed-role {
-    font-size: 0.75rem !important;
+    font-size: 0.8rem !important;
   }
 }
 

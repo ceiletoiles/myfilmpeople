@@ -1,5 +1,81 @@
 /* Movie Page Specific Styles */
 
+/* Skeleton Loading Animation */
+@keyframes shimmer {
+    0% {
+        background-position: -1000px 0;
+    }
+    100% {
+        background-position: 1000px 0;
+    }
+}
+
+.skeleton {
+    background: linear-gradient(
+        90deg,
+        #2c3440 0px,
+        #394249 40px,
+        #2c3440 80px
+    );
+    background-size: 1000px 100%;
+    animation: shimmer 2s infinite linear;
+    border-radius: 4px;
+}
+
+.skeleton-poster {
+    width: 200px;
+    height: 300px;
+    border-radius: 8px;
+}
+
+.skeleton-title {
+    height: 2.2rem;
+    width: 60%;
+    margin-bottom: 1rem;
+    display: inline-block;
+}
+
+.skeleton-text {
+    height: 1.1rem;
+    width: 40%;
+    margin-bottom: 0.5rem;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.skeleton-text-full {
+    height: 1rem;
+    width: 100%;
+    margin-bottom: 0.3rem;
+}
+
+.skeleton-text-full:last-child {
+    width: 80%;
+}
+
+.skeleton-button {
+    height: 48px;
+    width: 200px;
+    border-radius: 6px;
+}
+
+.hidden {
+    display: none !important;
+}
+
+.fade-in {
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
 .movie-backdrop {
     width: 100%;
     max-width: 1200px;
@@ -340,26 +416,69 @@
 }
 
 .crew-members {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 0.4rem 1rem;
-    align-items: start;
-    column-gap: 2rem;
+    display: flex;
+    gap: 1.5rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 1rem 0;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: #556677 #2c3440;
+}
+
+.crew-members::-webkit-scrollbar {
+    height: 6px;
+}
+
+.crew-members::-webkit-scrollbar-track {
+    background: #2c3440;
+    border-radius: 3px;
+}
+
+.crew-members::-webkit-scrollbar-thumb {
+    background: #556677;
+    border-radius: 3px;
+}
+
+.crew-members::-webkit-scrollbar-thumb:hover {
+    background: #667788;
 }
 
 .crew-person {
-    background: none;
-    padding: 0.4rem 0;
-    border: none;
-    border-radius: 0;
+    flex: 0 0 auto;
+    width: 140px;
     cursor: pointer;
     transition: all 0.2s ease;
-    text-align: left;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.6rem;
+    text-align: center;
+    padding: 0.5rem;
+    border-radius: 8px;
+    background: none;
+    border: none;
 }
 
 .crew-person:hover {
-    color: var(--letterboxd-orange);
-    transform: none;
+    background-color: rgba(255, 128, 0, 0.1);
+    transform: translateY(-4px);
+}
+
+.crew-profile-pic {
+    width: 110px;
+    height: 110px;
+    border-radius: 50%;
+    object-fit: cover;
+    object-position: center 20%;
+    background: #394249;
+    border: 3px solid #456;
+    transition: border-color 0.2s ease;
+}
+
+.crew-person:hover .crew-profile-pic {
+    border-color: var(--letterboxd-orange);
 }
 
 .crew-name {
@@ -367,34 +486,85 @@
     font-size: 0.9rem;
     font-weight: 500;
     margin: 0;
+    line-height: 1.2;
+    word-wrap: break-word;
+    width: 100%;
 }
 
-/* Cast Grid Styling - Compact Multi-Column */
+.crew-job {
+    font-size: 0.8rem;
+    color: #9ab;
+    line-height: 1.2;
+    font-style: italic;
+    word-wrap: break-word;
+    width: 100%;
+}
+
+/* Cast Grid Styling - Horizontal Scroll */
 .cast-list {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 0.4rem 1rem;
-    align-items: start;
-    column-gap: 2rem;
+    display: flex;
+    gap: 1.5rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 1rem 0;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: #556677 #2c3440;
+}
+
+.cast-list::-webkit-scrollbar {
+    height: 6px;
+}
+
+.cast-list::-webkit-scrollbar-track {
+    background: #2c3440;
+    border-radius: 3px;
+}
+
+.cast-list::-webkit-scrollbar-thumb {
+    background: #556677;
+    border-radius: 3px;
+}
+
+.cast-list::-webkit-scrollbar-thumb:hover {
+    background: #667788;
 }
 
 .cast-person {
-    background: none;
-    padding: 0.4rem 0;
-    border: none;
-    border-radius: 0;
+    flex: 0 0 auto;
+    width: 140px;
     cursor: pointer;
     transition: all 0.2s ease;
-    border-bottom: 1px solid transparent;
     display: flex;
     flex-direction: column;
-    gap: 0.1rem;
+    align-items: center;
+    gap: 0.6rem;
+    text-align: center;
+    padding: 0.5rem;
+    border-radius: 8px;
+    background: none;
+    border: none;
 }
 
 .cast-person:hover {
     background-color: rgba(255, 128, 0, 0.1);
-    border-bottom-color: var(--letterboxd-orange);
-    padding-left: 0.5rem;
+    transform: translateY(-4px);
+}
+
+.cast-profile-pic {
+    width: 110px;
+    height: 110px;
+    border-radius: 50%;
+    object-fit: cover;
+    object-position: center 20%;
+    background: #394249;
+    border: 3px solid #456;
+    transition: border-color 0.2s ease;
+}
+
+.cast-person:hover .cast-profile-pic {
+    border-color: var(--letterboxd-orange);
 }
 
 .cast-name {
@@ -402,6 +572,8 @@
     color: #ffffff;
     font-size: 0.9rem;
     line-height: 1.2;
+    word-wrap: break-word;
+    width: 100%;
 }
 
 .cast-character {
@@ -409,6 +581,8 @@
     color: #9ab;
     line-height: 1.2;
     font-style: italic;
+    word-wrap: break-word;
+    width: 100%;
 }
 
 /* Details Section Styling */
@@ -611,14 +785,32 @@
     }
 
     .cast-list {
-        grid-template-columns: repeat(auto-fit, minmax(min(180px, 45vw), 1fr));
-        gap: 0.3rem 1rem;
+        padding: 0.5rem 0;
+        gap: 1rem;
+    }
+    
+    .cast-person {
+        width: 110px;
+    }
+    
+    .cast-profile-pic {
+        width: 90px;
+        height: 90px;
     }
 
-  .crew-members {
-    grid-template-columns: repeat(auto-fit, minmax(min(180px, 45vw), 1fr));
-    gap: 0.3rem 1rem;
-  }
+    .crew-members {
+        padding: 0.5rem 0;
+        gap: 1rem;
+    }
+    
+    .crew-person {
+        width: 110px;
+    }
+    
+    .crew-profile-pic {
+        width: 90px;
+        height: 90px;
+    }
   
   .studio-items {
     grid-template-columns: repeat(auto-fit, minmax(min(180px, 45vw), 1fr));
@@ -670,11 +862,47 @@
     }
 
     .cast-list {
-        grid-template-columns: repeat(auto-fit, minmax(min(160px, 40vw), 1fr));
+        padding: 0.5rem 0;
+        gap: 0.8rem;
     }
     
+    .cast-person {
+        width: 100px;
+    }
+    
+    .cast-profile-pic {
+        width: 80px;
+        height: 80px;
+    }
+    
+    .cast-name {
+        font-size: 0.8rem;
+    }
+    
+    .cast-character {
+        font-size: 0.75rem;
+    }
+
     .crew-members {
-        grid-template-columns: repeat(auto-fit, minmax(min(160px, 40vw), 1fr));
+        padding: 0.5rem 0;
+        gap: 0.8rem;
+    }
+    
+    .crew-person {
+        width: 100px;
+    }
+    
+    .crew-profile-pic {
+        width: 80px;
+        height: 80px;
+    }
+    
+    .crew-name {
+        font-size: 0.8rem;
+    }
+    
+    .crew-job {
+        font-size: 0.75rem;
     }
     
     .studio-items {

@@ -7,8 +7,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=PT+Sans:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="assets/css/styles.css?v=1761599880">
-    <link rel="stylesheet" href="assets/css/movie.css?v=1761599880">
+    <link rel="stylesheet" href="assets/css/styles.css?v=1761769378">
+    <link rel="stylesheet" href="assets/css/movie.css?v=1761769378">
   </head>
   <body>
     <div class="movie-backdrop" id="movieBackdrop"></div>
@@ -16,13 +16,14 @@
       <div class="movie-content">
         <div class="movie-info">
           <div class="movie-poster-container">
-            <img id="moviePoster" src="" alt="Movie Poster" class="movie-poster-image">
+            <div class="skeleton skeleton-poster" id="posterSkeleton"></div>
+            <img id="moviePoster" src="" alt="Movie Poster" class="movie-poster-image" style="display: none;">
           </div>
           
           <div class="movie-details">
-            <h2 id="movieFullTitle">Full Movie Title</h2>
-            <p class="movie-year-runtime" id="movieYearRuntime">Release Year • Runtime</p>
-            <p class="movie-director" id="movieDirector">Director</p>
+            <h2 id="movieFullTitle"><span class="skeleton skeleton-title"></span></h2>
+            <p class="movie-year-runtime" id="movieYearRuntime"><span class="skeleton skeleton-text"></span></p>
+            <p class="movie-director" id="movieDirector"><span class="skeleton skeleton-text"></span></p>
             <div class="movie-ratings" id="movieRatings">
               <span class="rating-tmdb" id="tmdbRating">--/5</span>
             </div>
@@ -35,12 +36,17 @@
           </div>
         </div>
         
-        <div class="movie-tagline-section">
-          <p class="movie-tagline" id="movieTagline">Movie Tagline</p>
+        <div class="movie-tagline-section" style="display: none;">
+          <p class="movie-tagline" id="movieTagline"></p>
         </div>
         
         <div class="movie-synopsis" id="movieSynopsis">
-          <p id="synopsisText">Loading synopsis...</p>
+          <div id="synopsisSkeleton">
+            <div class="skeleton skeleton-text-full"></div>
+            <div class="skeleton skeleton-text-full"></div>
+            <div class="skeleton skeleton-text-full" style="width: 80%;"></div>
+          </div>
+          <p id="synopsisText" style="display: none;"></p>
           <button class="synopsis-toggle-btn hidden" id="synopsisToggleBtn">Read more</button>
         </div>
         
@@ -54,25 +60,31 @@
           
           <div class="credits-content">
             <div class="cast-section" id="castSection">
-              <div class="loading-message" id="loadingCast">
-                Loading cast...
+              <div id="castSkeleton">
+                <div class="skeleton skeleton-text-full"></div>
+                <div class="skeleton skeleton-text-full"></div>
+                <div class="skeleton skeleton-text-full"></div>
+                <div class="skeleton skeleton-text-full" style="width: 70%;"></div>
               </div>
-              <div class="cast-list" id="castList">
+              <div class="cast-list" id="castList" style="display: none;">
                 <!-- Cast will be populated by JavaScript -->
               </div>
             </div>
             
             <div class="crew-section hidden" id="crewSection">
-              <div class="loading-message" id="loadingCrew">
-                Loading crew...
+              <div id="crewSkeleton">
+                <div class="skeleton skeleton-text-full"></div>
+                <div class="skeleton skeleton-text-full"></div>
+                <div class="skeleton skeleton-text-full"></div>
+                <div class="skeleton skeleton-text-full" style="width: 70%;"></div>
               </div>
-              <div class="crew-list" id="crewList">
+              <div class="crew-list" id="crewList" style="display: none;">
                 <!-- Crew will be populated by JavaScript -->
               </div>
             </div>
             
             <div class="details-section hidden" id="detailsSection">
-              <div class="loading-message" id="loadingDetails">
+              <div class="loading-message" id="loadingDetails" style="display: none;">
                 Loading details...
               </div>
               <div class="details-list" id="detailsList">
@@ -81,7 +93,7 @@
             </div>
             
             <div class="releases-section hidden" id="releasesSection">
-              <div class="loading-message" id="loadingReleases">
+              <div class="loading-message" id="loadingReleases" style="display: none;">
                 Loading releases...
               </div>
               <div class="releases-list" id="releasesList">
@@ -98,9 +110,9 @@
     </footer>
 
     <!-- Configuration scripts -->
-    <script src="assets/js/env.netlify.js?v=1761599880"></script>
-    <script src="assets/js/config.local.js?v=1761599880" onerror="console.log('No local config - using environment or production config')"></script>
-    <script src="assets/js/config.js?v=1761599880"></script>
-    <script src="assets/js/movie.js?v=1761599880"></script>
+    <script src="assets/js/env.netlify.js?v=1761769378"></script>
+    <script src="assets/js/config.local.js?v=1761769378" onerror="console.log('No local config - using environment or production config')"></script>
+    <script src="assets/js/config.js?v=1761769378"></script>
+    <script src="assets/js/movie.js?v=1761769378"></script>
   </body>
 </html>
