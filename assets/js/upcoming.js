@@ -191,7 +191,7 @@ class UpcomingFilms {
         return [];
       }
       
-      console.log(`Fetching credits for ${person.name} (TMDb ID: ${personId})...`);
+      console.log(`Fetching credits for ${person.name} (Role: ${person.role}, TMDb ID: ${personId})...`);
       
       const response = await fetch(
         `${TMDB_CONFIG.BASE_URL}/person/${personId}/movie_credits?api_key=${TMDB_CONFIG.API_KEY}`
@@ -201,21 +201,46 @@ class UpcomingFilms {
       
       const data = await response.json();
       
-      // Combine cast and crew
-      const allCredits = [...(data.cast || []), ...(data.crew || [])];
+      // Filter credits based on the role they were followed for
+      let relevantCredits = [];
+      
+      // Normalize role to lowercase for comparison
+      const normalizedRole = (person.role || '').toLowerCase();
+      
+      console.log(`🔍 ${person.name} - Stored role: "${person.role}" (normalized: "${normalizedRole}")`);
+      
+      if (normalizedRole === 'director' || normalizedRole === 'directors') {
+        // Only show directing credits
+        const allCrew = data.crew || [];
+        console.log(`📋 ${person.name} - Total crew entries: ${allCrew.length}`);
+        console.log(`📋 ${person.name} - All crew jobs:`, allCrew.map(m => m.job).join(', '));
+        
+        relevantCredits = allCrew.filter(movie => 
+          movie.job && movie.job.toLowerCase() === 'director'
+        );
+        console.log(`✅ ${person.name} (Director): Found ${relevantCredits.length} directing credits`);
+      } else if (normalizedRole === 'actor' || normalizedRole === 'actors') {
+        // Only show acting credits
+        relevantCredits = data.cast || [];
+        console.log(`✅ ${person.name} (Actor): Found ${relevantCredits.length} acting credits`);
+      } else {
+        // For "Others" - show all crew credits (but not acting)
+        relevantCredits = data.crew || [];
+        console.log(`✅ ${person.name} (${person.role}): Found ${relevantCredits.length} crew credits`);
+      }
       
       // Filter only movies with release dates and future releases
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       
-      const upcomingCredits = allCredits.filter(movie => {
+      const upcomingCredits = relevantCredits.filter(movie => {
         if (!movie.release_date) return false;
         const releaseDate = new Date(movie.release_date);
         releaseDate.setHours(0, 0, 0, 0);
         return releaseDate >= today;
       });
       
-      console.log(`${person.name}: ${upcomingCredits.length} upcoming from ${allCredits.length} total credits`);
+      console.log(`${person.name}: ${upcomingCredits.length} upcoming (role-filtered) from ${relevantCredits.length} total ${person.role} credits`);
       
       // Add person info to each movie
       return upcomingCredits.map(movie => ({
