@@ -379,8 +379,8 @@ class UpcomingFilms {
     const countdown = this.getCountdown(releaseDate);
     const countdownClass = countdown.includes('day') && parseInt(countdown) <= 30 ? 'soon' : '';
 
+    // Show all people from your collection for this movie (no limit)
     const peopleTags = movie.associatedPeople
-      .slice(0, 3)
       .map(person => {
         const jobLabel = person.character 
           ? `${this.escapeHtml(person.character)}`
