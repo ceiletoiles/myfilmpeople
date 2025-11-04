@@ -807,10 +807,13 @@ class MovieSearch {
         : `<div class="person-profile-small">👤</div>`
       }
       <div class="person-details">
-        <h3 class="person-name">${this.escapeHtml(person.name)}</h3>
-        <p class="person-known-for">Known for: ${this.escapeHtml(knownFor)}</p>
-        <div class="person-info-row">
+        <div class="person-name-line">
+          <h3 class="person-name">${this.escapeHtml(person.name)}</h3>
+        </div>
+        <div class="person-info-line">
           <span class="person-department">${this.escapeHtml(department)}</span>
+          <span class="person-known-for-label">Known for:</span>
+          <span class="person-known-for">${this.escapeHtml(knownFor)}</span>
         </div>
       </div>
     `;

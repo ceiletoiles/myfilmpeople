@@ -33,6 +33,34 @@ const TMDB_CONFIG = {
     } else {
       return `${proxy}${url}`;
     }
+  },
+
+  // Helper to get related movies (collection/franchise)
+  getRelatedMoviesUrl: (movieId, useProxy = false, proxyIndex = 0) => {
+    const url = `${TMDB_CONFIG.BASE_URL}/movie/${movieId}?api_key=${TMDB_CONFIG.API_KEY}`;
+    
+    if (!useProxy) return url;
+    
+    const proxy = TMDB_CONFIG.CORS_PROXIES[proxyIndex];
+    if (proxy.includes('allorigins.win')) {
+      return `${proxy}${encodeURIComponent(url)}`;
+    } else {
+      return `${proxy}${url}`;
+    }
+  },
+
+  // Helper to get similar movies
+  getSimilarMoviesUrl: (movieId, useProxy = false, proxyIndex = 0) => {
+    const url = `${TMDB_CONFIG.BASE_URL}/movie/${movieId}/similar?api_key=${TMDB_CONFIG.API_KEY}&page=1`;
+    
+    if (!useProxy) return url;
+    
+    const proxy = TMDB_CONFIG.CORS_PROXIES[proxyIndex];
+    if (proxy.includes('allorigins.win')) {
+      return `${proxy}${encodeURIComponent(url)}`;
+    } else {
+      return `${proxy}${url}`;
+    }
   }
 };
 
@@ -43,6 +71,8 @@ class MoviePage {
     this.returnUrl = null;
     this.detailsLoaded = false;
     this.releasesLoaded = false;
+    this.relatedMoviesLoaded = false;
+    this.similarMoviesLoaded = false;
     this.init();
   }
 
@@ -153,6 +183,10 @@ class MoviePage {
         this.movieData = movieData;
         this.renderMovieData();
         this.setupLetterboxdButton();
+        
+        // Load related and similar movies after main content
+        this.loadRelatedMovies();
+        this.loadSimilarMovies();
       } else {
         throw new Error('Failed to load movie data from all sources');
       }
@@ -930,6 +964,7 @@ class MoviePage {
         Object.keys(releasesByType).forEach(typeKey => {
           const releases = releasesByType[typeKey];
           const typeDescription = this.getReleaseTypeDescription(parseInt(typeKey));
+          const releaseType = parseInt(typeKey);
           
           // Add separator for each type
           const separator = document.createElement('div');
@@ -941,39 +976,113 @@ class MoviePage {
           releasesList.appendChild(separator);
           isFirst = false;
           
-          releases.forEach(release => {
-            const releaseElement = document.createElement('div');
-            releaseElement.className = 'release-item';
-            
-            const releaseDate = new Date(release.date);
-            const formattedDate = releaseDate.toLocaleDateString('en-US', {
-              month: 'short',
-              day: 'numeric',
-              year: 'numeric'
+          // For theatrical release (type 3), group by date
+          if (releaseType === 3) {
+            const groupedByDate = {};
+            releases.forEach(release => {
+              const dateKey = release.date;
+              if (!groupedByDate[dateKey]) {
+                groupedByDate[dateKey] = [];
+              }
+              groupedByDate[dateKey].push(release);
             });
             
-            // Add special styling for premieres
-            if (release.type === 1) {
-              releaseElement.classList.add('premiere-release');
-            }
-            
-            releaseElement.innerHTML = `
-              <div class="release-content">
-                <div class="release-left">
-                  <div class="release-top">
-                    <div class="release-date">${formattedDate}</div>
-                    <div class="release-country">
-                      ${release.countryName}
-                      ${release.certification ? `<span class="release-certification">${release.certification}</span>` : ''}
+            // Render grouped releases
+            Object.keys(groupedByDate).forEach(dateKey => {
+              const countriesOnDate = groupedByDate[dateKey];
+              const firstRelease = countriesOnDate[0];
+              const releaseDate = new Date(firstRelease.date);
+              const formattedDate = releaseDate.toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric'
+              });
+              
+              const releaseElement = document.createElement('div');
+              releaseElement.className = 'release-item';
+              
+              // Create country list with first country on same line as date
+              let countriesHTML = '';
+              countriesOnDate.forEach((release, index) => {
+                if (index === 0) {
+                  // First country on same line as date
+                  countriesHTML += `
+                    <div class="release-top">
+                      <div class="release-date">${formattedDate}</div>
+                      <div class="release-country-wrapper">
+                        <div class="release-country">
+                          ${release.countryName}
+                          ${release.certification ? `<span class="release-certification">${release.certification}</span>` : ''}
+                        </div>
+                        ${release.note ? `<div class="release-note">(${release.note})</div>` : ''}
+                      </div>
                     </div>
+                  `;
+                } else {
+                  // Additional countries without date
+                  countriesHTML += `
+                    <div class="release-top release-country-only">
+                      <div class="release-date"></div>
+                      <div class="release-country-wrapper">
+                        <div class="release-country">
+                          ${release.countryName}
+                          ${release.certification ? `<span class="release-certification">${release.certification}</span>` : ''}
+                        </div>
+                        ${release.note ? `<div class="release-note">(${release.note})</div>` : ''}
+                      </div>
+                    </div>
+                  `;
+                }
+              });
+              
+              releaseElement.innerHTML = `
+                <div class="release-content">
+                  <div class="release-left">
+                    ${countriesHTML}
                   </div>
-                  ${release.note ? `<div class="release-note" title="${release.note}">${release.note}</div>` : ''}
                 </div>
-              </div>
-            `;
-            
-            releasesList.appendChild(releaseElement);
-          });
+              `;
+              
+              releasesList.appendChild(releaseElement);
+            });
+          } else {
+            // For non-theatrical releases, render normally (one per line)
+            releases.forEach(release => {
+              const releaseElement = document.createElement('div');
+              releaseElement.className = 'release-item';
+              
+              const releaseDate = new Date(release.date);
+              const formattedDate = releaseDate.toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric'
+              });
+              
+              // Add special styling for premieres
+              if (release.type === 1) {
+                releaseElement.classList.add('premiere-release');
+              }
+              
+              releaseElement.innerHTML = `
+                <div class="release-content">
+                  <div class="release-left">
+                    <div class="release-top">
+                      <div class="release-date">${formattedDate}</div>
+                      <div class="release-country-wrapper">
+                        <div class="release-country">
+                          ${release.countryName}
+                          ${release.certification ? `<span class="release-certification">${release.certification}</span>` : ''}
+                        </div>
+                      </div>
+                    </div>
+                    ${release.note ? `<div class="release-note" title="${release.note}">${release.note}</div>` : ''}
+                  </div>
+                </div>
+              `;
+              
+              releasesList.appendChild(releaseElement);
+            });
+          }
         });
         
       } else {
@@ -1223,6 +1332,159 @@ class MoviePage {
         console.log(`Opening Letterboxd search for: ${this.movieData.title} -> ${letterboxdUrl}`);
       });
     }
+  }
+
+  // Load related movies (franchise/collection)
+  async loadRelatedMovies() {
+    if (this.relatedMoviesLoaded) return;
+    
+    try {
+      console.log('Loading related movies...');
+      
+      // Check if movie belongs to a collection
+      if (this.movieData.belongs_to_collection) {
+        const collectionId = this.movieData.belongs_to_collection.id;
+        const collectionUrl = `${TMDB_CONFIG.BASE_URL}/collection/${collectionId}?api_key=${TMDB_CONFIG.API_KEY}`;
+        
+        const response = await fetch(collectionUrl);
+        if (response.ok) {
+          const collectionData = await response.json();
+          
+          // Filter out the current movie and render (convert movieId to number for comparison)
+          const currentMovieId = parseInt(this.movieId, 10);
+          const relatedMovies = collectionData.parts.filter(movie => movie.id !== currentMovieId);
+          
+          if (relatedMovies.length > 0) {
+            this.renderRelatedMovies(relatedMovies);
+            this.relatedMoviesLoaded = true;
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error loading related movies:', error);
+    }
+  }
+
+  // Load similar movies
+  async loadSimilarMovies() {
+    if (this.similarMoviesLoaded) return;
+    
+    try {
+      console.log('Loading similar movies...');
+      
+      const similarUrl = TMDB_CONFIG.getSimilarMoviesUrl(this.movieId, false, 0);
+      const response = await fetch(similarUrl);
+      
+      if (response.ok) {
+        const data = await response.json();
+        
+        if (data.results && data.results.length > 0) {
+          // Get top 12 similar movies
+          const similarMovies = data.results.slice(0, 12);
+          this.renderSimilarMovies(similarMovies);
+          this.similarMoviesLoaded = true;
+        }
+      }
+    } catch (error) {
+      console.error('Error loading similar movies:', error);
+    }
+  }
+
+  // Render related movies
+  renderRelatedMovies(movies) {
+    const section = document.getElementById('relatedMoviesSection');
+    const grid = document.getElementById('relatedMoviesGrid');
+    
+    if (!section || !grid) return;
+    
+    // Sort by release date
+    movies.sort((a, b) => {
+      const dateA = a.release_date ? new Date(a.release_date) : new Date(0);
+      const dateB = b.release_date ? new Date(b.release_date) : new Date(0);
+      return dateA - dateB;
+    });
+    
+    grid.innerHTML = movies.map(movie => {
+      return this.createMovieCardHTML(movie);
+    }).join('');
+    
+    section.style.display = 'block';
+  }
+
+  // Render similar movies
+  renderSimilarMovies(movies) {
+    const section = document.getElementById('similarMoviesSection');
+    const grid = document.getElementById('similarMoviesGrid');
+    
+    if (!section || !grid) return;
+    
+    grid.innerHTML = movies.map(movie => {
+      return this.createMovieCardHTML(movie);
+    }).join('');
+    
+    section.style.display = 'block';
+  }
+
+  // Create movie card HTML (matching profile page style)
+  createMovieCardHTML(movie) {
+    const posterUrl = movie.poster_path 
+      ? `${TMDB_CONFIG.POSTER_BASE_URL}${movie.poster_path}`
+      : null;
+    
+    const year = movie.release_date 
+      ? new Date(movie.release_date).getFullYear()
+      : 'TBA';
+    
+    // Create poster HTML with error handling (same as profile page)
+    const posterHtml = posterUrl 
+      ? `<img src="${posterUrl}" alt="${movie.title}" class="movie-card-poster" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">`
+      : '';
+    
+    // Enhanced fallback with different styles based on release status
+    const currentYear = new Date().getFullYear();
+    const releaseYear = movie.release_date ? new Date(movie.release_date).getFullYear() : null;
+    
+    let fallbackContent, fallbackStyle;
+    
+    if (!releaseYear || year === 'TBA') {
+      // Unknown release date
+      fallbackContent = `
+        <div style="font-size: 1.5rem; margin-bottom: 4px;">📅</div>
+        <div style="font-size: 0.7rem; text-align: center; line-height: 1.2;">TBA</div>
+      `;
+      fallbackStyle = 'background: linear-gradient(135deg, #2c3440, #1a1f24);';
+    } else if (releaseYear > currentYear) {
+      // Future release
+      fallbackContent = `
+        <div style="font-size: 1.5rem; margin-bottom: 4px;">🎬</div>
+        <div style="font-size: 0.7rem; text-align: center; line-height: 1.2;">Coming<br>${releaseYear}</div>
+      `;
+      fallbackStyle = 'background: linear-gradient(135deg, #3d4f1f, #2c3940);';
+    } else {
+      // Released but no poster
+      fallbackContent = `
+        <div style="font-size: 1.5rem; margin-bottom: 4px;">🎭</div>
+        <div style="font-size: 0.7rem; text-align: center; line-height: 1.2;">No<br>Poster</div>
+      `;
+      fallbackStyle = 'background: linear-gradient(135deg, #2c3440, #34404a);';
+    }
+    
+    const fallbackPoster = `
+      <div class="movie-card-poster-fallback" style="display: ${posterUrl ? 'none' : 'flex'}; ${fallbackStyle} border: 1px solid rgba(255, 255, 255, 0.1);">
+        ${fallbackContent}
+      </div>
+    `;
+    
+    return `
+      <a href="movie.html?id=${movie.id}" class="movie-card">
+        ${posterHtml}
+        ${fallbackPoster}
+        <div class="movie-card-info">
+          <div class="movie-card-title">${movie.title}</div>
+          <div class="movie-card-year">${year}</div>
+        </div>
+      </a>
+    `;
   }
 
   // Helper to generate Letterboxd search URLs (same as profile page)

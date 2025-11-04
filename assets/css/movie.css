@@ -473,12 +473,6 @@
     object-fit: cover;
     object-position: center 20%;
     background: #394249;
-    border: 3px solid #456;
-    transition: border-color 0.2s ease;
-}
-
-.crew-person:hover .crew-profile-pic {
-    border-color: var(--letterboxd-orange);
 }
 
 .crew-name {
@@ -559,12 +553,6 @@
     object-fit: cover;
     object-position: center 20%;
     background: #394249;
-    border: 3px solid #456;
-    transition: border-color 0.2s ease;
-}
-
-.cast-person:hover .cast-profile-pic {
-    border-color: var(--letterboxd-orange);
 }
 
 .cast-name {
@@ -686,6 +674,154 @@
     text-align: center;
     padding: 1rem;
     grid-column: 1 / -1;
+}
+
+/* Related Movies Section */
+.related-movies-section,
+.similar-movies-section {
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 1px solid #394249;
+    position: relative;
+    z-index: 1;
+}
+
+.related-movies-section h3,
+.similar-movies-section h3 {
+    margin: 0 0 1.5rem 0;
+    font-size: 1.4rem;
+    color: #ffffff;
+    font-weight: 600;
+    position: relative;
+    z-index: 2;
+}
+
+.related-movies-grid,
+.similar-movies-grid {
+    display: flex;
+    gap: 15px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    padding: 1rem 0;
+    position: relative;
+    z-index: 1;
+    scrollbar-width: thin;
+    scrollbar-color: #556677 #2c3440;
+}
+
+.related-movies-grid::-webkit-scrollbar,
+.similar-movies-grid::-webkit-scrollbar {
+    height: 8px;
+}
+
+.related-movies-grid::-webkit-scrollbar-track,
+.similar-movies-grid::-webkit-scrollbar-track {
+    background: #2c3440;
+    border-radius: 4px;
+}
+
+.related-movies-grid::-webkit-scrollbar-thumb,
+.similar-movies-grid::-webkit-scrollbar-thumb {
+    background: #556677;
+    border-radius: 4px;
+}
+
+.related-movies-grid::-webkit-scrollbar-thumb:hover,
+.similar-movies-grid::-webkit-scrollbar-thumb:hover {
+    background: #667788;
+}
+
+.movie-card {
+    background: none;
+    border: none;
+    overflow: hidden;
+    cursor: pointer;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    height: auto;
+    width: 140px;
+    min-width: 140px;
+    flex-shrink: 0;
+    text-decoration: none;
+    color: inherit;
+}
+
+.movie-card-poster {
+    width: 100%;
+    aspect-ratio: 2 / 3;
+    object-fit: contain;
+    display: block;
+    border: none;
+    box-shadow: none;
+    margin-bottom: 15px;
+}
+
+.movie-card-poster-fallback {
+    width: 100%;
+    aspect-ratio: 2 / 3;
+    background: #2c3440;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #678;
+    font-size: 0.9rem;
+    font-style: italic;
+    border: 2px dashed #456;
+    margin-bottom: 15px;
+    border-radius: 8px;
+    flex-direction: column;
+}
+
+.movie-card-info {
+    text-align: center;
+    line-height: 1.4;
+    height: auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    width: 100%;
+}
+
+.movie-card-title {
+    color: #fff;
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 4px;
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    min-height: 2.3rem;
+    flex-shrink: 0;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+    text-align: center;
+}
+
+.movie-card-year {
+    color: #678;
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+.loading-movies {
+    text-align: center;
+    padding: 2rem;
+    color: #9ab;
+    font-style: italic;
+}
+
+.no-related-movies,
+.no-similar-movies {
+    text-align: center;
+    padding: 2rem;
+    color: #678;
+    font-style: italic;
 }
 
 /* Mobile Responsive */
@@ -812,6 +948,55 @@
         height: 90px;
     }
   
+    /* Hide scrollbars on mobile */
+    .crew-members,
+    .cast-list,
+    .related-movies-grid,
+    .similar-movies-grid {
+        scrollbar-width: none;
+    }
+
+    .crew-members::-webkit-scrollbar,
+    .cast-list::-webkit-scrollbar,
+    .related-movies-grid::-webkit-scrollbar,
+    .similar-movies-grid::-webkit-scrollbar {
+        display: none;
+    }
+
+    .related-movies-grid,
+    .similar-movies-grid {
+        gap: 12px;
+        padding: 0.5rem 0;
+    }
+
+    .related-movies-section,
+    .similar-movies-section {
+        margin-top: 2rem;
+        padding-top: 1.5rem;
+    }
+
+    .related-movies-section h3,
+    .similar-movies-section h3 {
+        font-size: 1.2rem;
+    }
+
+    .movie-card {
+        width: 110px;
+        min-width: 110px;
+    }
+
+    .movie-card-poster {
+        margin-bottom: 10px;
+    }
+
+    .movie-card-poster-fallback {
+        margin-bottom: 10px;
+    }
+
+    .movie-card-title {
+        font-size: 0.85rem;
+    }
+
   .studio-items {
     grid-template-columns: repeat(auto-fit, minmax(min(180px, 45vw), 1fr));
     gap: 0.3rem 1rem;
@@ -968,6 +1153,10 @@
     width: 100%;
 }
 
+#releasesSection .release-top.release-country-only {
+    margin-top: 0.3rem;
+}
+
 #releasesSection .release-date {
     font-weight: 600;
     color: #ffffff;
@@ -976,11 +1165,18 @@
     flex-shrink: 0;
 }
 
+#releasesSection .release-country-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 220px;
+    max-width: 220px;
+    margin-left: auto;
+}
+
 #releasesSection .release-country {
     color: #9ab;
     font-size: 0.8rem;
-    min-width: 220px;
-    max-width: 220px;
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -989,7 +1185,6 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     flex-shrink: 0;
-    margin-left: auto;
     justify-content: flex-start;
 }
 
@@ -1023,15 +1218,16 @@
 }
 
 #releasesSection .release-note {
-    color: #9ab;
-    font-size: 0.75rem;
+    color: #789;
+    font-size: 0.7rem;
     font-style: italic;
-    max-width: 200px;
+    max-width: 220px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    margin-left: 0;
-    padding-left: 0;
+    margin: 0;
+    padding: 0;
+    line-height: 1.2;
 }
 
 /* Release type separators */
@@ -1068,19 +1264,21 @@
         justify-content: space-between;
     }
     
-    #releasesSection .release-country {
+    #releasesSection .release-country-wrapper {
         min-width: 180px;
         max-width: 220px;
+    }
+
+    #releasesSection .release-country {
         justify-content: flex-start;
         text-align: left;
-        margin-left: auto;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
     }
     
     #releasesSection .release-note {
-        max-width: none;
+        max-width: 220px;
         white-space: normal;
         margin-top: 0.2rem;
     }

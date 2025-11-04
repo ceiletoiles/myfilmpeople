@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Upcoming Films - MyFilmPeople</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=PT+Sans:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/styles.css?v=1762290829">
+  <link rel="stylesheet" href="assets/css/upcoming.css?v=1762290829">
+  <link rel="icon" href="assets/images/favicon.ico" type="image/x-icon">
+</head>
+<body>
+  <!-- Sidebar -->
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <h3>Menu</h3>
+      <button class="sidebar-close" id="sidebarClose">&times;</button>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="index.html" class="sidebar-link">
+        <span class="sidebar-text">Home</span>
+      </a>
+      <a href="collaboration.html" class="sidebar-link">
+        <span class="sidebar-text">Collaboration Finder</span>
+      </a>
+      <a href="upcoming.html" class="sidebar-link active">
+        <span class="sidebar-text">Upcoming Films</span>
+      </a>
+    </nav>
+  </div>
+
+  <!-- Sidebar Overlay -->
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <div class="header-content">
+        <button class="hamburger-menu" id="hamburgerMenu" title="Menu" aria-label="Open menu">
+          <img src="assets/images/menu.svg" alt="Menu" class="icon-img">
+        </button>
+        <div class="header-main">
+          <h1>Upcoming Films</h1>
+          <p>Upcoming releases from your followed filmmakers</p>
+        </div>
+        <div class="header-search">
+          <button class="movie-search-icon" id="movieSearchIcon">
+            <img src="assets/images/search.png" alt="Search" class="icon-img">
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filter Tabs -->
+    <div class="filter-tabs">
+      <button class="filter-tab active" data-filter="all">All</button>
+      <button class="filter-tab" data-filter="directors">Directors</button>
+      <button class="filter-tab" data-filter="actors">Actors</button>
+      <button class="filter-tab" data-filter="others">Others</button>
+    </div>
+
+    <!-- Loading State -->
+    <div class="loading-container" id="loadingContainer">
+      <div class="loading-spinner"></div>
+      <p>Loading upcoming films...</p>
+    </div>
+
+    <!-- Empty State -->
+    <div class="empty-state hidden" id="emptyState">
+      <div class="empty-icon">🎬</div>
+      <h2>No Upcoming Films</h2>
+      <p>No upcoming releases found from your followed filmmakers.</p>
+      <a href="index.html" class="btn-primary">Add People</a>
+    </div>
+
+    <!-- Upcoming Films List -->
+    <div class="upcoming-content hidden" id="upcomingContent">
+      <div class="upcoming-stats" id="upcomingStats"></div>
+      <div class="upcoming-list" id="upcomingList"></div>
+    </div>
+  </div>
+
+  <!-- Config Scripts -->
+  <script src="assets/js/env.config.js?v=1762290829"></script>
+  <script src="assets/js/config.local.js?v=1762290829"></script>
+  <script src="assets/js/config.js?v=1762290829"></script>
+  <script src="assets/js/upcoming.js?v=1762290829"></script>
+</body>
+</html>

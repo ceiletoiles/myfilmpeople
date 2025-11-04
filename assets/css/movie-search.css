@@ -364,22 +364,69 @@
   align-items: flex-start;
   justify-content: flex-start;
   padding-left: 0;
+  gap: 0.6rem;
+}
+
+.person-name-line {
+  width: 100%;
+  display: block;
+  margin-bottom: 1rem;
+  line-height: 1.3;
 }
 
 .person-name, .company-name {
   font-size: 1rem;
   font-weight: 600;
   color: var(--text-primary);
-  margin: 0 0 0.25rem 0;
+  margin: 0;
+  padding: 0;
   text-align: left;
-  align-self: flex-start;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 100%;
+  display: block;
+  line-height: 1.3;
 }
 
-.person-known-for, .company-description {
+.person-info-line {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  flex-wrap: nowrap;
+  width: 100%;
+  line-height: 1.3;
+}
+
+.person-department {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+  background: none;
+  padding: 0;
+  border-radius: 0;
+  font-weight: 600;
+  min-width: 100px;
+  display: inline-block;
+}
+
+.person-known-for-label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.person-known-for {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.company-description {
   font-size: 0.85rem;
   color: var(--text-secondary);
   margin: 0 0 0.25rem 0;
@@ -398,7 +445,7 @@
   justify-content: flex-start;
 }
 
-.person-department, .company-type {
+.company-type {
   font-size: 0.75rem;
   color: var(--text-muted);
   background: var(--bg-tertiary);
@@ -436,6 +483,21 @@
   .person-name, .company-name {
     font-size: 0.9rem;
   }
+
+  .person-info-line {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: nowrap;
+  }
+
+  .person-department {
+    font-size: 0.8rem;
+  }
+  
+  .person-known-for {
+    font-size: 0.8rem;
+  }
   
   .person-info-row, .company-info-row {
     justify-content: flex-start;
@@ -443,11 +505,11 @@
     gap: 0.5rem;
   }
   
-  .person-known-for, .company-description {
+  .company-description {
     font-size: 0.8rem;
   }
   
-  .person-department, .company-type {
+  .company-type {
     font-size: 0.7rem;
     align-self: flex-start;
   }
