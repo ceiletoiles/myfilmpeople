@@ -7,8 +7,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=PT+Sans:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/styles.css?v=1762295498">
-  <link rel="stylesheet" href="assets/css/upcoming.css?v=1762295498">
+  <link rel="stylesheet" href="assets/css/styles.css?v=1762376306">
+  <link rel="stylesheet" href="assets/css/upcoming.css?v=1762376306">
   <link rel="icon" href="assets/images/favicon.ico" type="image/x-icon">
 </head>
 <body>
@@ -59,6 +59,7 @@
       <button class="filter-tab" data-filter="directors">Directors</button>
       <button class="filter-tab" data-filter="actors">Actors</button>
       <button class="filter-tab" data-filter="others">Others</button>
+      <button class="filter-tab" data-filter="studios">Studios</button>
     </div>
 
     <!-- Loading State -->
@@ -80,12 +81,33 @@
       <div class="upcoming-stats" id="upcomingStats"></div>
       <div class="upcoming-list" id="upcomingList"></div>
     </div>
+
+    <!-- Studios List (for Studios tab) -->
+    <div class="studios-content hidden" id="studiosContent">
+      <div class="studios-stats" id="studiosStats"></div>
+      <div class="studios-grid" id="studiosGrid"></div>
+    </div>
+  </div>
+
+  <!-- Studio Films Modal -->
+  <div class="modal hidden" id="studioModal">
+    <div class="modal-overlay" id="studioModalOverlay"></div>
+    <div class="modal-content studio-modal-content">
+      <div class="modal-header">
+        <h2 id="studioModalTitle">Studio Name</h2>
+        <button class="modal-close" id="studioModalClose">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="studioModalStats" class="studio-modal-stats"></div>
+        <div id="studioModalFilms" class="studio-modal-films"></div>
+      </div>
+    </div>
   </div>
 
   <!-- Config Scripts -->
-  <script src="assets/js/env.netlify.js?v=1762295498"></script>
-  <script src="assets/js/config.local.js?v=1762295498"></script>
-  <script src="assets/js/config.js?v=1762295498"></script>
-  <script src="assets/js/upcoming.js?v=1762295498"></script>
+  <script src="assets/js/env.netlify.js?v=1762376306"></script>
+  <script src="assets/js/config.local.js?v=1762376306"></script>
+  <script src="assets/js/config.js?v=1762376306"></script>
+  <script src="assets/js/upcoming.js?v=1762376306"></script>
 </body>
 </html>

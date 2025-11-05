@@ -1570,9 +1570,17 @@ async fetchAndFillCompanyData(companyId) {
         if (!response.ok) throw new Error('Failed to fetch company data');
 
         const companyData = await response.json();
+        console.log('🏢 Company data fetched:', companyData);
+        
         document.getElementById('personName').value = companyData.name || '';
-        document.getElementById('profilePictureUrl').value = '';
+        document.getElementById('profilePictureUrl').value = companyData.logo_path 
+          ? `${TMDB_CONFIG.IMAGE_BASE_URL}${companyData.logo_path}` 
+          : '';
         document.getElementById('letterboxdUrl').value = TMDB_CONFIG.generateLetterboxdUrl(companyData.name, 'Studio');
+        
+        // Store the TMDb ID for the company
+        document.getElementById('manualTmdbId').value = companyId;
+        console.log('✅ Set TMDb ID for company:', companyId);
 
         // Update custom-dropdown-options dynamically
         const tmdbTypeSelector = document.getElementById('tmdbTypeSelector');

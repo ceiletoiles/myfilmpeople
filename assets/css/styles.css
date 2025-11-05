@@ -113,7 +113,7 @@ body {
   background: var(--bg-secondary);
   border: none;
   border-radius: 0;
-  padding: 15px 20px;
+  padding: 15px 60px 15px 60px;
   display: none;
   align-items: center;
   justify-content: center;
@@ -1759,11 +1759,19 @@ form {
     padding-left: 50px;
     padding-right: 50px;
   }
+
+  .movie-search-container {
+    padding: 15px 55px;
+  }
 }
 
 @media (max-width: 480px) {
   .sidebar {
     width: 100%;
     left: -100%;
+  }
+
+  .movie-search-container {
+    padding: 15px 50px;
   }
 }
