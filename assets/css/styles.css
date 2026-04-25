@@ -604,6 +604,20 @@ select option {
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
 }
 
+.company-card .company-avatar {
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  max-height: 130px;
+  aspect-ratio: auto;
+  object-fit: contain;
+  object-position: center;
+  border-radius: 8px;
+  padding: 0.35rem;
+  background: var(--bg-tertiary);
+  margin: 0 auto;
+}
+
 .person-name {
   display: block;
   text-align: center; /* Center align globally */
@@ -1542,6 +1556,19 @@ form {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
+.director-card.detailed-card.company-card .company-avatar.detailed-avatar {
+  width: auto !important;
+  max-width: min(220px, 40vw) !important;
+  height: auto !important;
+  max-height: 110px !important;
+  aspect-ratio: auto !important;
+  border-radius: 10px !important;
+  object-fit: contain !important;
+  object-position: center !important;
+  padding: 0.45rem;
+  background: var(--bg-tertiary);
+}
+
 .detailed-info {
   flex: 1;
   display: flex;
@@ -1599,6 +1626,11 @@ form {
   .detailed-avatar {
     width: 100px !important;
     height: 100px !important;
+  }
+
+  .director-card.detailed-card.company-card .company-avatar.detailed-avatar {
+    max-width: min(180px, 45vw) !important;
+    max-height: 90px !important;
   }
   
   .detailed-card .person-name {

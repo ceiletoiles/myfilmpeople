@@ -1320,10 +1320,17 @@ class UIManager {
     card.className = this.viewMode === 'detailed' ? 'director-card detailed-card' : 'director-card';
     card.setAttribute('data-name', person.name);
     card.setAttribute('data-id', person.id);
+    const isCompany = person.role === 'studio' || person.role === 'company';
+    if (isCompany) {
+      card.classList.add('company-card');
+    }
     
     // Add profile picture with fallback to default avatar
     let cardContent = '';
-    const avatarClass = this.viewMode === 'detailed' ? 'person-avatar detailed-avatar' : 'person-avatar';
+    let avatarClass = this.viewMode === 'detailed' ? 'person-avatar detailed-avatar' : 'person-avatar';
+    if (isCompany) {
+      avatarClass += ' company-avatar';
+    }
     
     if (person.profilePicture) {
       cardContent += `<img src="${person.profilePicture}" alt="${person.name}" class="${avatarClass}">`;
